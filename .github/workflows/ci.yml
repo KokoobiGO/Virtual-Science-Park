@@ -21,7 +21,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - run: npm ci
+      # npm on Windows drops some wasm-only optional packages from the
+      # lockfile, which makes `npm ci` refuse it on Linux. Fall back to
+      # `npm install` rather than fail the build over that.
+      - name: Install
+        run: npm ci || npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
