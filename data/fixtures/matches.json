@@ -1,0 +1,164 @@
+[
+  {
+    "company": "techinova",
+    "opportunity": "fixture-energimyndigheten-innovation-dec",
+    "breakdown": { "similarity": 0.78, "tagOverlap": 1, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["electricity grids", "energy"],
+    "why": "Energy-system calls fit Techinova's grid monitoring and fault-location products.",
+    "nextStep": "Read the call text and check that grid digitalisation is in scope before 8 December.",
+    "uncertainties": ["The call scope has not been checked against Techinova's products.", "Fixture data: confirm the deadline on the call page."]
+  },
+  {
+    "company": "techinova",
+    "opportunity": "fixture-testbed-rise-cyber-range",
+    "breakdown": { "similarity": 0.62, "tagOverlap": 1, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["cybersecurity", "critical infrastructure"],
+    "why": "An isolated OT test environment suits checking the security of grid equipment, following the CISSAN project.",
+    "nextStep": "Ask RISE whether the range can host RTU or SCADA equipment.",
+    "uncertainties": ["Unknown whether the range supports grid protocols."]
+  },
+  {
+    "company": "techinova",
+    "opportunity": "fixture-testbed-edih-sstech",
+    "breakdown": { "similarity": 0.55, "tagOverlap": 1, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["cybersecurity"],
+    "why": "The hub offers SMEs subsidised cybersecurity testing and expert help.",
+    "nextStep": "Check which services the hub offers after its November evaluation.",
+    "uncertainties": ["The hub's services may change after the 11 November evaluation."]
+  },
+  {
+    "company": "techinova",
+    "opportunity": "fixture-eic-accelerator",
+    "breakdown": { "similarity": 0.5, "tagOverlap": 0.5, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["AI on grid analysers", "energy"],
+    "why": "dSense's AI capability and the expansion to Poland and Finland fit a scale-up instrument.",
+    "nextStep": "Look up the next cut-off date and the short-application steps.",
+    "uncertainties": ["The planned acquisition by dLab may affect SME status."]
+  },
+  {
+    "company": "techinova",
+    "opportunity": "fixture-tcl-ai-agent",
+    "breakdown": { "similarity": 0.45, "tagOverlap": 1, "priorityBoost": 0, "urgency": 0.57, "feedback": 0 },
+    "matchedOn": ["AI"],
+    "why": "A hands-on course for teams building AI features into their products.",
+    "nextStep": "Check the course dates (19 to 30 November) and sign up through Tech Concept Lab.",
+    "uncertainties": ["The course may target business processes rather than product AI."]
+  },
+  {
+    "company": "techinova",
+    "opportunity": "fixture-almi-blekinge",
+    "breakdown": { "similarity": 0.35, "tagOverlap": 0, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["growth financing"],
+    "why": "Always-open innovation loans can bridge the expansion into new markets.",
+    "nextStep": "Book an advisory meeting with Almi Blekinge.",
+    "uncertainties": []
+  },
+  {
+    "company": "embeddedart",
+    "opportunity": "fixture-testbed-fmv-naval",
+    "breakdown": { "similarity": 0.82, "tagOverlap": 1, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["underwater sensors", "defence"],
+    "why": "FMV's ranges evaluate subsurface sensors and signatures, which is EmbeddedArt's core product area.",
+    "nextStep": "Ask FMV Test & Evaluation how a supplier books range time in Karlskrona.",
+    "uncertainties": ["Access may require a defence contract or sponsor."]
+  },
+  {
+    "company": "embeddedart",
+    "opportunity": "fixture-testbed-mtc-bth",
+    "breakdown": { "similarity": 0.8, "tagOverlap": 1, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["underwater communications", "sensors"],
+    "why": "A local test bed for underwater communications, ocean vehicles and sensors.",
+    "nextStep": "Ask BSP staff for a contact, because the project page could not be reached.",
+    "uncertainties": ["Not verified: the project page was unreachable.", "Runs only until 2027."]
+  },
+  {
+    "company": "embeddedart",
+    "opportunity": "fixture-testbed-mtc-salto",
+    "breakdown": { "similarity": 0.74, "tagOverlap": 1, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["marine", "defence"],
+    "why": "A Karlskrona environment for marine prototyping, close to EmbeddedArt.",
+    "nextStep": "Ask MTC when the sea test sites will open.",
+    "uncertainties": ["The sea test sites are still being built."]
+  },
+  {
+    "company": "embeddedart",
+    "opportunity": "fixture-testbed-rise-sspa",
+    "breakdown": { "similarity": 0.7, "tagOverlap": 0.5, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["underwater vehicles"],
+    "why": "The towing tank tests underwater vehicles, which fits sensor trials on the Malen submarine.",
+    "nextStep": "Ask RISE about tank time for a small submarine with a sensor payload.",
+    "uncertainties": ["The tank is in Gothenburg, so travel and transport add cost."]
+  },
+  {
+    "company": "embeddedart",
+    "opportunity": "fixture-marine-innovation-day",
+    "breakdown": { "similarity": 0.6, "tagOverlap": 1, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["marine"],
+    "why": "BSP's marine event gathers the local marine and defence buyers.",
+    "nextStep": "Ask BSP staff for the next date.",
+    "uncertainties": ["No date announced yet."]
+  },
+  {
+    "company": "embeddedart",
+    "opportunity": "fixture-eic-accelerator",
+    "breakdown": { "similarity": 0.45, "tagOverlap": 0.33, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["sensors"],
+    "why": "A scale-up instrument for deep-tech hardware such as new sensor products.",
+    "nextStep": "Check whether dual-use sensor products are eligible in the current work programme.",
+    "uncertainties": ["Defence applications may fall outside the programme."]
+  },
+  {
+    "company": "malvacom",
+    "opportunity": "fixture-tcl-ai-agent",
+    "breakdown": { "similarity": 0.76, "tagOverlap": 1, "priorityBoost": 1, "urgency": 0.57, "feedback": 0 },
+    "matchedOn": ["AI automation"],
+    "why": "The course builds AI agents for business processes, which is Malvacom's AI automation work.",
+    "nextStep": "Sign up through Tech Concept Lab; the course starts on 19 November.",
+    "uncertainties": []
+  },
+  {
+    "company": "malvacom",
+    "opportunity": "fixture-testbed-tcl-ai-lab",
+    "breakdown": { "similarity": 0.66, "tagOverlap": 1, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["generative AI"],
+    "why": "A local lab to try generative AI services before offering them to public-sector clients.",
+    "nextStep": "Ask Tech Concept Lab how to book the AI lab.",
+    "uncertainties": []
+  },
+  {
+    "company": "malvacom",
+    "opportunity": "fixture-vinnova-xr-sweden",
+    "breakdown": { "similarity": 0.58, "tagOverlap": 1, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["software development"],
+    "why": "Software consultancies can take part in XR projects as the development partner.",
+    "nextStep": "Read the round text when it opens on 24 November.",
+    "uncertainties": ["Malvacom has no stated XR experience."]
+  },
+  {
+    "company": "malvacom",
+    "opportunity": "fixture-bsp-bbi-joint-park",
+    "breakdown": { "similarity": 0.42, "tagOverlap": 0, "priorityBoost": 1, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["partners"],
+    "why": "A merged science park brings new companies that may need integration partners.",
+    "nextStep": "Ask BSP staff which incubator companies work with IoT or public-sector clients.",
+    "uncertainties": []
+  },
+  {
+    "company": "malvacom",
+    "opportunity": "fixture-testbed-edih-sstech",
+    "breakdown": { "similarity": 0.5, "tagOverlap": 0, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["public sector", "security"],
+    "why": "Public-sector clients increasingly ask for security testing of integrations.",
+    "nextStep": "Check whether the hub's testing covers integration and IoT security.",
+    "uncertainties": ["Cybersecurity is not among Malvacom's stated services."]
+  },
+  {
+    "company": "malvacom",
+    "opportunity": "fixture-region-blekinge-foretagsstod",
+    "breakdown": { "similarity": 0.4, "tagOverlap": 0, "priorityBoost": 0, "urgency": 0, "feedback": 0 },
+    "matchedOn": ["business development"],
+    "why": "Always-open regional support for business development projects.",
+    "nextStep": "Contact Region Blekinge about support for a new AI service.",
+    "uncertainties": []
+  }
+]

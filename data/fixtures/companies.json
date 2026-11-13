@@ -1,0 +1,281 @@
+[
+  {
+    "slug": "techinova",
+    "name": "Techinova",
+    "website": "https://techinova.com/sv",
+    "memberPage": "https://www.bluesciencepark.se/medlem/techinova/",
+    "industry": "Energy and electronics",
+    "isGold": true,
+    "userPriorities": ["funding"],
+    "snapshots": [
+      {
+        "key": "site",
+        "source": "company_site",
+        "url": "https://techinova.com/sv",
+        "lang": "en",
+        "text": "[FIXTURE] Hand-written sample text for development. Not fetched from this URL.\nTechinova develops electronics for safer and smarter electricity grids. Our products include RTUs, SCADA solutions and fault-location products for grid owners. dSense is a fault-passage analyser for grid owners that can run AI applications."
+      },
+      {
+        "key": "story",
+        "source": "bsp_news",
+        "url": "https://www.bluesciencepark.se/aktuellt/fran-projekt-till-produkt-techinova-tar-nasta-steg-inom-sakrare-elnat/",
+        "lang": "en",
+        "text": "[FIXTURE] Hand-written sample text for development. Not fetched from this URL.\nTechinova took part in the EU CETP project CISSAN on cybersecurity and AI together with BTH and Affärsverken. The company is expanding to Poland and Finland."
+      }
+    ],
+    "claims": [
+      {
+        "field": "summary",
+        "value": "Swedish electronics company making monitoring and fault-location products for electricity grids.",
+        "status": "stated",
+        "confidence": 0.85,
+        "evidence": [{ "snapshot": "site", "quote": "Techinova develops electronics for safer and smarter electricity grids." }]
+      },
+      {
+        "field": "offerings",
+        "value": ["RTUs", "SCADA solutions", "Fault-location products", "dSense fault-passage analyser"],
+        "status": "stated",
+        "confidence": 0.9,
+        "evidence": [{ "snapshot": "site", "quote": "Our products include RTUs, SCADA solutions and fault-location products for grid owners." }]
+      },
+      {
+        "field": "technologies",
+        "value": ["Embedded electronics", "AI on grid analysers", "Grid monitoring"],
+        "status": "stated",
+        "confidence": 0.8,
+        "evidence": [{ "snapshot": "site", "quote": "dSense is a fault-passage analyser for grid owners that can run AI applications." }]
+      },
+      {
+        "field": "applicationAreas",
+        "value": ["Power distribution grids", "Critical infrastructure"],
+        "status": "stated",
+        "confidence": 0.8,
+        "evidence": [{ "snapshot": "site", "quote": "Techinova develops electronics for safer and smarter electricity grids." }]
+      },
+      {
+        "field": "markets",
+        "value": ["Grid owners", "Energy utilities"],
+        "status": "stated",
+        "confidence": 0.75,
+        "evidence": [{ "snapshot": "site", "quote": "Our products include RTUs, SCADA solutions and fault-location products for grid owners." }]
+      },
+      {
+        "field": "geography",
+        "value": ["Sweden", "Poland", "Finland"],
+        "status": "stated",
+        "confidence": 0.7,
+        "evidence": [{ "snapshot": "story", "quote": "The company is expanding to Poland and Finland." }]
+      },
+      {
+        "field": "statedPriorities",
+        "value": ["Cybersecurity and AI for grids (EU CETP project CISSAN with BTH and Affärsverken)"],
+        "status": "stated",
+        "confidence": 0.7,
+        "evidence": [
+          {
+            "snapshot": "story",
+            "quote": "Techinova took part in the EU CETP project CISSAN on cybersecurity and AI together with BTH and Affärsverken."
+          }
+        ]
+      },
+      {
+        "field": "inferredInterests",
+        "value": ["Grid or critical-infrastructure testbeds", "Cybersecurity funding calls"],
+        "status": "inferred",
+        "confidence": 0.55,
+        "evidence": [
+          {
+            "snapshot": "story",
+            "quote": "Techinova took part in the EU CETP project CISSAN on cybersecurity and AI together with BTH and Affärsverken."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "embeddedart",
+    "name": "EmbeddedArt",
+    "website": "https://embeddedart.se",
+    "memberPage": "https://www.bluesciencepark.se/medlem/embeddedart/",
+    "industry": "Marine and defence technology",
+    "isGold": true,
+    "userPriorities": ["testing"],
+    "snapshots": [
+      {
+        "key": "site",
+        "source": "company_site",
+        "url": "https://embeddedart.se",
+        "lang": "sv",
+        "text": "[FIXTURE] Handskriven exempeltext för utveckling. Inte hämtad från denna adress.\nEmbeddedArt utvecklar UV-sensorer, sonar och hydroakustik för sjöbevakning, spaning och marina mätstationer. Vi erbjuder inbyggda system och IoT-lösningar. Vi stödjer försvaret med tekniska tjänster. Företaget har en egen ubåt, Malen, för tester till sjöss."
+      }
+    ],
+    "claims": [
+      {
+        "field": "summary",
+        "value": "Develops underwater sensors, sonar and hydroacoustics for maritime surveillance.",
+        "status": "stated",
+        "confidence": 0.85,
+        "evidence": [
+          {
+            "snapshot": "site",
+            "quote": "EmbeddedArt utvecklar UV-sensorer, sonar och hydroakustik för sjöbevakning, spaning och marina mätstationer."
+          }
+        ]
+      },
+      {
+        "field": "offerings",
+        "value": ["Underwater sensors", "Sonar systems", "Embedded and IoT development", "Defence support services"],
+        "status": "stated",
+        "confidence": 0.85,
+        "evidence": [
+          { "snapshot": "site", "quote": "Vi erbjuder inbyggda system och IoT-lösningar." },
+          { "snapshot": "site", "quote": "Vi stödjer försvaret med tekniska tjänster." }
+        ]
+      },
+      {
+        "field": "technologies",
+        "value": ["Hydroacoustics", "Sonar", "Embedded systems", "IoT"],
+        "status": "stated",
+        "confidence": 0.8,
+        "evidence": [
+          {
+            "snapshot": "site",
+            "quote": "EmbeddedArt utvecklar UV-sensorer, sonar och hydroakustik för sjöbevakning, spaning och marina mätstationer."
+          }
+        ]
+      },
+      {
+        "field": "applicationAreas",
+        "value": ["Maritime surveillance", "Reconnaissance", "Marine measuring stations"],
+        "status": "stated",
+        "confidence": 0.8,
+        "evidence": [
+          {
+            "snapshot": "site",
+            "quote": "EmbeddedArt utvecklar UV-sensorer, sonar och hydroakustik för sjöbevakning, spaning och marina mätstationer."
+          }
+        ]
+      },
+      {
+        "field": "markets",
+        "value": ["Defence", "Marine"],
+        "status": "stated",
+        "confidence": 0.75,
+        "evidence": [{ "snapshot": "site", "quote": "Vi stödjer försvaret med tekniska tjänster." }]
+      },
+      {
+        "field": "geography",
+        "value": null,
+        "status": "missing",
+        "confidence": 0,
+        "evidence": []
+      },
+      {
+        "field": "statedPriorities",
+        "value": ["Sea testing with its own submarine, Malen"],
+        "status": "stated",
+        "confidence": 0.7,
+        "evidence": [{ "snapshot": "site", "quote": "Företaget har en egen ubåt, Malen, för tester till sjöss." }]
+      },
+      {
+        "field": "inferredInterests",
+        "value": ["Underwater test ranges", "Defence innovation funding"],
+        "status": "inferred",
+        "confidence": 0.6,
+        "reviewState": "superseded",
+        "evidence": [{ "snapshot": "site", "quote": "Vi stödjer försvaret med tekniska tjänster." }]
+      },
+      {
+        "field": "inferredInterests",
+        "value": ["Underwater test ranges for sensor trials in spring 2027", "Defence innovation funding"],
+        "status": "user_corrected",
+        "updatedBy": "user",
+        "visibility": "private",
+        "confidence": 1,
+        "evidence": []
+      }
+    ]
+  },
+  {
+    "slug": "malvacom",
+    "name": "Malvacom",
+    "website": "https://malvacom.com",
+    "memberPage": "https://www.bluesciencepark.se/medlem/malvacom/",
+    "industry": "IT services",
+    "isGold": true,
+    "userPriorities": ["partners", "events"],
+    "snapshots": [
+      {
+        "key": "site",
+        "source": "company_site",
+        "url": "https://malvacom.com",
+        "lang": "en",
+        "text": "[FIXTURE] Hand-written sample text for development. Not fetched from this URL.\nMalvacom is an IT consultancy with about 30 consultants. We build software, integrate systems including IoT over MQTT, and automate work with AI. 15+ years of deliveries to the public sector."
+      }
+    ],
+    "claims": [
+      {
+        "field": "summary",
+        "value": "IT consultancy of about 30 consultants building software, system integration and AI automation.",
+        "status": "stated",
+        "confidence": 0.85,
+        "evidence": [{ "snapshot": "site", "quote": "Malvacom is an IT consultancy with about 30 consultants." }]
+      },
+      {
+        "field": "offerings",
+        "value": ["Software development", "System integration", "IoT integration over MQTT", "AI automation"],
+        "status": "stated",
+        "confidence": 0.85,
+        "evidence": [
+          { "snapshot": "site", "quote": "We build software, integrate systems including IoT over MQTT, and automate work with AI." }
+        ]
+      },
+      {
+        "field": "technologies",
+        "value": ["MQTT", "IoT", "AI automation"],
+        "status": "stated",
+        "confidence": 0.8,
+        "evidence": [
+          { "snapshot": "site", "quote": "We build software, integrate systems including IoT over MQTT, and automate work with AI." }
+        ]
+      },
+      {
+        "field": "applicationAreas",
+        "value": ["Public-sector digitalisation", "Business process automation"],
+        "status": "inferred",
+        "confidence": 0.6,
+        "evidence": [{ "snapshot": "site", "quote": "15+ years of deliveries to the public sector." }]
+      },
+      {
+        "field": "markets",
+        "value": ["Public sector"],
+        "status": "stated",
+        "confidence": 0.8,
+        "evidence": [{ "snapshot": "site", "quote": "15+ years of deliveries to the public sector." }]
+      },
+      {
+        "field": "geography",
+        "value": null,
+        "status": "missing",
+        "confidence": 0,
+        "evidence": []
+      },
+      {
+        "field": "statedPriorities",
+        "value": null,
+        "status": "missing",
+        "confidence": 0,
+        "evidence": []
+      },
+      {
+        "field": "inferredInterests",
+        "value": ["AI and public-sector digitalisation calls", "Partnering with IoT hardware members"],
+        "status": "inferred",
+        "confidence": 0.55,
+        "evidence": [
+          { "snapshot": "site", "quote": "We build software, integrate systems including IoT over MQTT, and automate work with AI." }
+        ]
+      }
+    ]
+  }
+]

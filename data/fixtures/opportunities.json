@@ -1,0 +1,149 @@
+[
+  {
+    "externalId": "fixture-energimyndigheten-innovation-dec",
+    "kind": "funding",
+    "source": "Energimyndigheten",
+    "title": "Energimyndigheten innovation calls closing 8 December",
+    "url": "https://www.energimyndigheten.se/utlysningar/",
+    "description": "Innovation calls for companies developing energy-system and grid solutions. Fixture text: read the call page for the real scope.",
+    "deadline": "2026-12-08",
+    "tags": ["energy"]
+  },
+  {
+    "externalId": "fixture-vinnova-xr-sweden",
+    "kind": "funding",
+    "source": "Vinnova",
+    "title": "Vinnova: XR Sweden round",
+    "url": "https://www.vinnova.se/",
+    "description": "Funding round for extended-reality projects. Fixture text: read the round page for the real scope.",
+    "opensAt": "2026-11-24",
+    "deadline": "2026-12-15",
+    "tags": ["ai"]
+  },
+  {
+    "externalId": "fixture-eic-accelerator",
+    "kind": "funding",
+    "source": "EU Funding & Tenders",
+    "title": "EIC Accelerator",
+    "url": "https://eic.ec.europa.eu/eic-funding-opportunities/eic-accelerator_en",
+    "description": "EU grant and equity support for start-ups and SMEs scaling breakthrough technology. Applications go in against cut-off dates.",
+    "tags": ["energy", "sensor", "ai"]
+  },
+  {
+    "externalId": "fixture-region-blekinge-foretagsstod",
+    "kind": "funding",
+    "source": "Region Blekinge",
+    "title": "Region Blekinge business support",
+    "url": "https://regionblekinge.se/foretagsstod",
+    "description": "Always-open regional support for business development and innovation projects in Blekinge.",
+    "tags": []
+  },
+  {
+    "externalId": "fixture-almi-blekinge",
+    "kind": "funding",
+    "source": "Almi Blekinge",
+    "title": "Almi Blekinge: innovation loans and advice",
+    "url": "https://www.almi.se/regioner/blekinge/",
+    "description": "Always-open loans, innovation support and advice for growing companies in Blekinge.",
+    "tags": []
+  },
+  {
+    "externalId": "fixture-tcl-ai-agent",
+    "kind": "event",
+    "source": "Tech Concept Lab",
+    "title": "Bygg en AI-agent för verksamheten",
+    "url": "https://techconceptlab.com/",
+    "description": "Hands-on course on building an AI agent for your own business, 19 to 30 November.",
+    "eventDate": "2026-11-19",
+    "tags": ["ai"]
+  },
+  {
+    "externalId": "fixture-marine-innovation-day",
+    "kind": "event",
+    "source": "Blue Science Park",
+    "title": "Marine Innovation Day (recurring, no date yet)",
+    "url": "https://www.bluesciencepark.se/event/",
+    "description": "Recurring BSP event for marine innovation. The next date has not been announced.",
+    "tags": ["marine"]
+  },
+  {
+    "externalId": "fixture-bsp-bbi-joint-park",
+    "kind": "news",
+    "source": "Blue Science Park",
+    "title": "BSP and Blekinge Business Incubator announce a joint science park",
+    "url": "https://www.bluesciencepark.se/",
+    "description": "Blue Science Park and Blekinge Business Incubator plan to join forces in one science park.",
+    "publishedAt": "2026-11-13",
+    "tags": []
+  },
+  {
+    "externalId": "fixture-testbed-mtc-salto",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "MTC Saltö environment, Karlskrona",
+    "url": "https://www.mtcos.se/news/har-vaxer-en-ny-miljo-fram-i-karlskrona-dar-framtidens-marinteknik-testas-i-verkligheten/",
+    "description": "Marine prototyping and workshops; sea test sites are planned and still being built. Fits marine and defence start-ups and unmanned vessels.",
+    "verified": true,
+    "tags": ["marine", "defence"]
+  },
+  {
+    "externalId": "fixture-testbed-fmv-naval",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "FMV Naval Test Ranges (incl. Karlskrona)",
+    "url": "https://testandevaluation.fmv.se/about/test-ranges/fmv-naval-test-ranges/",
+    "description": "Test and evaluation of surface and subsurface platforms, sensors, electronic warfare and signatures. Fits defence suppliers.",
+    "verified": true,
+    "tags": ["defence", "marine", "sensor"]
+  },
+  {
+    "externalId": "fixture-testbed-rise-sspa",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "RISE SSPA towing tank",
+    "url": "https://www.ri.se/en/maritime/test-demo/towing-tank",
+    "description": "Tests of hulls, propellers, seakeeping and underwater vehicles. Fits vessel and AUV developers.",
+    "verified": true,
+    "tags": ["marine", "sensor"]
+  },
+  {
+    "externalId": "fixture-testbed-mtc-bth",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "MTC Test Bed at BTH",
+    "url": "https://www.mtcos.se/",
+    "description": "Underwater communications, ocean vehicles and sensors (2024 to 2027). The project page could not be reached when the list was made.",
+    "verified": false,
+    "tags": ["marine", "sensor"]
+  },
+  {
+    "externalId": "fixture-testbed-rise-cyber-range",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "RISE Cyber Range",
+    "url": "https://www.ri.se/en/cyberrange",
+    "description": "Isolated and virtual cyber test environments for IT, OT and IoT security.",
+    "verified": true,
+    "tags": ["cyber"]
+  },
+  {
+    "externalId": "fixture-testbed-edih-sstech",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "Sweden Secure Tech Hub (EDIH)",
+    "url": "https://european-digital-innovation-hubs.ec.europa.eu/edih-catalogue/sweden-secure-tech-hub-sweden-ict",
+    "description": "Expert help, testing and training in cybersecurity for SMEs.",
+    "verified": true,
+    "tags": ["cyber"]
+  },
+  {
+    "externalId": "fixture-testbed-tcl-ai-lab",
+    "kind": "testbed",
+    "source": "Curated testbed list",
+    "title": "Tech Concept Lab / AI Lab Blekinge",
+    "url": "https://techconceptlab.com/",
+    "description": "Generative AI experiments and a test environment for digital and AI firms.",
+    "verified": true,
+    "tags": ["ai"]
+  }
+]
