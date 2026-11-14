@@ -18,6 +18,12 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Soft status tones (C1). Pair them with words: colour alone never carries the meaning.
+        success: "border-success/35 bg-success-soft text-success",
+        warning: "border-warning/40 bg-warning-soft text-warning",
+        info: "border-info/35 bg-info-soft text-info",
+        simulated: "border-simulated/40 bg-simulated-soft text-simulated",
+        muted: "border-dashed border-muted-foreground/50 bg-muted text-muted-foreground",
       },
     },
     defaultVariants: {

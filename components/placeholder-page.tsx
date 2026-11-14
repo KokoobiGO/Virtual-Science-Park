@@ -9,9 +9,11 @@ import type { AppRole } from "@/lib/schemas";
  */
 export function PlaceholderPage({ title, backlog, role }: { title: string; backlog: string; role?: AppRole }) {
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-10">
-      <h1 className="text-2xl font-semibold">{title}</h1>
-      <p className="text-muted-foreground">This screen arrives with backlog item {backlog}.</p>
+    <section className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-10">
+      <h1 className="text-title">{title}</h1>
+      <p className="rounded-xl border border-dashed p-6 text-muted-foreground">
+        This screen arrives with backlog item {backlog}.
+      </p>
       <Suspense>
         <Gate role={role} />
       </Suspense>
