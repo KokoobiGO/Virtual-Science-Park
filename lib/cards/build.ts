@@ -41,8 +41,8 @@ export async function companiesForCards({ slugs }: { slugs?: readonly string[] }
     .orderBy(asc(companies.slug));
 }
 
-/** The cards for one company and week, from what is stored now. Nothing is written. */
-export async function draftWeekCards(company: CompanyForCards, weekOf: string): Promise<CardDraft[]> {
+/** The cards for one company and week, from what is stored now. Nothing is written. `now` decides which calls are open yet. */
+export async function draftWeekCards(company: CompanyForCards, weekOf: string, { now = new Date() }: { now?: Date } = {}): Promise<CardDraft[]> {
   const db = getDb();
   const [candidates, notes] = await Promise.all([
     db
@@ -56,6 +56,7 @@ export async function draftWeekCards(company: CompanyForCards, weekOf: string): 
         source: opportunities.source,
         title: opportunities.title,
         url: opportunities.url,
+        opensAt: opportunities.opensAt,
         why: matches.why,
         nextStep: matches.nextStep,
         uncertainties: matches.uncertainties,
@@ -73,7 +74,7 @@ export async function draftWeekCards(company: CompanyForCards, weekOf: string): 
   ]);
   return buildCards(
     candidates.map(({ judgedAt, ...c }) => ({ ...c, judged: judgedAt !== null })),
-    { trendNotes: notes, weekOf, companyTags: company.tags },
+    { trendNotes: notes, weekOf, companyTags: company.tags, now },
   );
 }
 
@@ -98,7 +99,7 @@ export type BuiltWeekCards = { slug: string; name: string; weekOf: string; cards
 /** Builds one company's cards for the week `now` falls in, and stores them unless `dry`. */
 export async function buildWeekCards(company: CompanyForCards, { now = new Date(), dry = false }: { now?: Date; dry?: boolean } = {}): Promise<BuiltWeekCards> {
   const weekOf = mondayOf(now);
-  const cards = await draftWeekCards(company, weekOf);
+  const cards = await draftWeekCards(company, weekOf, { now });
   const stored = dry ? null : await storeWeekCards(company.id, weekOf, cards);
   return { slug: company.slug, name: company.name, weekOf, cards, stored };
 }

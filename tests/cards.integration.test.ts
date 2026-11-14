@@ -10,11 +10,11 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import { storeWeekCards } from "../lib/cards/build";
-import type { CardDraft } from "../lib/cards/select";
+import { companiesForCards, draftWeekCards, storeWeekCards } from "../lib/cards/build";
+import { notOpenYet, type CardDraft } from "../lib/cards/select";
 import { mondayOf } from "../lib/cards/week";
 import { closeDb, getDb } from "../lib/db";
-import { companies, matches, weekCards } from "../lib/db/schema";
+import { companies, matches, opportunities, weekCards } from "../lib/db/schema";
 import type { UserTx } from "../lib/db/user";
 
 const configured = Boolean(process.env.DATABASE_URL);
@@ -102,5 +102,27 @@ describe.skipIf(!configured)("week cards in the database", () => {
 
     const left = await getDb().select({ id: weekCards.id }).from(weekCards).where(eq(weekCards.weekOf, weekOf));
     expect(left).toEqual([]);
+  });
+
+  it("drafts open items first: a call that is not open yet only fills up to 5, after them", async () => {
+    // Read only: drafting writes nothing.
+    const now = new Date();
+    for (const company of await companiesForCards({ slugs: ["embeddedart", "malvacom", "techinova"] })) {
+      const cards = (await draftWeekCards(company, mondayOf(now), { now })).filter((c) => c.kind === "match");
+      const ids = cards.map((c) => c.opportunityId!);
+      const opens = new Map(
+        ids.length
+          ? (await getDb().select({ id: opportunities.id, opensAt: opportunities.opensAt }).from(opportunities).where(inArray(opportunities.id, ids))).map((r) => [r.id, r.opensAt])
+          : [],
+      );
+      const closed = ids.map((id) => notOpenYet({ opensAt: opens.get(id) ?? null }, now));
+      const open = closed.filter((c) => !c).length;
+      if (closed.some(Boolean)) {
+        expect(open, company.slug).toBeLessThan(5);
+        expect(cards.length, company.slug).toBeLessThanOrEqual(5);
+      }
+      // Once a card is for a call that is not open yet, every card after it is too.
+      expect(closed, company.slug).toEqual([...closed].sort((a, b) => Number(a) - Number(b)));
+    }
   });
 });

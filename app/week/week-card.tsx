@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { calendarHref, cardDates, isWebLink, kindLabel, sourceLabel } from "@/lib/week/format";
+import { calendarHref, cardDates, isWebLink, kindLabel, notOpenYetLabel, sourceLabel } from "@/lib/week/format";
 import type { WeekCardView } from "@/lib/week/load";
 import { CardActions } from "./card-actions";
 
@@ -45,6 +45,7 @@ function Sources({ sources }: { sources: WeekCardView["sources"] }) {
 export function WeekCard({ card, now }: { card: WeekCardView; now: Date }) {
   const opportunity = card.kind === "match" ? card.opportunity : null;
   const dates = opportunity ? cardDates(opportunity, now) : [];
+  const notOpen = opportunity ? notOpenYetLabel(opportunity.opensAt, now) : null;
   const area = card.trendArea ? (AREA_LABELS[card.trendArea] ?? card.trendArea) : null;
 
   return (
@@ -61,6 +62,7 @@ export function WeekCard({ card, now }: { card: WeekCardView; now: Date }) {
               <Badge>Potential match</Badge>
               {opportunity ? <Badge variant="secondary">{kindLabel(opportunity.kind)}</Badge> : null}
               {opportunity ? <Badge variant="outline">{opportunity.source}</Badge> : null}
+              {notOpen ? <Badge variant="warning">{notOpen}</Badge> : null}
               {opportunity?.simulated ? (
                 <Badge variant="outline" className="border-dashed" title="Entered by hand by the team, not read from a live source">
                   Simulated data

@@ -15,7 +15,7 @@ import { closeDb, getDb } from "../db";
 import { companies, feedback, handoffs, opportunities, savedItems, weekCards } from "../db/schema";
 import type { UserTx } from "../db/user";
 import { askBspAboutOpportunity } from "./handoff";
-import { loadCalendarItem, loadWeek } from "./load";
+import { loadCalendarItem, loadWeek, loadWeekStatus } from "./load";
 import { setFeedback, setSaved } from "./store";
 
 const configured = Boolean(process.env.DATABASE_URL);
@@ -118,6 +118,12 @@ describe.skipIf(!configured)("Your week as a signed-in member", () => {
       ]);
       expect(week.cards[0].opportunity).toMatchObject({ id: first.id });
       expect(week.cards[0].uncertainties).toEqual(["Test open point"]);
+      // Keys stay the same when the cards are built again; the build time is what the page polls for.
+      expect(week.cards.map((c) => c.key)).toEqual([`opportunity:${first.id}`, `opportunity:${second.id}`]);
+      expect(week.builtAt).toBeInstanceOf(Date);
+      const status = await loadWeekStatus(tx, embeddedart.id);
+      expect(status).toMatchObject({ weekOf, builtAt: week.builtAt });
+      expect(status.profileChangedAt).toBeInstanceOf(Date);
       expect(await loadCalendarItem(tx, first.id)).toMatchObject({ opportunityId: first.id, title: first.title });
 
       // Clear and unsave.
@@ -136,7 +142,7 @@ describe.skipIf(!configured)("Your week as a signed-in member", () => {
         ),
       ).toBe(true);
       // Malvacom's cards stay hidden from EmbeddedArt's member, whatever is stored.
-      expect(await loadWeek(tx, { companyId: malvacom.id, userId })).toEqual({ weekOf: null, cards: [] });
+      expect(await loadWeek(tx, { companyId: malvacom.id, userId })).toEqual({ weekOf: null, builtAt: null, cards: [] });
     });
 
     const left = await getDb().select({ id: weekCards.id }).from(weekCards).where(eq(weekCards.weekOf, weekOf));

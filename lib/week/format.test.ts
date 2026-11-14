@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarHref, cardDates, formatWhen, isWebLink, isWholeDay, kindLabel, sourceLabel, weekLabel } from "./format";
+import { calendarHref, cardDates, formatWhen, isWebLink, isWholeDay, kindLabel, notOpenYetLabel, sourceLabel, weekLabel } from "./format";
 
 describe("formatWhen", () => {
   it("shows the Swedish date and time when the source gives a time", () => {
@@ -42,6 +42,21 @@ describe("cardDates", () => {
 
   it("marks a date that has passed", () => {
     expect(cardDates({ deadline: new Date("2026-11-10T13:00:00Z"), eventDate: null }, now)[0].passed).toBe(true);
+  });
+});
+
+describe("notOpenYetLabel", () => {
+  const now = new Date("2026-11-14T10:00:00Z");
+
+  it("names the opening date while it is ahead", () => {
+    expect(notOpenYetLabel(new Date("2026-11-30T23:00:00Z"), now)).toBe("Not open yet: opens 1 Dec 2026");
+    expect(notOpenYetLabel(new Date("2026-11-20T08:00:00Z"), now)).toBe("Not open yet: opens 20 Nov 2026, 09:00");
+  });
+
+  it("says nothing once the call is open or without a date", () => {
+    expect(notOpenYetLabel(new Date("2026-11-01T00:00:00Z"), now)).toBeNull();
+    expect(notOpenYetLabel(now, now)).toBeNull();
+    expect(notOpenYetLabel(null, now)).toBeNull();
   });
 });
 

@@ -14,6 +14,16 @@
  * one Voyage call each, well under Netlify's 30 s. A rate limit (429) fails
  * the step and Inngest tries it again a minute later; the Voyage key without
  * billing allows 3 requests and 10,000 tokens a minute.
+ *
+ * After a profile text edit (C8) the match job asks for one company:
+ *
+ *   await inngest.send({ name: "app/company.embed.requested", data: { companyId, slug } })
+ *
+ * That is one step (one tagger call, one Voyage call for both texts), queued
+ * behind any other enrich step by the concurrency limit, and then
+ * `app/match.requested` for that company with `afterProfileChange`, so the
+ * match job ranks it, has the new rows judged and builds its cards again.
+ * When another run already built the embedding, the step skips the calls.
  */
 import { NonRetriableError, RetryAfterError } from "inngest";
 import { z } from "zod";
@@ -28,6 +38,7 @@ import {
   listPending,
   type EnrichResult,
 } from "@/lib/embeddings/enrich";
+import { embeddingAge, needsNewEmbedding } from "@/lib/embeddings/stale";
 import { NvidiaApiError } from "@/lib/nvidia";
 import { VoyageApiError } from "@/lib/voyage";
 import { inngest } from "../client";
@@ -36,6 +47,8 @@ const EnrichRequest = z.object({
   force: z.boolean().default(false),
   limit: z.number().int().positive().optional(),
 });
+
+const EmbedRequest = z.object({ companyId: z.uuid(), slug: z.string().min(1) });
 
 export type EnrichJobResult = { opportunities: EnrichResult; companies: EnrichResult };
 
@@ -60,9 +73,38 @@ export const enrichJob = inngest.createFunction(
     retries: 3,
     // One step at a time across runs: the Voyage key's limit is per minute.
     concurrency: { limit: 1 },
-    triggers: [{ cron: "TZ=Europe/Stockholm 30 3 * * *" }, { event: "app/enrich.requested" }],
+    triggers: [{ cron: "TZ=Europe/Stockholm 30 3 * * *" }, { event: "app/enrich.requested" }, { event: "app/company.embed.requested" }],
   },
   async ({ event, step }): Promise<EnrichJobResult> => {
+    if (event.name === "app/company.embed.requested") {
+      const embed = EmbedRequest.safeParse(event.data ?? {});
+      if (!embed.success) throw new NonRetriableError(`Bad event data: ${embed.error.message}`);
+      const { companyId, slug } = embed.data;
+
+      const companies = await step.run("company", async () => {
+        // Two quick edits send two requests: the second finds the embedding already new.
+        if (!needsNewEmbedding(await embeddingAge(companyId))) return emptyEnrichResult();
+        return retryLaterOn429(() => enrichCompanies([companyId]));
+      });
+      await step.run("record run", async () => {
+        await getDb()
+          .insert(jobRuns)
+          .values({
+            job: "enrich",
+            trigger: event.name,
+            status: "succeeded",
+            startedAt: new Date(event.ts ?? Date.now()),
+            finishedAt: new Date(),
+            inputTokens: companies.tagger.inputTokens,
+            outputTokens: companies.tagger.outputTokens,
+            stats: { company: slug, companies },
+          });
+      });
+      // Rank with the new embedding, then judge the new rows and build the cards again.
+      await step.sendEvent("request matching", { name: "app/match.requested", data: { slugs: [slug], afterProfileChange: true } });
+      return { opportunities: emptyEnrichResult(), companies };
+    }
+
     const request = EnrichRequest.safeParse(event.data ?? {});
     if (!request.success) throw new NonRetriableError(`Bad event data: ${request.error.message}`);
     const { force, limit } = request.data;

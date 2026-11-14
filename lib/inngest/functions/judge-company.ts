@@ -10,6 +10,11 @@
  * every ranked row again. Each model call is its own step (a step may take
  * 30 s at most on Netlify); see lib/judge/company.ts for the rounds. A rate
  * limit (429) fails the step and Inngest tries it again a minute later.
+ *
+ * With `cards: true` (sent by the match job after a re-rank, C8) it asks for
+ * the company's "Your week" cards to be built again when it is done:
+ *
+ *   await inngest.send({ name: "app/company.judge.requested", data: { slug: "embeddedart", cards: true } })
  */
 import { NonRetriableError, RetryAfterError } from "inngest";
 import { z } from "zod";
@@ -22,6 +27,8 @@ import { inngest } from "../client";
 const JudgeRequest = z.object({
   slug: z.string().min(1),
   force: z.boolean().default(false),
+  /** Build the company's week cards again when done. */
+  cards: z.boolean().default(false),
 });
 
 /** The run's output: the counts, and the judged lines without the long texts. */
@@ -41,7 +48,7 @@ export const judgeCompanyJob = inngest.createFunction(
   async ({ event, step }): Promise<JudgeCompanyJobResult> => {
     const request = JudgeRequest.safeParse(event.data);
     if (!request.success) throw new NonRetriableError(`Bad event data: ${request.error.message}`);
-    const { slug, force } = request.data;
+    const { slug, force, cards } = request.data;
 
     // Every database read and model call runs inside a step, so a replay sees the same plan.
     const run: StepRunner = (name, work) =>
@@ -83,9 +90,13 @@ export const judgeCompanyJob = inngest.createFunction(
             calls: result.usage.calls,
             modelSeconds: result.modelSeconds,
             refill: result.refill,
+            cards,
           },
         });
     });
+
+    // The cards are built from judged rows: now they can follow the new ranking.
+    if (cards) await step.sendEvent("request cards", { name: "app/cards.requested", data: { slugs: [slug] } });
 
     return {
       ...result,

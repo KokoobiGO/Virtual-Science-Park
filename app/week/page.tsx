@@ -8,8 +8,10 @@ import { mondayOf } from "@/lib/cards/week";
 import { withUserDb } from "@/lib/db/user";
 import { NAV } from "@/lib/navigation";
 import { weekLabel } from "@/lib/week/format";
-import { loadWeek } from "@/lib/week/load";
+import { statusJson } from "@/lib/week/live";
+import { loadProfileChangedAt, loadWeek } from "@/lib/week/load";
 import { WeekCard } from "./week-card";
+import { WeekLive } from "./week-live";
 
 export const metadata = { title: "Your week" };
 
@@ -37,10 +39,15 @@ async function WeekContent() {
   if (viewer.role !== "member" || !viewer.companyId) return <StaffNotice />;
 
   const companyId = viewer.companyId;
-  const week = await withUserDb(viewer.claims, (tx) => loadWeek(tx, { companyId, userId: viewer.userId }));
-  if (!week.weekOf || !week.cards.length) return <NoCards />;
-
+  const { week, profileChangedAt } = await withUserDb(viewer.claims, async (tx) => ({
+    week: await loadWeek(tx, { companyId, userId: viewer.userId }),
+    profileChangedAt: await loadProfileChangedAt(tx, companyId),
+  }));
   const now = new Date();
+  // The page polls this and loads the new order once the cards were built again (C8).
+  const status = statusJson({ weekOf: week.weekOf, builtAt: week.builtAt, profileChangedAt }, now);
+  if (!week.weekOf || !week.cards.length) return <WeekLive companyId={companyId} status={status} items={[]} empty={<NoCards />} />;
+
   const thisWeek = mondayOf(now);
   return (
     <div className="flex flex-col gap-4">
@@ -52,13 +59,11 @@ async function WeekContent() {
           </p>
         ) : null}
       </div>
-      <ol className="flex flex-col gap-4">
-        {week.cards.map((card) => (
-          <li key={card.id}>
-            <WeekCard card={card} now={now} />
-          </li>
-        ))}
-      </ol>
+      <WeekLive
+        companyId={companyId}
+        status={status}
+        items={week.cards.map((card) => ({ key: card.key, card: <WeekCard card={card} now={now} /> }))}
+      />
     </div>
   );
 }
@@ -69,8 +74,8 @@ function NoCards() {
       <CardHeader>
         <CardTitle>No cards yet</CardTitle>
         <CardDescription>
-          Your cards are built every Monday morning from the opportunities ranked for your company. None have been built for
-          your company yet.
+          Your cards are built every Monday morning, and again after your profile changes, from the opportunities ranked
+          for your company. None have been built for your company yet.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">

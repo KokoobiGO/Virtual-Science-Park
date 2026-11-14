@@ -11,6 +11,7 @@ const now = new Date("2026-11-14T10:00:00Z");
 
 const matchCard = (over: Partial<WeekCardView> = {}): WeekCardView => ({
   id: "card-1",
+  key: "opportunity:1d93e14c-54cc-4212-8636-4a199f9c7c9d",
   position: 1,
   kind: "match",
   title: "The Baltic Marine Watchdog Challenge",
@@ -23,6 +24,7 @@ const matchCard = (over: Partial<WeekCardView> = {}): WeekCardView => ({
     kind: "funding",
     source: "Vinnova",
     url: "https://www.vinnova.se/e/watchdog/",
+    opensAt: null,
     deadline: new Date("2026-12-02T13:00:00Z"),
     eventDate: null,
     simulated: false,
@@ -55,7 +57,14 @@ describe("WeekCard", () => {
       expect(html).toContain(text);
     }
     expect(html).not.toContain("Simulated");
+    expect(html).not.toContain("Not open yet");
     expect(html).not.toMatch(/eligible/i);
+  });
+
+  it("says when a call is not open yet, and stops once it has opened", () => {
+    const opportunity = matchCard().opportunity!;
+    expect(render(matchCard({ opportunity: { ...opportunity, opensAt: new Date("2026-11-30T23:00:00Z") } }))).toContain("Not open yet: opens 1 Dec 2026");
+    expect(render(matchCard({ opportunity: { ...opportunity, opensAt: new Date("2026-11-01T00:00:00Z") } }))).not.toContain("Not open yet");
   });
 
   it("has every button, a calendar download and a source link that opens in a new tab", () => {

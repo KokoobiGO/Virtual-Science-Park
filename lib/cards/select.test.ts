@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OpportunityKind } from "../schemas";
-import { buildCards, CARD_RULES, pickMatches, pickTrendNote, TREND_NEXT_STEP, type CardCandidate, type TrendNoteForCard } from "./select";
+import { buildCards, CARD_RULES, notOpenYet, pickMatches, pickTrendNote, TREND_NEXT_STEP, type CardCandidate, type TrendNoteForCard } from "./select";
 
 let n = 0;
 function match(kind: OpportunityKind, source: string, overrides: Partial<CardCandidate> = {}): CardCandidate {
@@ -15,6 +15,7 @@ function match(kind: OpportunityKind, source: string, overrides: Partial<CardCan
     source,
     title: `Opportunity ${n}`,
     url: `https://example.org/${n}`,
+    opensAt: null,
     why: `Why ${n}.`,
     nextStep: `Next step ${n}.`,
     uncertainties: [`Open question ${n}`],
@@ -97,6 +98,64 @@ describe("pickMatches", () => {
   it("returns what there is when the matches run out", () => {
     expect(ranks(pickMatches(ranked(["funding", "EU"], ["funding", "EU"], ["funding", "EU"], ["funding", "EU"])))).toEqual([1, 2, 3, 4]);
     expect(pickMatches([])).toEqual([]);
+  });
+});
+
+describe("calls that are not open yet", () => {
+  const now = new Date("2026-11-14T10:00:00Z");
+  const later = new Date("2026-12-01T00:00:00Z");
+  const earlier = new Date("2026-11-01T00:00:00Z");
+
+  /** Candidates in rank order; the ranks in `closed` open later than `now`. */
+  function withClosed(specs: [OpportunityKind, string][], closed: number[]): CardCandidate[] {
+    return ranked(...specs).map((c) => (closed.includes(c.rank!) ? { ...c, opensAt: later } : c));
+  }
+
+  it("knows an opening date ahead from one that has passed", () => {
+    expect(notOpenYet({ opensAt: later }, now)).toBe(true);
+    expect(notOpenYet({ opensAt: earlier }, now)).toBe(false);
+    expect(notOpenYet({ opensAt: now }, now)).toBe(false);
+    expect(notOpenYet({ opensAt: null }, now)).toBe(false);
+  });
+
+  it("leaves a call that is not open yet out when 5 open items are there", () => {
+    const picked = pickMatches(
+      withClosed([["funding", "A"], ["testbed", "B"], ["event", "C"], ["funding", "D"], ["testbed", "E"], ["event", "F"], ["funding", "G"]], [1]),
+      { now },
+    );
+    expect(ranks(picked)).toEqual([2, 3, 4, 5, 6, 7]);
+  });
+
+  it("stops at the open items even below 6 when there are 5", () => {
+    const picked = pickMatches(withClosed([["funding", "A"], ["testbed", "B"], ["event", "C"], ["funding", "D"], ["testbed", "E"], ["event", "F"]], [2]), { now });
+    expect(ranks(picked)).toEqual([1, 3, 4, 5, 6]);
+  });
+
+  it("lets calls that are not open yet fill up to 5, after the open ones", () => {
+    const picked = pickMatches(withClosed([["funding", "A"], ["funding", "B"], ["testbed", "C"], ["event", "D"], ["funding", "E"], ["funding", "F"], ["testbed", "G"]], [1, 2, 5]), {
+      now,
+    });
+    // Open: 3, 4, 6, 7 (four). One closed call fills to 5: rank 1, placed after the open ones.
+    expect(ranks(picked)).toEqual([3, 4, 6, 7, 1]);
+  });
+
+  it("relaxes the rules for open items before it takes a call that is not open yet", () => {
+    // Open: four EU testbeds and one EU event. The source rule is relaxed (5 open cards) before the closed call at rank 1 is looked at.
+    const picked = pickMatches(withClosed([["funding", "A"], ["testbed", "EU"], ["testbed", "EU"], ["event", "EU"], ["testbed", "EU"], ["event", "EU"]], [1]), { now });
+    expect(ranks(picked)).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it("counts a call whose opening date has passed as open", () => {
+    const candidates = ranked(["funding", "A"], ["testbed", "B"], ["event", "C"], ["funding", "D"], ["testbed", "E"]).map((c) => ({ ...c, opensAt: earlier }));
+    expect(ranks(pickMatches(candidates, { now }))).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("decides with the build time passed to buildCards", () => {
+    const candidates = withClosed([["funding", "A"], ["testbed", "B"], ["event", "C"], ["funding", "D"], ["testbed", "E"], ["event", "F"]], [1]);
+    const before = buildCards(candidates, { weekOf: "2026-11-09", companyTags: [], now });
+    const after = buildCards(candidates, { weekOf: "2026-11-30", companyTags: [], now: new Date("2026-12-02T00:00:00Z") });
+    expect(before.map((c) => c.opportunityId)).toEqual(["o2", "o3", "o4", "o5", "o6"]);
+    expect(after.map((c) => c.opportunityId)).toEqual(["o1", "o2", "o3", "o4", "o5", "o6"]);
   });
 });
 

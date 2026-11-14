@@ -8,6 +8,11 @@
  * fewer than 5 pass, the source rule is relaxed first, then the kind rule,
  * until there are 5 or the matches run out.
  *
+ * Open items come first: a call whose opening date is still ahead (`opensAt`
+ * after `now`) may take a card slot only when fewer than 5 open items pass,
+ * and then only up to 5, after the open ones (it cannot be applied to yet).
+ * The card itself says "Not open yet" (app/week/week-card.tsx).
+ *
  * Then one trend card, when this week has a trend note for one of the
  * company's tags, at the last position. So a company gets 5 to 7 cards (fewer
  * only when it has fewer usable matches).
@@ -31,6 +36,8 @@ export type CardCandidate = {
   source: string;
   title: string;
   url: string;
+  /** When the call opens; null when the source gives no opening date. */
+  opensAt: Date | null;
   why: string | null;
   nextStep: string | null;
   uncertainties: string[];
@@ -53,25 +60,43 @@ export type CardDraft = {
 
 type Limits = { perKind: number; perSource: number };
 
-/** The matches for the cards, in rank order. */
-export function pickMatches(candidates: readonly CardCandidate[]): CardCandidate[] {
-  const pool = candidates
+const STRICT: Limits = { perKind: CARD_RULES.maxPerKind, perSource: CARD_RULES.maxPerSource };
+const ANY_SOURCE: Limits = { perKind: CARD_RULES.maxPerKind, perSource: Infinity };
+const ANY: Limits = { perKind: Infinity, perSource: Infinity };
+
+/** True for a call whose opening date is still ahead of `now`. */
+export function notOpenYet({ opensAt }: { opensAt: Date | null }, now: Date): boolean {
+  return opensAt !== null && opensAt.getTime() > now.getTime();
+}
+
+/**
+ * The matches for the cards: the open ones in rank order, then (only when
+ * fewer than 5 open ones pass) calls that are not open yet, in rank order.
+ */
+export function pickMatches(candidates: readonly CardCandidate[], { now = new Date() }: { now?: Date } = {}): CardCandidate[] {
+  const usable = candidates
     .filter((c) => c.rank !== null && c.judged && !c.rejected && c.kind !== "news" && !!c.why && !!c.nextStep)
     .sort((a, b) => a.rank! - b.rank!);
+  const open = usable.filter((c) => !notOpenYet(c, now));
   const chosen: CardCandidate[] = [];
   const fits = (c: CardCandidate, { perKind, perSource }: Limits) =>
     chosen.filter((x) => x.kind === c.kind).length < perKind && chosen.filter((x) => x.source === c.source).length < perSource;
-  const fill = (upTo: number, limits: Limits) => {
+  const fill = (pool: readonly CardCandidate[], upTo: number, limits: Limits) => {
     for (const c of pool) {
       if (chosen.length >= upTo) break;
       if (!chosen.includes(c) && fits(c, limits)) chosen.push(c);
     }
   };
 
-  fill(CARD_RULES.max, { perKind: CARD_RULES.maxPerKind, perSource: CARD_RULES.maxPerSource });
-  if (chosen.length < CARD_RULES.min) fill(CARD_RULES.min, { perKind: CARD_RULES.maxPerKind, perSource: Infinity });
-  if (chosen.length < CARD_RULES.min) fill(CARD_RULES.min, { perKind: Infinity, perSource: Infinity });
-  return chosen.sort((a, b) => a.rank! - b.rank!);
+  // Each pass stops at its count, so a later pass only runs while there are fewer than 5.
+  fill(open, CARD_RULES.max, STRICT);
+  fill(open, CARD_RULES.min, ANY_SOURCE);
+  fill(open, CARD_RULES.min, ANY);
+  fill(usable, CARD_RULES.min, STRICT);
+  fill(usable, CARD_RULES.min, ANY_SOURCE);
+  fill(usable, CARD_RULES.min, ANY);
+  const byRank = (a: CardCandidate, b: CardCandidate) => a.rank! - b.rank!;
+  return [...chosen.filter((c) => !notOpenYet(c, now)).sort(byRank), ...chosen.filter((c) => notOpenYet(c, now)).sort(byRank)];
 }
 
 /**
@@ -84,12 +109,17 @@ export function pickTrendNote(notes: readonly TrendNoteForCard[], { weekOf, comp
   return fitting[0] ?? null;
 }
 
-/** The cards in order: the picked matches, then the trend card when there is one. */
+/** The cards in order: the picked matches, then the trend card when there is one. `now` decides which calls are open. */
 export function buildCards(
   candidates: readonly CardCandidate[],
-  { trendNotes = [], weekOf, companyTags }: { trendNotes?: readonly TrendNoteForCard[]; weekOf: string; companyTags: readonly string[] },
+  {
+    trendNotes = [],
+    weekOf,
+    companyTags,
+    now = new Date(),
+  }: { trendNotes?: readonly TrendNoteForCard[]; weekOf: string; companyTags: readonly string[]; now?: Date },
 ): CardDraft[] {
-  const cards: CardDraft[] = pickMatches(candidates).map((m, i) => ({
+  const cards: CardDraft[] = pickMatches(candidates, { now }).map((m, i) => ({
     position: i + 1,
     kind: "match",
     opportunityId: m.opportunityId,

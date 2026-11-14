@@ -7,8 +7,8 @@
  * (drizzle/0002_rls.sql, drizzle/0004_matching_tables.sql); opportunities and
  * trend notes are readable by every signed-in user.
  */
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { feedback, handoffs, opportunities, savedItems, trendNotes, weekCards } from "../db/schema";
+import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
+import { claims, companyPrivate, feedback, handoffs, opportunities, savedItems, trendNotes, weekCards } from "../db/schema";
 import type { UserTx } from "../db/user";
 import type { OpportunityKind } from "../schemas";
 import type { CalendarItem } from "./ics";
@@ -20,6 +20,8 @@ export type WeekCardOpportunity = {
   kind: OpportunityKind;
   source: string;
   url: string;
+  /** When the call opens; a date ahead means it is not open yet. */
+  opensAt: Date | null;
   deadline: Date | null;
   eventDate: Date | null;
   simulated: boolean;
@@ -27,6 +29,8 @@ export type WeekCardOpportunity = {
 
 export type WeekCardView = {
   id: string;
+  /** Stays the same when the cards are built again (the row id does not): the opportunity or trend note. */
+  key: string;
   position: number;
   kind: "match" | "trend";
   title: string;
@@ -46,20 +50,56 @@ export type WeekCardView = {
   askedBsp: boolean;
 };
 
-/** The newest stored week of cards; `weekOf` is null when the company has none. */
-export type WeekView = { weekOf: string | null; cards: WeekCardView[] };
+/**
+ * The newest stored week of cards; `weekOf` is null when the company has
+ * none. `builtAt` is when they were built: a build replaces the week's cards
+ * in one transaction, so they share it.
+ */
+export type WeekView = { weekOf: string | null; builtAt: Date | null; cards: WeekCardView[] };
 
 /** The opportunity id a Your-week handoff is about (see handoff.ts). */
 export const handoffOpportunityId = sql<string>`${handoffs.context} ->> 'opportunityId'`;
 
-export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: string; userId: string }): Promise<WeekView> {
+/** The newest week the company has cards for, and when they were built. */
+async function latestWeek(tx: UserTx, companyId: string): Promise<{ weekOf: string; builtAt: Date } | null> {
   const [latest] = await tx
-    .select({ weekOf: weekCards.weekOf })
+    .select({ weekOf: weekCards.weekOf, builtAt: weekCards.createdAt })
     .from(weekCards)
     .where(eq(weekCards.companyId, companyId))
-    .orderBy(desc(weekCards.weekOf))
+    .orderBy(desc(weekCards.weekOf), desc(weekCards.createdAt))
     .limit(1);
-  if (!latest) return { weekOf: null, cards: [] };
+  return latest ?? null;
+}
+
+/**
+ * The last change to what the matching reads from the profile: the newest
+ * active or superseded claim (an edit, an accepted suggestion) or the
+ * company_private row (priorities; the personal embedding is written there
+ * too, before the cards are built again). Null when there is neither.
+ */
+export async function loadProfileChangedAt(tx: UserTx, companyId: string): Promise<Date | null> {
+  const [[claimed], [own]] = await Promise.all([
+    tx
+      .select({ at: max(claims.updatedAt) })
+      .from(claims)
+      .where(and(eq(claims.companyId, companyId), inArray(claims.reviewState, ["active", "superseded"]))),
+    tx.select({ at: companyPrivate.updatedAt }).from(companyPrivate).where(eq(companyPrivate.companyId, companyId)),
+  ]);
+  const times = [claimed?.at, own?.at].filter((d): d is Date => d instanceof Date);
+  return times.length ? new Date(Math.max(...times.map((d) => d.getTime()))) : null;
+}
+
+/** What the Your-week page polls (app/api/week/route.ts): the newest week, when its cards were built, and the last profile change. */
+export type WeekStatus = { weekOf: string | null; builtAt: Date | null; profileChangedAt: Date | null };
+
+export async function loadWeekStatus(tx: UserTx, companyId: string): Promise<WeekStatus> {
+  const [latest, profileChangedAt] = await Promise.all([latestWeek(tx, companyId), loadProfileChangedAt(tx, companyId)]);
+  return { weekOf: latest?.weekOf ?? null, builtAt: latest?.builtAt ?? null, profileChangedAt };
+}
+
+export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: string; userId: string }): Promise<WeekView> {
+  const latest = await latestWeek(tx, companyId);
+  if (!latest) return { weekOf: null, builtAt: null, cards: [] };
 
   const rows = await tx
     .select({
@@ -71,11 +111,13 @@ export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: s
       nextStep: weekCards.nextStep,
       uncertainties: weekCards.uncertainties,
       sources: weekCards.sources,
+      trendNoteId: weekCards.trendNoteId,
       trendArea: trendNotes.area,
       opportunityId: opportunities.id,
       opportunityKind: opportunities.kind,
       source: opportunities.source,
       url: opportunities.url,
+      opensAt: opportunities.opensAt,
       deadline: opportunities.deadline,
       eventDate: opportunities.eventDate,
       simulated: opportunities.simulated,
@@ -110,8 +152,10 @@ export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: s
 
   return {
     weekOf: latest.weekOf,
+    builtAt: latest.builtAt,
     cards: rows.map((r) => ({
       id: r.id,
+      key: r.opportunityId ? `opportunity:${r.opportunityId}` : r.trendNoteId ? `trend:${r.trendNoteId}` : `card:${r.id}`,
       position: r.position,
       kind: r.kind === "trend" ? "trend" : "match",
       title: r.title,
@@ -127,6 +171,7 @@ export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: s
               kind: r.opportunityKind,
               source: r.source,
               url: r.url,
+              opensAt: r.opensAt,
               deadline: r.deadline,
               eventDate: r.eventDate,
               simulated: r.simulated ?? false,

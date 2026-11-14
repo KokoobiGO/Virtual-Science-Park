@@ -57,6 +57,11 @@ export function cardDates({ deadline, eventDate }: { deadline: Date | null; even
   return dates;
 }
 
+/** "Not open yet: opens 1 Dec 2026" for a call whose opening date is still ahead; null once it is open or without a date. */
+export function notOpenYetLabel(opensAt: Date | null, now: Date = new Date()): string | null {
+  return opensAt && opensAt.getTime() > now.getTime() ? `Not open yet: opens ${formatWhen(opensAt)}` : null;
+}
+
 /** A source's title, or its host name when it has none. */
 export function sourceLabel({ url, title }: { url: string; title?: string }): string {
   if (title?.trim()) return title.trim();

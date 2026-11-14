@@ -296,12 +296,15 @@ describe.skipIf(!configured)("matcher ranking", () => {
       const second = await rankCompany(tx, embeddedart, "public", { now: NOW });
       const stored = await storeRanking(tx, embeddedart, "public", second);
       const rows = await tx.select().from(matches).where(mine);
-      return { judged, rejected, second, stored, rows };
+      // The same ranking once more: nothing moved, so nothing needs judging or new cards (C8).
+      const again = await storeRanking(tx, embeddedart, "public", second);
+      return { judged, rejected, second, stored, rows, again };
     });
 
     expect(result.second.map((r) => r.opportunityId)).not.toContain(result.rejected);
     expect(result.second).toHaveLength(TOP_N);
-    expect(result.stored.ranked).toBe(TOP_N);
+    expect(result.stored).toMatchObject({ ranked: TOP_N, changed: true });
+    expect(result.again).toEqual({ ranked: TOP_N, unranked: 0, changed: false });
     const byOpportunity = new Map(result.rows.map((r) => [r.opportunityId, r]));
     expect(byOpportunity.get(result.judged)).toMatchObject({ rank: 1, why: "Kept by the judge.", judgedAt: NOW });
     expect(byOpportunity.get(result.rejected)).toMatchObject({ rank: null, rejected: true, rejectionReason: "Test." });
