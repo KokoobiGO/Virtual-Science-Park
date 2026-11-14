@@ -18,8 +18,10 @@ export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; 
   const [outcomes, setOutcomes] = useState<Record<string, Outcome | "running">>({});
   const running = Object.values(outcomes).includes("running");
   const hint = Object.values(outcomes).find((o): o is Outcome => typeof o === "object" && !!o.hint)?.hint;
+  const done = Object.values(outcomes).filter((o) => o !== "running").length;
 
   function runAll() {
+    if (running) return;
     setOutcomes(Object.fromEntries(checks.map((c) => [c.id, "running"])));
     for (const check of checks) {
       const fail = (detail: string): Outcome => ({ feature: check.label, status: "FAIL", detail });
@@ -33,16 +35,20 @@ export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <Button onClick={runAll} disabled={running}>
+        <Button onClick={runAll} aria-disabled={running || undefined} className="aria-disabled:opacity-60">
           {running ? "Running…" : button}
         </Button>
       </div>
+      {/* Always in the page, so screen readers hear the progress. */}
+      <p role="status" className="sr-only">
+        {Object.keys(outcomes).length ? `${done} of ${checks.length} checks done.` : ""}
+      </p>
       <ul className="flex flex-col divide-y rounded-lg border">
         {checks.map((check) => {
           const outcome = outcomes[check.id];
           return (
             <li key={check.id} className="flex flex-col gap-1 px-4 py-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {outcome === "running" ? (
                   <Badge variant="outline">Running</Badge>
                 ) : outcome ? (
@@ -59,7 +65,11 @@ export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; 
           );
         })}
       </ul>
-      {hint && <p className="text-sm text-destructive">{hint}</p>}
+      {hint && (
+        <p role="alert" className="text-sm break-words text-destructive">
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { LoadingState, Skeleton } from "@/components/loading-skeleton";
 import { requireRole } from "@/lib/auth";
 import { DEMO_PAGE_PATH } from "@/lib/injection/demo-page";
 import { loadDemoResult } from "./load";
@@ -12,7 +13,7 @@ export default function Page() {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Planted instruction test</h1>
+        <h1 className="text-title">Planted instruction test</h1>
         <p className="max-w-prose text-muted-foreground">
           A{" "}
           <Link href={DEMO_PAGE_PATH} className="text-primary underline-offset-4 hover:underline">
@@ -23,7 +24,15 @@ export default function Page() {
           which sends the page through the profiler and the judge. Nothing on this page calls a model.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading the last run...</p>}>
+      <Suspense
+        fallback={
+          <LoadingState label="Loading the last run…">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-40 rounded-xl" />
+            ))}
+          </LoadingState>
+        }
+      >
         <LastRun />
       </Suspense>
     </section>
@@ -36,9 +45,9 @@ async function LastRun() {
   const loaded = await loadDemoResult();
   if (loaded.state === "missing") {
     return (
-      <p className="text-sm text-muted-foreground">
-        No run recorded yet. With the site running, run{" "}
-        <code className="font-mono">tsx --env-file-if-exists=.env.local scripts/injection-demo.ts</code>.
+      <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        No run recorded yet. With the site running, the team runs{" "}
+        <code className="font-mono break-all">npm run injection:demo</code>, and the result shows here.
       </p>
     );
   }

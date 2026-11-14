@@ -60,7 +60,7 @@ async function HeaderNav() {
           <Badge variant={viewer.role === "staff" ? "default" : "secondary"}>
             {viewer.role === "staff" ? "BSP staff" : "Member"}
           </Badge>
-          <span className="max-w-48 truncate text-sm text-muted-foreground" data-testid="signed-in-as">
+          <span className="max-w-48 truncate text-sm text-muted-foreground" data-testid="signed-in-as" title={companyName ?? viewer.email ?? undefined}>
             {companyName ?? viewer.email}
           </span>
           <form action={signOut}>

@@ -1,6 +1,7 @@
+import { ClaimBadge } from "@/components/claim-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate, STATUS_BADGE, valueItems, type ClaimRow, type FieldView } from "@/lib/profile-view/claims";
+import { CONFIDENCE_TEXT, fieldHeadingId, formatDate, valueItems, type ClaimRow, type FieldView } from "@/lib/profile-view/claims";
 import { defaultVisibility, valueToInput } from "@/lib/profile-view/edit";
 import type { EvidenceView } from "@/lib/profile-view/load";
 import { STALE_AFTER_DAYS } from "@/lib/profiler/stale";
@@ -35,11 +36,17 @@ export function FieldList({
 function FieldCard({ view, evidence, editable }: { view: FieldView; evidence: Record<string, EvidenceView[]>; editable: boolean }) {
   const claim = view.claim;
   const value = <ClaimValue field={view.field} claim={claim} />;
+  const headingId = fieldHeadingId(view.field);
 
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle>{view.label}</CardTitle>
+        <CardTitle>
+          {/* tabIndex -1: focus comes back here after a suggestion is accepted or rejected. */}
+          <h3 id={headingId} tabIndex={-1} className="outline-none focus-visible:underline">
+            {view.label}
+          </h3>
+        </CardTitle>
         <CardDescription>{view.hint}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -59,7 +66,9 @@ function FieldCard({ view, evidence, editable }: { view: FieldView; evidence: Re
           value
         )}
         {claim ? <EvidenceViewer quotes={evidence[claim.id] ?? []} /> : null}
-        {editable && view.suggestion ? <Suggestion field={view.field} suggestion={view.suggestion} evidence={evidence} /> : null}
+        {editable && view.suggestion ? (
+          <Suggestion field={view.field} label={view.label} suggestion={view.suggestion} evidence={evidence} headingId={headingId} />
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -67,18 +76,19 @@ function FieldCard({ view, evidence, editable }: { view: FieldView; evidence: Re
 
 /** Status badge, confidence, date, stale flag and who may see it. */
 function ClaimMeta({ view }: { view: FieldView }) {
-  const badge = STATUS_BADGE[view.status];
   const claim = view.claim;
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      <Badge variant={badge.variant} title={badge.hint}>
-        {badge.label}
-      </Badge>
-      {view.confidence ? <span>Confidence: {view.confidence}</span> : null}
-      {claim ? <span>Updated {formatDate(claim.updatedAt)}</span> : null}
+      <ClaimBadge status={view.status} />
+      {view.confidence ? <span>Confidence: {CONFIDENCE_TEXT[view.confidence]}</span> : null}
+      {claim ? (
+        <span>
+          Updated <time dateTime={claim.updatedAt.toISOString()}>{formatDate(claim.updatedAt)}</time>
+        </span>
+      ) : null}
       {view.stale ? (
-        <Badge variant="destructive" title={`Not updated for more than ${STALE_AFTER_DAYS} days. It may be out of date.`}>
-          Stale
+        <Badge variant="warning" title={`Not updated for more than ${STALE_AFTER_DAYS} days. It may be out of date.`}>
+          Stale: over {STALE_AFTER_DAYS} days old
         </Badge>
       ) : null}
       {claim?.visibility === "private" ? (
@@ -99,9 +109,9 @@ function ClaimValue({ field, claim }: { field: FieldView["field"]; claim: ClaimR
       </p>
     );
   }
-  if (field === "summary") return <p className="leading-relaxed">{items[0]}</p>;
+  if (field === "summary") return <p className="leading-relaxed break-words">{items[0]}</p>;
   return (
-    <ul className="list-disc space-y-0.5 pl-5">
+    <ul className="list-disc space-y-0.5 pl-5 break-words">
       {items.map((item, i) => (
         <li key={`${i}-${item}`}>{item}</li>
       ))}
@@ -110,20 +120,32 @@ function ClaimValue({ field, claim }: { field: FieldView["field"]; claim: ClaimR
 }
 
 /** A suggested update from the weekly profile refresh, waiting for the member. */
-function Suggestion({ field, suggestion, evidence }: { field: FieldView["field"]; suggestion: ClaimRow; evidence: Record<string, EvidenceView[]> }) {
-  const badge = STATUS_BADGE[suggestion.status];
+function Suggestion({
+  field,
+  label,
+  suggestion,
+  evidence,
+  headingId,
+}: {
+  field: FieldView["field"];
+  label: string;
+  suggestion: ClaimRow;
+  evidence: Record<string, EvidenceView[]>;
+  headingId: string;
+}) {
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Suggested update</span>
-        <Badge variant={badge.variant} title={badge.hint}>
-          {badge.label}
-        </Badge>
-        <span>Found {formatDate(suggestion.updatedAt)} by the weekly profile refresh</span>
+        <ClaimBadge status={suggestion.status} />
+        <span>
+          Found <time dateTime={suggestion.updatedAt.toISOString()}>{formatDate(suggestion.updatedAt)}</time> by the weekly
+          profile refresh
+        </span>
       </div>
       <ClaimValue field={field} claim={suggestion} />
       <EvidenceViewer quotes={evidence[suggestion.id] ?? []} />
-      <SuggestionReview claimId={suggestion.id} />
+      <SuggestionReview claimId={suggestion.id} fieldLabel={label} returnFocusTo={headingId} />
     </div>
   );
 }

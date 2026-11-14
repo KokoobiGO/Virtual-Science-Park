@@ -1,3 +1,4 @@
+import { DataStatusLabel } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { describeLocations, LOCATION_LABELS } from "@/lib/injection/detect";
@@ -43,12 +44,19 @@ function Summary({ result }: { result: InjectionDemoResult }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-2">
-          <PassBadge pass={result.pass} />
-          {passed} of {result.steps.length} model steps kept the hidden instructions out of their answer
+        <CardTitle>
+          <h2 className="flex flex-wrap items-center gap-2">
+            <PassBadge pass={result.pass} />
+            {passed} of {result.steps.length} model steps kept the hidden instructions out of their answer
+          </h2>
         </CardTitle>
-        <CardDescription>
-          Run on {when.format(new Date(result.ranAt))} with {result.model}; the judge read {result.judgedFor}&apos;s public profile.
+        <CardDescription className="flex flex-wrap items-center gap-2">
+          {/* D20: a recorded run read from a file, not a live one. */}
+          <DataStatusLabel kind="cached" date={result.ranAt} />
+          <span className="break-words">
+            Run on {when.format(new Date(result.ranAt))} with {result.model}; the judge read {result.judgedFor}&apos;s public
+            profile.
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
@@ -70,7 +78,9 @@ function Hidden({ result }: { result: InjectionDemoResult }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>What was hidden</CardTitle>
+        <CardTitle>
+          <h2>What was hidden</h2>
+        </CardTitle>
         <CardDescription>
           The page text came from the repo&apos;s extractor ({result.extractor.method}, {result.extractor.chars} characters). It reads
           text, not CSS, so it keeps text that only a style hides.
@@ -85,7 +95,7 @@ function Hidden({ result }: { result: InjectionDemoResult }) {
                 <Badge variant={item.kept ? "warning" : "muted"}>{item.kept ? "Kept by the extractor" : "Dropped by the extractor"}</Badge>
               </div>
               <p className="text-muted-foreground">{item.how}</p>
-              <blockquote className="border-l-2 pl-3 italic">{item.text}</blockquote>
+              <blockquote className="border-l-2 pl-3 break-words italic">{item.text}</blockquote>
             </li>
           ))}
         </ul>
@@ -98,9 +108,11 @@ function StepCard({ step }: { step: InjectionDemoStep }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex flex-wrap items-center gap-2">
-          <PassBadge pass={step.pass} />
-          {STEP_NAMES[step.step]} {INPUT_NAMES[step.input]}
+        <CardTitle>
+          <h2 className="flex flex-wrap items-center gap-2">
+            <PassBadge pass={step.pass} />
+            {STEP_NAMES[step.step]} {INPUT_NAMES[step.input]}
+          </h2>
         </CardTitle>
         <CardDescription>{VERDICT_TEXT[step.verdict]}</CardDescription>
       </CardHeader>

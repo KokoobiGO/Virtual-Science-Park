@@ -18,15 +18,21 @@ export function DataStatusPanel({
   entries,
   title = "Data sources",
   description,
+  headingLevel = 2,
 }: {
   entries: SourceHealth[];
   title?: string;
   description?: string;
+  /** The title's heading level: 2 on its own page, 3 inside a section. */
+  headingLevel?: 2 | 3;
 }) {
+  const Heading = headingLevel === 3 ? "h3" : "h2";
   return (
     <Card>
       <CardHeader className="border-b">
-        <CardTitle className="text-heading">{title}</CardTitle>
+        <CardTitle className="text-heading">
+          <Heading>{title}</Heading>
+        </CardTitle>
         <CardDescription>{description ?? sourceSummary(entries)}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -55,8 +61,8 @@ function SourceRow({ entry }: { entry: SourceHealth }) {
       className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 md:grid md:grid-cols-[minmax(0,13rem)_minmax(0,15rem)_5.5rem_minmax(0,1fr)] md:items-baseline md:gap-4"
     >
       <div className="min-w-0">
-        <p className="font-medium">{entry.label}</p>
-        <p className="font-mono text-xs text-muted-foreground">{entry.source}</p>
+        <p className="font-medium break-words">{entry.label}</p>
+        <p className="font-mono text-xs break-all text-muted-foreground">{entry.source}</p>
       </div>
       <div>
         <DataStatusLabel kind={kind} date={statusDate(entry, kind)} />
@@ -117,13 +123,15 @@ export function DataStatusLegend({ kinds = ["live", "stale", "cached", "hand_ent
   );
 }
 
-/** Placeholder while the rows load. */
+/** Shown while the rows load. */
 export function DataStatusPanelSkeleton() {
   return (
     <Card aria-busy="true">
       <CardHeader className="border-b">
-        <CardTitle className="text-heading">Data sources</CardTitle>
-        <CardDescription>Loading the status of each source…</CardDescription>
+        <CardTitle className="text-heading">
+          <h2>Data sources</h2>
+        </CardTitle>
+        <CardDescription role="status">Loading the status of each source…</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-3" aria-hidden>

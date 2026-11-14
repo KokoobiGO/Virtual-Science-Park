@@ -6,6 +6,7 @@ import {
   dataStatusFromVerdict,
   dataStatusText,
   formatStatusDate,
+  itemDataStatus,
 } from "./data-status-label";
 
 describe("dataStatusText", () => {
@@ -43,6 +44,26 @@ describe("mapping from the stored data", () => {
     expect(dataStatusFromVerdict("cached")).toBe("cached");
     expect(dataStatusFromVerdict("hand_entered")).toBe("hand_entered");
     expect(dataStatusFromState("simulated")).toBe("simulated");
+  });
+});
+
+describe("itemDataStatus", () => {
+  it("labels an opportunity from a hand-entered source as hand-entered", () => {
+    expect(itemDataStatus({ simulated: true, externalId: "region-blekinge-1" })).toBe("hand_entered");
+    expect(itemDataStatus({ simulated: false, sourceState: "simulated" })).toBe("hand_entered");
+  });
+
+  it("labels the team's sample fixtures as simulated", () => {
+    expect(itemDataStatus({ simulated: true, externalId: "fixture-vinnova-1" })).toBe("simulated");
+  });
+
+  it("labels an item from a source that shows its recorded copy as cached", () => {
+    expect(itemDataStatus({ simulated: false, sourceState: "cached" })).toBe("cached");
+  });
+
+  it("leaves an item read live unlabelled", () => {
+    expect(itemDataStatus({ simulated: false, sourceState: "live" })).toBeNull();
+    expect(itemDataStatus({ simulated: false })).toBeNull();
   });
 });
 

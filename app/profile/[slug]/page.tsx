@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
+import { ProfileSkeleton } from "@/components/loading-skeleton";
 import { getViewer } from "@/lib/auth";
 import { withUserDb } from "@/lib/db/user";
 import { profileView } from "@/lib/profile-view/claims";
@@ -19,7 +20,7 @@ export const metadata = { title: "Public company profile" };
 export default function Page({ params }: PageProps<"/profile/[slug]">) {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="text-muted-foreground">Loading the profile{"…"}</p>}>
+      <Suspense fallback={<ProfileSkeleton />}>
         {params.then(({ slug }) => (
           <PublicProfile slug={slug} />
         ))}

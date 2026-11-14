@@ -1,5 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { Suspense } from "react";
+import { ListSkeleton } from "@/components/loading-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/lib/auth";
 import { BSP_CONTACT } from "@/lib/copilot/policy";
@@ -12,16 +13,17 @@ export default function Page() {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Handoffs</h1>
+        <h1 className="text-title">Handoffs</h1>
         <p className="text-muted-foreground">
-          Questions members sent to BSP staff from the Copilot (backlog B10), newest first. Members send these on purpose;
-          their chats stay private.
+          Questions members sent to BSP staff from the Copilot, newest first. Members send these on purpose; their chats
+          stay private.
         </p>
         <p className="text-sm text-muted-foreground">
-          Contact route on new handoffs: <code>{BSP_CONTACT}</code> (a placeholder until BSP decides the real route).
+          Contact route on new handoffs: <code className="break-all">{BSP_CONTACT}</code>. This is not a real address
+          yet: BSP has not chosen the route.
         </p>
       </div>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Loading…</p>}>
+      <Suspense fallback={<ListSkeleton label="Loading the handoffs…" rows={3} rowClassName="h-16" />}>
         <HandoffList />
       </Suspense>
     </section>
@@ -57,7 +59,13 @@ async function HandoffList() {
       .limit(100),
   );
 
-  if (!rows.length) return <p className="text-sm text-muted-foreground">No handoffs yet.</p>;
+  if (!rows.length) {
+    return (
+      <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        No handoffs yet. When a member presses &quot;Send to BSP staff&quot; under a Copilot answer, the question appears here.
+      </p>
+    );
+  }
 
   return (
     <ul className="flex flex-col gap-3">
@@ -67,18 +75,20 @@ async function HandoffList() {
           <li key={row.id} className="flex flex-col gap-2 rounded-lg border px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={row.status === "open" ? "default" : "secondary"}>{row.status === "open" ? "Open" : "Closed"}</Badge>
-              <span className="font-medium">{row.company}</span>
-              <span className="text-sm text-muted-foreground">· {row.topic}</span>
-              <span className="ml-auto text-sm text-muted-foreground">{when.format(row.createdAt)}</span>
+              <h2 className="font-medium break-words">{row.company}</h2>
+              <span className="text-sm break-words text-muted-foreground">· {row.topic}</span>
+              <time dateTime={row.createdAt.toISOString()} className="ml-auto text-sm text-muted-foreground">
+                {when.format(row.createdAt)}
+              </time>
             </div>
-            <p className="text-sm whitespace-pre-wrap">{row.message}</p>
+            <p className="text-sm break-words whitespace-pre-wrap">{row.message}</p>
             {answer && (
               <details className="text-sm">
                 <summary className="cursor-pointer text-muted-foreground">The Copilot&apos;s answer</summary>
-                <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{answer}</p>
+                <p className="mt-1 break-words whitespace-pre-wrap text-muted-foreground">{answer}</p>
               </details>
             )}
-            <p className="text-xs text-muted-foreground">Contact route: {row.contactRoute}</p>
+            <p className="text-xs break-all text-muted-foreground">Contact route: {row.contactRoute}</p>
           </li>
         );
       })}

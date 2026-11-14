@@ -43,6 +43,18 @@ describe("topMatches", () => {
   it("gives null for a match that is not judged yet", () => {
     expect(topMatches([row("x", 1, { why: null }), row("y", 2, { why: "  " })]).map((t) => t.why)).toEqual([null, null]);
   });
+
+  it("keeps what the data status label needs: simulated, the source's state and the copy's date (D20)", () => {
+    const copy = new Date("2026-11-10T02:00:00Z");
+    const [cached, hand, live] = topMatches([
+      row("cached", 1, { sourceState: "cached", cachedAt: copy }),
+      row("hand", 2, { simulated: true, sourceState: "simulated" }),
+      row("live", 3),
+    ]);
+    expect(cached).toMatchObject({ sourceState: "cached", cachedAt: copy, simulated: false });
+    expect(hand).toMatchObject({ sourceState: "simulated", simulated: true, externalId: "ext-hand" });
+    expect(live).toMatchObject({ sourceState: null, cachedAt: null });
+  });
 });
 
 describe("markShared", () => {

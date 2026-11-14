@@ -28,6 +28,7 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <Card>
+          <p className="px-(--card-spacing) text-xs text-muted-foreground md:hidden">Scroll sideways to see the whole map.</p>
           <CardContent className="overflow-x-auto">
             <svg
               viewBox={`0 0 ${GRAPH_SIZE.width} ${GRAPH_SIZE.height}`}
@@ -90,8 +91,7 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
         </Card>
 
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">Possible collaborations ({connections.length})</h2>
-          <ul className="flex flex-col gap-1.5">
+          <h2 className="text-sm font-medium">Possible collaborations ({connections.length})</h2>          <ul className="flex flex-col gap-1.5">
             {connections.map((c) => (
               <li key={c.id}>
                 <button
@@ -100,10 +100,11 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
                   onClick={() => setSelectedId(c.id)}
                   className={`flex w-full flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${c.id === selectedId ? "border-primary bg-muted" : ""}`}
                 >
-                  <span className="font-medium">
+                  <span className="font-medium break-words">
                     {c.aName} and {c.bName}
                   </span>
-                  <span className="text-xs text-muted-foreground">{c.sharedOn.join(", ")}</span>
+                  <span className="text-xs break-words text-muted-foreground">{c.sharedOn.join(", ")}</span>
+                  {c.id === selectedId ? <span className="text-xs font-medium text-primary">Shown below</span> : null}
                 </button>
               </li>
             ))}
@@ -111,6 +112,10 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
         </div>
       </div>
 
+      {/* Always in the page, so a screen reader hears which pair opened. */}
+      <p role="status" className="sr-only">
+        {selected ? `Showing ${selected.aName} and ${selected.bName}.` : ""}
+      </p>
       {selected ? (
         <PairDetail connection={selected} />
       ) : (
@@ -128,17 +133,19 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
     { id: connection.bId, name: connection.bName },
   ];
   return (
-    <Card aria-live="polite">
+    <Card>
       <CardHeader>
         <CardTitle>
-          {connection.aName} and {connection.bName}
+          <h2 className="text-heading break-words">
+            {connection.aName} and {connection.bName}
+          </h2>
         </CardTitle>
         <CardDescription>{CONNECTION_DISCLAIMER}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Stated basis</h3>
-          <p>{connection.basis}</p>
+          <p className="break-words">{connection.basis}</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Shared on</h3>
@@ -160,7 +167,7 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
                 {evidenceFor(connection, side.id).map((e) => (
                   <li key={e.claimId} className="flex flex-col">
                     <span className="text-xs text-muted-foreground">{fieldLabel(e.field)}</span>
-                    <span>{e.value}</span>
+                    <span className="break-words">{e.value}</span>
                   </li>
                 ))}
               </ul>

@@ -1,26 +1,76 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId, type MouseEvent } from "react";
+import { announce } from "@/components/announcer";
 import { Button } from "@/components/ui/button";
 import { reviewSuggestion, type ProfileActionState } from "./actions";
 
 const initialState: ProfileActionState = { error: null };
 
-/** Accept or reject one suggested claim (C7). The pressed button's value says which. */
-export function SuggestionReview({ claimId }: { claimId: string }) {
-  const [state, action, pending] = useActionState(reviewSuggestion, initialState);
+/**
+ * Accept or reject one suggested claim (C7). The pressed button's value says
+ * which. On success the suggestion leaves the page, so focus goes to the
+ * field's heading (`returnFocusTo`) and the result is announced. The buttons
+ * are never disabled, so focus stays on the pressed one while it saves.
+ */
+export function SuggestionReview({
+  claimId,
+  fieldLabel,
+  returnFocusTo,
+}: {
+  claimId: string;
+  /** The field's name, for the buttons' accessible names ("Accept the suggested Markets"). */
+  fieldLabel: string;
+  returnFocusTo?: string;
+}) {
+  const errorId = useId();
+  const [state, action, pending] = useActionState(async (prev: ProfileActionState, formData: FormData) => {
+    const result = await reviewSuggestion(prev, formData);
+    if (!result.error) {
+      if (returnFocusTo) document.getElementById(returnFocusTo)?.focus();
+      if (result.message) announce(result.message);
+    }
+    return result;
+  }, initialState);
+  // One decision at a time: a second press while saving does nothing.
+  const guard = (event: MouseEvent) => {
+    if (pending) event.preventDefault();
+  };
+
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="claimId" value={claimId} />
-      <Button type="submit" name="decision" value="accept" size="sm" disabled={pending}>
+      <Button
+        type="submit"
+        name="decision"
+        value="accept"
+        size="sm"
+        aria-disabled={pending || undefined}
+        aria-label={`Accept the suggested ${fieldLabel}`}
+        className="aria-disabled:opacity-60"
+        aria-describedby={state.error ? errorId : undefined}
+        onClick={guard}
+      >
         Accept
       </Button>
-      <Button type="submit" name="decision" value="reject" variant="outline" size="sm" disabled={pending}>
+      <Button
+        type="submit"
+        name="decision"
+        value="reject"
+        variant="outline"
+        size="sm"
+        aria-disabled={pending || undefined}
+        aria-label={`Reject the suggested ${fieldLabel}`}
+        className="aria-disabled:opacity-60"
+        onClick={guard}
+      >
         Reject
       </Button>
-      {pending ? <span className="text-xs text-muted-foreground">Saving{"…"}</span> : null}
+      <span role="status" className="text-xs text-muted-foreground">
+        {pending ? "Saving…" : ""}
+      </span>
       {state.error ? (
-        <p role="alert" className="w-full text-sm text-destructive">
+        <p id={errorId} role="alert" className="w-full text-sm text-destructive">
           {state.error}
         </p>
       ) : null}

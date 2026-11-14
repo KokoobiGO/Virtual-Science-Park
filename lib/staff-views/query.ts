@@ -7,7 +7,7 @@
 import "server-only";
 import { and, asc, desc, eq, inArray, isNotNull, like, not } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { companies, connections, matches, opportunities } from "../db/schema";
+import { companies, connections, matches, opportunities, sourceStatus } from "../db/schema";
 import { withUserDb, type JwtClaims, type UserTx } from "../db/user";
 import { FIXTURE_PREFIX } from "../matcher/score";
 import { COMPARE_TOP_N, markShared, topMatches, type CompareItem } from "./compare";
@@ -52,9 +52,13 @@ export async function loadComparison(claims: JwtClaims, slugA: string, slugB: st
           source: opportunities.source,
           url: opportunities.url,
           simulated: opportunities.simulated,
+          // For the data status label (D20): opportunities.source is the collector's label.
+          sourceState: sourceStatus.state,
+          cachedAt: sourceStatus.cachedAt,
         })
         .from(matches)
         .innerJoin(opportunities, eq(opportunities.id, matches.opportunityId))
+        .leftJoin(sourceStatus, eq(sourceStatus.label, opportunities.source))
         .where(
           and(
             eq(matches.companyId, companyId),

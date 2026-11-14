@@ -4,7 +4,7 @@
  * Pure, so the rules are unit-tested; the reads are in query.ts.
  */
 import { FIXTURE_PREFIX } from "../matcher/score";
-import type { OpportunityKind } from "../schemas";
+import type { OpportunityKind, SourceState } from "../schemas";
 
 export const COMPARE_TOP_N = 5;
 
@@ -23,6 +23,10 @@ export type PublicMatchRow = {
   source: string;
   url: string;
   simulated: boolean;
+  /** The state of the opportunity's source now (source_status, joined on its label); null when it has none. */
+  sourceState?: SourceState | null;
+  /** For a cached source: the date of the recorded copy. */
+  cachedAt?: Date | null;
 };
 
 export type CompareItem = {
@@ -36,6 +40,9 @@ export type CompareItem = {
   source: string;
   url: string;
   simulated: boolean;
+  externalId: string;
+  sourceState: SourceState | null;
+  cachedAt: Date | null;
   /** The judge's why; null when the match is not judged yet. */
   why: string | null;
   /** True when the other member's top five has it too. */
@@ -60,6 +67,9 @@ export function topMatches(rows: readonly PublicMatchRow[], n = COMPARE_TOP_N): 
       source: r.source,
       url: r.url,
       simulated: r.simulated,
+      externalId: r.externalId,
+      sourceState: r.sourceState ?? null,
+      cachedAt: r.cachedAt ?? null,
       why: r.why?.trim() || null,
     }));
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProfileField } from "../schemas";
-import { claimsInCharge, confidenceLevel, formatDate, profileView, STATUS_BADGE, valueItems, type ClaimRow } from "./claims";
+import { claimsInCharge, confidenceLevel, formatDate, profileView, valueItems, type ClaimRow } from "./claims";
 
 const NOW = new Date("2026-11-14T12:00:00Z");
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -48,9 +48,6 @@ describe("profileView", () => {
     // A missing claim is shown as missing, with the claim kept (for its date), and no confidence.
     expect(by("statedPriorities").claim).not.toBeNull();
     expect(by("statedPriorities")).toMatchObject({ status: "missing", confidence: null });
-    expect(STATUS_BADGE.stated.label).toBe("Stated");
-    expect(STATUS_BADGE.inferred.label).toBe("Inferred");
-    expect(STATUS_BADGE.missing.label).toBe("Missing");
   });
 
   it("shows no confidence for the member's own values", () => {

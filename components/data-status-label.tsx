@@ -63,6 +63,28 @@ export function dataStatusFromState(state: SourceState): DataStatusKind {
   return state;
 }
 
+/** External ids of the team's old sample opportunities (lib/matcher/score.ts, FIXTURE_PREFIX). */
+const SAMPLE_PREFIX = "fixture-";
+
+/**
+ * The label one opportunity carries (D20), or null for an item read live.
+ *
+ * - `simulated` on an opportunity means a hand-entered source (lib/collectors/store.ts),
+ *   except the team's sample fixtures, which are simulated.
+ * - An item from a source whose state is "cached" came from the recorded copy:
+ *   pass the source's `cachedAt` (or the item's retrievedAt) as the label's date.
+ */
+export function itemDataStatus(item: {
+  simulated: boolean;
+  externalId?: string | null;
+  sourceState?: SourceState | null;
+}): DataStatusKind | null {
+  if (item.simulated) return item.externalId?.startsWith(SAMPLE_PREFIX) ? "simulated" : "hand_entered";
+  if (item.sourceState === "cached") return "cached";
+  if (item.sourceState === "simulated") return "hand_entered";
+  return null;
+}
+
 const dayFormat = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",

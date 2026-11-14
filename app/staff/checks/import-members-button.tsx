@@ -19,6 +19,7 @@ export function ImportMembersButton() {
   const [state, setState] = useState<State>({ kind: "idle" });
 
   async function run() {
+    if (state.kind === "running") return;
     setState({ kind: "running", status: "Starting" });
     try {
       const start = await fetch("/api/members/import", { method: "POST" });
@@ -47,18 +48,24 @@ export function ImportMembersButton() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <Button onClick={run} disabled={state.kind === "running"}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={run} aria-disabled={state.kind === "running" || undefined} className="aria-disabled:opacity-60">
           {state.kind === "running" ? "Importing…" : "Import members"}
         </Button>
-        {state.kind === "running" && <span className="text-sm text-muted-foreground">{state.status} (about a minute)</span>}
+        <span role="status" className="text-sm text-muted-foreground">
+          {state.kind === "running" ? `${state.status} (about a minute)` : state.kind === "done" ? "Import finished." : ""}
+        </span>
       </div>
 
-      {state.kind === "error" && <p className="text-sm break-words text-destructive">{state.message}</p>}
+      {state.kind === "error" && (
+        <p role="alert" className="text-sm break-words text-destructive">
+          {state.message}
+        </p>
+      )}
 
       {state.kind === "done" && (
         <div className="flex flex-col gap-2 rounded-lg border px-4 py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge variant={state.result.failed.length ? "destructive" : "default"}>
               {state.result.failed.length ? "Partly done" : "Done"}
             </Badge>

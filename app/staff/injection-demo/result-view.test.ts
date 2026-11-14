@@ -68,6 +68,14 @@ describe("InjectionDemoView", () => {
     expect(html).toContain("14 Nov 2026, 20:50");
   });
 
+  it("labels the run as a recorded copy and gives each card a heading (C20, D20)", () => {
+    const html = render(result);
+    expect(html).toContain('data-data-status="cached"');
+    expect(html).toContain("Cached copy · 14 Nov 2026");
+    // Summary, What was hidden, two steps and the notes.
+    expect(html.match(/<h2[ >]/g)?.length).toBe(5);
+  });
+
   const recorded = path.join(process.cwd(), "data", "injection-demo", "result.json");
   it.skipIf(!existsSync(recorded))("renders the recorded result", () => {
     const loaded = parseDemoResult(readFileSync(recorded, "utf8"));

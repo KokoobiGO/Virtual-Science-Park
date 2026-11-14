@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
+import { Announcer } from "@/components/announcer";
+import { ProfileSkeleton } from "@/components/loading-skeleton";
 import { getViewer, type Viewer } from "@/lib/auth";
 import { withUserDb } from "@/lib/db/user";
 import { profileView } from "@/lib/profile-view/claims";
@@ -21,7 +23,7 @@ export const metadata = { title: "Company profile" };
 export default function Page() {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="text-muted-foreground">Loading the profile{"…"}</p>}>
+      <Suspense fallback={<ProfileSkeleton />}>
         <ProfileForViewer />
       </Suspense>
     </section>
@@ -32,7 +34,17 @@ async function ProfileForViewer() {
   const viewer = await getViewer();
   if (!viewer) redirect("/sign-in?next=/profile");
   if (viewer.role === "staff") return <CompanyList viewer={viewer} />;
-  if (!viewer.companyId) redirect("/");
+  if (!viewer.companyId) {
+    return (
+      <div className="flex flex-col gap-3">
+        <h1 className="text-title">Company profile</h1>
+        <p className="max-w-prose rounded-xl border border-dashed p-6 text-muted-foreground">
+          Your account is not linked to a member company yet, so there is no profile to show. Ask BSP staff to link your
+          account to your company.
+        </p>
+      </div>
+    );
+  }
   return <OwnProfile viewer={viewer} companyId={viewer.companyId} />;
 }
 
@@ -45,6 +57,7 @@ async function OwnProfile({ viewer, companyId }: { viewer: Viewer; companyId: st
   return (
     <>
       <CompanyHeader company={profile.company} />
+      <Announcer />
 
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Your priorities</h2>

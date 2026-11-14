@@ -28,7 +28,7 @@ export default function DesignPage() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-10">
       <header className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-primary">C1 · for the team</p>
+        <p className="text-sm font-medium text-primary">For the team</p>
         <h1 className="text-title md:text-display">Design system</h1>
         <p className="max-w-prose text-muted-foreground">
           The Blue Science Park theme and the shared components. Colours are tokens in <Code>app/globals.css</Code>,
@@ -192,7 +192,7 @@ export default function DesignPage() {
         title="Data status panel"
         note="components/data-status-panel. These are sample rows, not the real status: that is on the Data status page (/sources)."
       >
-        <DataStatusPanel entries={SAMPLE_SOURCES} description="Sample rows for this page. Not the real status." />
+        <DataStatusPanel entries={SAMPLE_SOURCES} description="Sample rows for this page. Not the real status." headingLevel={3} />
       </Section>
 
       <Section

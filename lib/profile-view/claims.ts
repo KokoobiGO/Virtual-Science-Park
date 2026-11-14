@@ -39,18 +39,17 @@ export const FIELD_TEXT: Record<ProfileField, { label: string; hint: string }> =
   inferredInterests: { label: "Likely interests", hint: "Our reading of the pages. It stays inferred until the member confirms it." },
 };
 
-/** The Badge variants the status badges use (components/ui/badge). */
-export type BadgeVariant = "default" | "secondary" | "outline";
-
-export const STATUS_BADGE: Record<ClaimStatus, { label: string; variant: BadgeVariant; hint: string }> = {
-  stated: { label: "Stated", variant: "default", hint: "Said on the company's own pages; the quote is the evidence." },
-  inferred: { label: "Inferred", variant: "secondary", hint: "Read between the lines of the pages, not said in so many words." },
-  missing: { label: "Missing", variant: "outline", hint: "The public pages do not say this." },
-  user_confirmed: { label: "Confirmed by member", variant: "secondary", hint: "The member confirmed this value." },
-  user_corrected: { label: "Corrected by member", variant: "secondary", hint: "The member wrote this value." },
-};
+// The status badge itself (word, icon, colour) is components/claim-badge, shared by every screen.
 
 export type ConfidenceLevel = "low" | "med" | "high";
+
+/** The words the screen shows for each level. */
+export const CONFIDENCE_TEXT: Record<ConfidenceLevel, string> = { low: "low", med: "medium", high: "high" };
+
+/** The id of a field's heading on the profile screen, so focus can go back to it. */
+export function fieldHeadingId(field: ProfileField): string {
+  return `field-${field}`;
+}
 
 /** 0 to 1 as low / med / high. */
 export function confidenceLevel(confidence: number): ConfidenceLevel {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { LoadingState, Skeleton } from "@/components/loading-skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEMO_ACCOUNTS } from "@/lib/demo-accounts";
 import { SignInForm } from "./sign-in-form";
@@ -19,7 +20,7 @@ export default function SignInPage() {
           <CardDescription>Use the email address BSP staff set up for you.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense>
+          <Suspense fallback={<SignInFormSkeleton />}>
             <SignInForm />
           </Suspense>
         </CardContent>
@@ -31,7 +32,7 @@ export default function SignInPage() {
         <ul className="flex flex-col gap-1">
           {DEMO_ACCOUNTS.map((a) => (
             <li key={a.email} className="flex flex-wrap items-baseline justify-between gap-x-3">
-              <span className="font-mono text-foreground">{a.email}</span>
+              <span className="font-mono break-all text-foreground">{a.email}</span>
               <span>{a.role === "staff" ? "BSP staff" : "Member"}</span>
             </li>
           ))}
@@ -39,5 +40,16 @@ export default function SignInPage() {
         <p className="mt-3">The password is shared with the team, not shown here.</p>
       </section>
     </div>
+  );
+}
+
+/** Until the form can read the page address (it keeps ?next=). */
+function SignInFormSkeleton() {
+  return (
+    <LoadingState label="Loading the sign-in form…">
+      <Skeleton className="h-14" />
+      <Skeleton className="h-14" />
+      <Skeleton className="h-9" />
+    </LoadingState>
   );
 }

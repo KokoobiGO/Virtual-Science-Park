@@ -40,6 +40,12 @@ describe("menus by role", () => {
     }
   });
 
+  it("keeps backlog ids out of what users read: the label and the description (C20)", () => {
+    for (const item of [...NAV.member, ...NAV.staff, ...SHARED_NAV]) {
+      expect(`${item.label} ${item.description}`, item.href).not.toMatch(/\b[ABCDS]\d{1,2}\b|backlog/i);
+    }
+  });
+
   it("has no duplicate links in a menu and a description for each", () => {
     for (const role of ["member", "staff"] as const) {
       const hrefs = NAV[role].map((i) => i.href);

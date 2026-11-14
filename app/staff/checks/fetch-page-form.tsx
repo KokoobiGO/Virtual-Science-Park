@@ -19,6 +19,7 @@ export function FetchPageForm() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (state.kind === "running") return;
     setState({ kind: "running" });
     try {
       const res = await fetch("/api/snapshots", {
@@ -38,7 +39,7 @@ export function FetchPageForm() {
     <div className="flex flex-col gap-4">
       <form onSubmit={submit} className="flex flex-col gap-2">
         <Label htmlFor="snapshot-url">Page address</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             id="snapshot-url"
             type="text"
@@ -47,26 +48,35 @@ export function FetchPageForm() {
             placeholder="https://www.bluesciencepark.se/"
             value={url}
             onChange={(event) => setUrl(event.target.value)}
+            aria-invalid={state.kind === "error" || undefined}
+            aria-describedby={state.kind === "error" ? "snapshot-error" : undefined}
           />
-          <Button type="submit" disabled={state.kind === "running"}>
+          <Button type="submit" aria-disabled={state.kind === "running" || undefined} className="aria-disabled:opacity-60">
             {state.kind === "running" ? "Fetching…" : "Fetch page"}
           </Button>
         </div>
       </form>
 
-      {state.kind === "error" && <p className="text-sm break-words text-destructive">{state.message}</p>}
+      {state.kind === "error" && (
+        <p id="snapshot-error" role="alert" className="text-sm break-words text-destructive">
+          {state.message}
+        </p>
+      )}
+      <p role="status" className="sr-only">
+        {state.kind === "running" ? "Fetching the page…" : state.kind === "done" ? "Page fetched." : ""}
+      </p>
 
       {state.kind === "done" && (
         <div className="flex flex-col gap-2 rounded-lg border px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge>{state.snapshot.unchanged ? "Unchanged" : "Stored"}</Badge>
-            <span className="font-medium">{state.snapshot.title ?? "(no title)"}</span>
+            <span className="font-medium break-words">{state.snapshot.title ?? "(no title)"}</span>
           </div>
           <p className="text-sm break-words text-muted-foreground">
             {state.snapshot.url} · language {state.snapshot.lang} · {state.snapshot.chars.toLocaleString("en")} characters ·
             retrieved {state.snapshot.retrievedAt} · {state.seconds} s · snapshot {state.snapshot.snapshotId}
           </p>
-          <p className="text-sm whitespace-pre-wrap">{state.snapshot.preview}…</p>
+          <p className="text-sm break-words whitespace-pre-wrap">{state.snapshot.preview}…</p>
         </div>
       )}
     </div>

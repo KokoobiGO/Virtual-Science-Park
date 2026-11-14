@@ -54,7 +54,7 @@ export type DigestEmail = { subject: string; html: string; text: string };
 /** Information-only notice, shared by the HTML and the text version. */
 export const DIGEST_NOTICE =
   "Information only. These cards are picked by software from public sources and your company's profile on Virtual Science Park. " +
-  "A potential match is not a decision about eligibility: check the source before you act, or ask BSP staff.";
+  "A potential match is not a decision on whether you can apply: check the source before you act, or ask BSP staff.";
 
 /** How the data is labelled, shared by the HTML and the text version. */
 export const DIGEST_LABELS: readonly { label: string; meaning: string }[] = [
