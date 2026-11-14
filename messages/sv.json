@@ -45,6 +45,7 @@
     "eyebrow": "Blue Science Park · Karlskrona",
     "title": "Varje vecka: möjligheterna som kan passa ert företag",
     "intro": "Virtual Science Park ger varje medlem i Blue Science Park en kort lista med utlysningar, testbäddar, evenemang och partner. Varje rad visar var den kommer ifrån, så att ni kan kontrollera den själva.",
+    "tagline": "Utlysningar, testbäddar och evenemang utvalda för ert företag varje vecka, varje rad länkad till sin källa.",
     "howTitle": "Så fungerar det",
     "howIntro": "Tre steg, varje vecka. Ni bestämmer själva vad som händer sedan.",
     "stepNumber": "Steg {n}",
@@ -63,6 +64,11 @@
       }
     },
     "signInHint": "Konton för medlemmar läggs upp av BSP:s personal.",
+    "seeHow": "Så fungerar det",
+    "cards": {
+      "sources": { "label": "Läses varje natt", "value": "{count} källor", "text": "Finansiering, testbäddar, evenemang" },
+      "evidence": { "label": "Varje uppgift", "value": "Länkad till sin källa", "text": "+ citat" }
+    },
     "openStaff": "Öppna personalverktygen",
     "openWeek": "Öppna er vecka",
     "staffTools": "Personalverktyg",

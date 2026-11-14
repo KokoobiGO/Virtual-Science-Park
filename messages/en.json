@@ -45,6 +45,7 @@
     "eyebrow": "Blue Science Park · Karlskrona",
     "title": "Each week, the opportunities that may fit your company",
     "intro": "Virtual Science Park gives every Blue Science Park member a short list of funding calls, testbeds, events and partners. Every line shows where it came from, so you can check it yourself.",
+    "tagline": "Funding calls, testbeds and events picked for your company each week, every line linked to its source.",
     "howTitle": "How it works",
     "howIntro": "Three steps, every week. You stay in charge of what happens next.",
     "stepNumber": "Step {n}",
@@ -63,6 +64,11 @@
       }
     },
     "signInHint": "Accounts are set up by BSP staff for members.",
+    "seeHow": "See how it works",
+    "cards": {
+      "sources": { "label": "Read every night", "value": "{count} sources", "text": "Funding, testbeds, events" },
+      "evidence": { "label": "Every fact", "value": "Linked to its source", "text": "+ quote" }
+    },
     "openStaff": "Open the staff tools",
     "openWeek": "Open your week",
     "staffTools": "Staff tools",
