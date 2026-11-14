@@ -15,6 +15,7 @@ describe("menus by role", () => {
       "/profile",
       "/staff/handoffs",
       "/explore",
+      "/staff/injection-demo",
       "/trust",
       "/staff/checks",
     ]);

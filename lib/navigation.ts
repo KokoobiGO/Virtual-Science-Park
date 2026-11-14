@@ -28,6 +28,7 @@ export const NAV: Record<AppRole, NavItem[]> = {
     { href: "/profile", label: "Company profiles", backlog: "C5", description: "Every member's public profile, with its evidence." },
     { href: "/staff/handoffs", label: "Handoffs", backlog: "C11", description: "Questions members sent to BSP staff." },
     { href: "/explore", label: "Explore", backlog: "C14", description: "Search every funding call, testbed and event." },
+    { href: "/staff/injection-demo", label: "Injection test", backlog: "B13", description: "A page with hidden instructions to AI, and what the system did with them." },
     { href: "/trust", label: "Trust report", backlog: "C12", description: "How well the profiles and matches hold up." },
     { href: "/staff/checks", label: "Service checks", backlog: "S3", description: "Test calls to the hosted services and jobs." },
   ],
