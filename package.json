@@ -27,6 +27,7 @@
     "enrich": "tsx --env-file-if-exists=.env.local scripts/enrich.ts",
     "similar": "tsx --env-file-if-exists=.env.local scripts/similar.ts",
     "match": "tsx --env-file-if-exists=.env.local scripts/match.ts",
+    "connections": "tsx --env-file-if-exists=.env.local scripts/connections.ts",
     "check:links": "tsx --env-file-if-exists=.env.local scripts/check-links.ts",
     "sources:status": "tsx --env-file-if-exists=.env.local scripts/sources-status.ts"
   },

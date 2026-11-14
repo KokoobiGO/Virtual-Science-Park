@@ -62,6 +62,7 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run enrich` | Tag and embed opportunities and companies that have no embedding yet (A14); `--force`, `--limit N`, `--dry` |
 | `npm run similar -- <slug>` | The nearest opportunities and companies to one member, by embedding (A14) |
 | `npm run match -- [slug ...]` | Rank and store the top 20 opportunities per company in both modes (A15); `--dry` prints the ranking with its five parts |
+| `npm run connections` | Find pairs of members with a stated reason to talk, for staff (A28); `--dry`, `--limit N` (a stored `--limit` run replaces the whole table) |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 
@@ -90,6 +91,7 @@ lib/collectors/     collectors (A9 to A13, A25, A26): one folder per outside sou
 lib/tagger/         tagger (A14): which of the six tags a text is about
 lib/embeddings/     embedding texts and the enrich functions (A14)
 lib/matcher/        matcher (A15, A18): the ranking SQL, the score parts, storing the top 20
+lib/connections/    connection finder (A28): candidate pairs, the judge, the checks, storing
 lib/links/          link checker (A20)
 lib/sources/        source health verdicts (A19)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
@@ -331,6 +333,28 @@ also runs at 04:30 every night and after the enrich job found something new.
   keep the judge's text. A company without an embedding is skipped, not wiped.
 - `tests/ranking.integration.test.ts` holds the A22 tests. Every write in them
   is rolled back.
+
+## Connection finder (A28)
+
+```
+event: app/connections.requested   data: {}
+```
+
+For BSP staff: pairs of members that may have a reason to talk, with the
+reason and the public claims it rests on. Stored in `connections`, which only
+staff can read.
+
+- Candidates: each profiled company's 4 nearest companies by public embedding,
+  the 60 closest pairs.
+- The model sees both companies' public claims only and says whether there is
+  a concrete reason (supplier and customer, complementary technology). Two
+  companies that do the same thing are not a reason.
+- Checks in code: the reason cites at least one real public claim from each
+  side, and it never says that a company is interested or looking.
+- Show `CONNECTION_DISCLAIMER` from `lib/connections` with every pair:
+  neither company has expressed interest.
+- The table always holds the latest run. Borderline pairs can come and go
+  between runs, because the model is not fully stable on them.
 
 ## Source status, cached mode and schedules (A19, A23)
 

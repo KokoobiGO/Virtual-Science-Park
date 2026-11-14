@@ -1,6 +1,7 @@
 import { collectSourcesJob } from "./collect-sources";
 import { enrichJob } from "./enrich";
 import { fetchSnapshotJob } from "./fetch-snapshot";
+import { findConnectionsJob } from "./find-connections";
 import { heartbeat } from "./heartbeat";
 import { importMembersJob } from "./import-members";
 import { matchCompaniesJob } from "./match-companies";
@@ -21,5 +22,6 @@ export const functions = [
   collectSourcesJob,
   enrichJob,
   matchCompaniesJob,
+  findConnectionsJob,
   refreshProfilesJob,
 ];
