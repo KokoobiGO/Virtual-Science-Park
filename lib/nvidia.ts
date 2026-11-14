@@ -53,6 +53,8 @@ export type ChatRequest = {
   response_format?: { type: "json_schema"; json_schema: { name: string; schema: Record<string, unknown>; strict?: boolean } };
   /** NIM's own structured-output field, for endpoints without `response_format`. */
   nvext?: { guided_json?: Record<string, unknown> };
+  /** Passed to the model's chat template, e.g. `{ enable_thinking: false }` on Nemotron. */
+  chat_template_kwargs?: Record<string, unknown>;
 };
 
 export type ChatResponse = {
@@ -73,14 +75,15 @@ export class NvidiaApiError extends Error {
   }
 }
 
-/** One chat completion. Throws NvidiaApiError on a non-2xx answer. */
-export async function nvidiaChat(request: ChatRequest): Promise<ChatResponse> {
+/** One chat completion. Throws NvidiaApiError on a non-2xx answer, and a TimeoutError after `timeoutMs`. */
+export async function nvidiaChat(request: ChatRequest, options: { timeoutMs?: number } = {}): Promise<ChatResponse> {
   const key = process.env.NVIDIA_API_KEY;
   if (!key) throw new Error("NVIDIA_API_KEY is not set. See .env.example.");
   const res = await fetch(`${nvidiaBaseUrl()}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(request),
+    signal: options.timeoutMs ? AbortSignal.timeout(options.timeoutMs) : undefined,
   });
   if (!res.ok) throw new NvidiaApiError(res.status, await res.text());
   return (await res.json()) as ChatResponse;
