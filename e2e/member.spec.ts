@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { Locator, Page } from "@playwright/test";
 import { OUT_OF_SCOPE_REPLY } from "../lib/copilot/policy";
-import { DATE_TEXT, MEMBER, expect, main, open, signInThroughForm, test } from "./helpers";
+import { DATE_TEXT, MEMBER, checkHandEnteredLabels, expect, handEnteredSources, main, open, signInThroughForm, test } from "./helpers";
 
 /**
  * The member half of the demo path (steps 1 to 8), signed in as the
@@ -40,6 +40,11 @@ async function describeCard(card: Locator) {
   const parts = (await card.locator("h4").allInnerTexts()).map((h) => h.trim().toLowerCase());
   const sourceLinks = await card.locator('[data-slot="card-content"] a[href^="http"]').count();
   return { text, title, parts, sourceLinks };
+}
+
+/** The submit button of the /explore filter form. Exact, so it never also finds "Clear" or a "Clear filters" link. */
+function filterButton(page: Page): Locator {
+  return main(page).getByRole("button", { name: "Filter", exact: true });
 }
 
 /** "All 120 opportunities" or "12 of 120 opportunities" on /explore. */
@@ -228,7 +233,7 @@ test.describe("4. explore", () => {
     test.info().annotations.push({ type: "why texts", description: `${await notes.count()} match notes, ${notJudged} of them "Not judged yet"` });
 
     await main(page).getByLabel("Kind").selectOption({ label: "Funding call" });
-    await main(page).getByRole("button", { name: "Filter" }).click();
+    await filterButton(page).click();
     await expect(page).toHaveURL(/kind=funding/);
     await expect(main(page).getByText(/^\d+ of \d+ opportunities/)).toBeVisible();
     const funding = await exploreCount(page);
@@ -242,14 +247,14 @@ test.describe("4. explore", () => {
     await open(page, "/explore", "Explore");
     const all = await exploreCount(page);
     await main(page).getByLabel("Deadline").selectOption({ label: "Open now" });
-    await main(page).getByRole("button", { name: "Filter" }).click();
+    await filterButton(page).click();
     await expect(page).toHaveURL(/due=open/);
     await expect(main(page).getByText(/^(\d+ of \d+ opportunities)/)).toBeVisible();
     const open_ = await exploreCount(page);
     expect(open_.shown, `after Deadline = Open now: "${open_.text}" (before: "${all.text}")`).toBeLessThan(all.total);
 
     await main(page).getByLabel("Deadline").selectOption({ label: "Closing within 30 days" });
-    await main(page).getByRole("button", { name: "Filter" }).click();
+    await filterButton(page).click();
     await expect(page).toHaveURL(/due=soon/);
     const soon = await exploreCount(page);
     test.info().annotations.push({ type: "counts", description: `all ${all.total}; open now ${open_.shown}; closing within 30 days ${soon.shown}` });
@@ -265,6 +270,68 @@ test.describe("4. explore", () => {
     await expect(main(page).getByRole("link", { name: "Deadline timeline" })).toHaveAttribute("aria-current", "page");
     const months = await main(page).getByRole("list", { name: "Deadlines per month" }).getByRole("listitem").count();
     test.info().annotations.push({ type: "timeline", description: `${months} months in the deadline bar chart` });
+  });
+
+  test("4d. the map view: pins are named buttons, a pin shows its card, 'Show it in the list' lands on the row", async ({ page }) => {
+    await open(page, "/explore?view=map", "Explore");
+    await expect(main(page).getByRole("navigation", { name: "View" }).getByRole("link", { name: "Map", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    const map = main(page).getByRole("group", { name: /^Sketch map of southern Sweden with \d+ test facilit(y|ies)$/ });
+    await expect(map, "the map is a named group").toBeVisible();
+    const pins = map.getByRole("button");
+    await expect(pins.first(), "the map should have at least one pin").toBeVisible();
+
+    // Every pin is a real, focusable <button> named after its facility.
+    const described = await pins.evaluateAll((buttons) =>
+      buttons.map((b) => ({ tag: b.tagName.toLowerCase(), name: (b.getAttribute("aria-label") ?? "").trim(), tabIndex: (b as HTMLElement).tabIndex })),
+    );
+    const problems = described
+      .map((p, i) => [
+        p.tag !== "button" ? `pin ${i + 1} is a <${p.tag}>, not a <button>` : null,
+        p.name ? null : `pin ${i + 1} has no name`,
+        p.tabIndex < 0 ? `pin ${i + 1} "${p.name}" is not in the Tab order (tabIndex ${p.tabIndex})` : null,
+      ])
+      .flat()
+      .filter((p): p is string => p !== null);
+    expect(problems, problems.join("\n")).toEqual([]);
+    const named = Number((await map.getAttribute("aria-label"))?.match(/with (\d+) test/)?.[1]);
+    expect(described.length, "the map's name counts its pins").toBe(named);
+    test.info().annotations.push({ type: "pins", description: `${described.length} pins, e.g. "${described[0].name}"` });
+
+    // The card: what the pin controls.
+    const cardId = await pins.first().getAttribute("aria-controls");
+    expect(cardId, "a pin says which panel it controls (aria-controls)").toBeTruthy();
+    const card = page.locator(`#${cardId}`);
+
+    // Mouse: the first pin shows its card.
+    const first = described[0].name;
+    await pins.first().click();
+    await expect(pins.first()).toHaveAttribute("aria-pressed", "true");
+    await expect(card.getByRole("heading", { level: 3 }), "the card shows the selected facility").toContainText(first);
+
+    // Keyboard: the last pin (its row is lower in the list, so landing on it needs a scroll).
+    const last = described[described.length - 1].name;
+    const pin = pins.last();
+    await pin.focus();
+    await expect(pin).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(pin).toHaveAttribute("aria-pressed", "true");
+    await expect(pin, "focus stays on the pin after selecting it").toBeFocused();
+    if (described.length > 1) await expect(pins.first()).toHaveAttribute("aria-pressed", "false");
+    await expect(card.getByRole("heading", { level: 3 })).toContainText(last);
+
+    // "Show it in the list" opens the list, filtered to test facilities, at that facility's row.
+    await card.getByRole("link", { name: "Show it in the list" }).click();
+    await expect(page).toHaveURL(/\/explore\?(.*&)?kind=testbed.*#opportunity-/);
+    const hash = new URL(page.url()).hash;
+    const row = main(page).locator(`li[id="${hash.slice(1)}"]`);
+    await expect(row, `the list should have the row ${hash}`).toBeVisible();
+    await expect(row).toContainText(last);
+    await expect(row, "the page should be scrolled to the row").toBeInViewport();
+    const highlighted = await row.evaluate((el) => el.matches(":target"));
+    test.info().annotations.push({ type: "row", description: `${hash}: in view; :target highlight ${highlighted ? "on" : "off (client-side navigation does not set :target)"}` });
   });
 });
 
@@ -422,6 +489,40 @@ test.describe("7. trust report and data status", () => {
     test.info().annotations.push({ type: "sources", description: `${count} sources. ${statuses.join("; ")}` });
     expect(missing, `sources without a status: ${missing.join(", ")}`).toEqual([]);
   });
+});
+
+test("10. data labels: hand-entered items say 'Hand-entered' on /explore and /week, not 'Simulated'", async ({ page }) => {
+  const sources = await handEnteredSources(page);
+  expect(sources.length, "/sources should name at least one hand-entered source").toBeGreaterThan(0);
+  test.info().annotations.push({ type: "hand-entered sources", description: sources.join("; ") });
+
+  await open(page, "/explore", "Explore");
+  const rows = main(page).locator("li[data-kind]");
+  await expect(rows.first()).toBeVisible();
+  const explore = await checkHandEnteredLabels(rows, sources, "/explore");
+  test.info().annotations.push({
+    type: "/explore labels",
+    description: `${explore.handEntered} of ${explore.total} items are hand-entered: ${JSON.stringify(explore.seen)}`,
+  });
+  expect(explore.handEntered, "/explore lists every item, so the hand-entered ones are there").toBeGreaterThan(0);
+  // "Simulated" is right only for the team's sample fixtures; record how many items carry it.
+  const simulated = await main(page).locator('[data-data-status="simulated"]').count();
+  test.info().annotations.push({ type: "/explore 'Simulated' labels", description: `${simulated} (sample fixtures only)` });
+
+  // /week: its cards are being re-labelled tonight, so the old wording "Simulated…" is accepted there and recorded.
+  await open(page, "/week", "Your week");
+  const cards = weekCards(page).filter({ hasText: "Potential match" });
+  await expect(cards.first()).toBeVisible();
+  const week = await checkHandEnteredLabels(cards, sources, "/week", /^(Hand-entered|Simulated( data)?)$/);
+  test.info().annotations.push({
+    type: "/week labels",
+    description: week.handEntered
+      ? `${week.handEntered} of ${week.total} match cards are hand-entered: ${JSON.stringify(week.seen)}`
+      : `none of the ${week.total} match cards is hand-entered, so the label could not be seen`,
+  });
+
+  const problems = [...explore.problems, ...week.problems];
+  expect(problems, problems.join("\n")).toEqual([]);
 });
 
 test("8. a member opening /staff/compare is refused", async ({ page }) => {
