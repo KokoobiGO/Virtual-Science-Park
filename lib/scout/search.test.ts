@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FetchedPage } from "../fetcher/fetch-page";
-import { isAllowedUrl, isBotChallenge, keywordTerms, maxSearches, parseDuckDuckGo, resultTarget, searchWeb, WebSearchUnavailable } from "./search";
+import { isAllowedUrl, isBotChallenge, maxSearches, parseDuckDuckGo, resultTarget, searchWeb, WebSearchUnavailable } from "./search";
 
 const RESULTS_PAGE = `<html><body><div class="results">
   <div class="result results_links results_links_deep web-result result--ad">
@@ -71,13 +71,6 @@ describe("web search (DuckDuckGo)", () => {
 });
 
 describe("store search helpers", () => {
-  it("keeps the words that say what is searched for", () => {
-    expect(keywordTerms("Funding for safer electricity grid technology")).toEqual(["safer", "electricity", "grid"]);
-    expect(keywordTerms("Which test facilities could fit an underwater sensor?")).toEqual(["underwater", "sensor"]);
-    expect(keywordTerms("'); drop table x; --")).toEqual(["drop", "table"]);
-    expect(keywordTerms("elnät och säkerhet")).toEqual(["elnät", "säkerhet"]);
-  });
-
   it("reads SCOUT_MAX_SEARCHES with a default of 6", () => {
     // An explicit argument: vitest loads .env.local, which may set the real variable.
     expect(maxSearches("")).toBe(6);

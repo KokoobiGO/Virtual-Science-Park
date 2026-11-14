@@ -7,7 +7,7 @@
  *
  * - store: BSP's own opportunity store, by embedding similarity of the query
  *   (Voyage, the same vectors as the matcher) and, when the embedding call
- *   fails or is rate limited, by Postgres full-text keywords. Fixtures
+ *   fails or is rate limited, by bilingual keywords (keywords.ts). Fixtures
  *   (external id "fixture-...") never come back, nor closed calls, past
  *   events or news.
  * - web: DuckDuckGo's HTML endpoint, fetched through the repo's page fetcher,
@@ -20,7 +20,7 @@
  * Jobs and scripts only: the store search reads with getDb().
  */
 import * as cheerio from "cheerio/slim";
-import { and, asc, cosineDistance, desc, eq, gte, isNotNull, isNull, ne, notInArray, notLike, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, cosineDistance, eq, gte, isNotNull, isNull, ne, notLike, or, sql, type SQL } from "drizzle-orm";
 import { getDb, type Db } from "../db";
 import { opportunities } from "../db/schema";
 import { cutText } from "../embeddings/text";
@@ -28,6 +28,7 @@ import { fetchPage, type FetchedPage } from "../fetcher/fetch-page";
 import { FIXTURE_PREFIX } from "../matcher/score";
 import type { OpportunityKind } from "../schemas";
 import { voyageEmbed } from "../voyage";
+import { hasSpecific, keywordPlan, rankByKeywords } from "./keywords";
 import type { ScoutHit, SearchHit, SourceOrigin } from "./types";
 
 /** The adapter interface (B1). */
@@ -64,28 +65,6 @@ const collapse = (text: string) => text.replace(/\s+/g, " ").trim();
 
 /** What the store search did, for the progress line. */
 export type StoreSearch = { hits: ScoutHit[]; method: "embedding" | "keywords"; fallbackReason?: string };
-
-/**
- * Left out of keyword searches: function words, and words nearly every
- * opportunity has ("funding", "technology"), which on 2026-11-14 ranked
- * battery calls first for "funding for safer electricity grid technology".
- * The search's `kind` already says funding, facility or event.
- */
-const STOP_WORDS = new Set(
-  [
-    "a an and are as at be by can could for from has have how in into is it its of on or our that the their them they this to was we what when where which who will with would you your",
-    "och att det som för med på av till är en ett",
-    "fund funds funding financing grant grants call calls test tests testing facility facilities testbed testbeds technology technologies tech innovation innovative sweden swedish event events project projects programme program support opportunity opportunities find help want next year fit new",
-  ]
-    .join(" ")
-    .split(" "),
-);
-
-/** Words for the keyword fallback: letters and digits only, so they are safe inside to_tsquery. */
-export function keywordTerms(query: string): string[] {
-  const words = query.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
-  return [...new Set(words.filter((w) => w.length >= 3 && !STOP_WORDS.has(w)))].slice(0, 10);
-}
 
 type StoreRow = {
   id: string;
@@ -171,10 +150,11 @@ export type StoreSearchOptions = {
 /**
  * The nearest current opportunities to the query by embedding. When Voyage
  * fails (its free tier allows 3 requests a minute), the same pool by
- * keywords instead: most query words matched first, then closest to the
- * company's own stored embedding (personal, else public), which needs no
- * new Voyage call. A query with only generic words is ranked by that
- * closeness alone.
+ * keywords instead (keywords.ts): English and Swedish words of the term map,
+ * tags and other query words, in title and text; ties, and the rest when
+ * fewer match, by closeness to the company's own stored embedding (personal,
+ * else public), which needs no new Voyage call. A query with only generic
+ * words is ranked by them and that closeness.
  */
 export async function searchStore(query: string, options: StoreSearchOptions = {}): Promise<StoreSearch> {
   const { kind, limit = STORE_LIMIT, db = getDb(), now = new Date(), embed = voyageEmbed, companyId } = options;
@@ -191,33 +171,24 @@ export async function searchStore(query: string, options: StoreSearchOptions = {
     return { hits: rows.map(storeHit), method: "embedding" };
   } catch (error) {
     const fallbackReason = error instanceof Error ? error.message.slice(0, 160) : String(error);
-    const terms = keywordTerms(query);
-    const document = sql`to_tsvector('english', ${opportunities.title} || ' ' || coalesce(${opportunities.description}, ''))`;
-    const matched = terms.length ? sql.join(terms.map((term) => sql`(${document} @@ to_tsquery('english', ${term}))::int`), sql` + `) : sql`0`;
+    const plan = keywordPlan(query);
+    if (!hasSpecific(plan) && !companyId) return { hits: [], method: "keywords", fallbackReason };
     const closeness = companyId
-      ? sql`coalesce(1 - (${opportunities.embedding} <=> (
+      ? sql<number>`coalesce(1 - (${opportunities.embedding} <=> (
           select coalesce(cp.personal_embedding, c.public_embedding) from companies c
-          left join company_private cp on cp.company_id = c.id where c.id = ${companyId}::uuid)), 0)`
-      : sql`0`;
-    if (!terms.length && !companyId) return { hits: [], method: "keywords", fallbackReason };
+          left join company_private cp on cp.company_id = c.id where c.id = ${companyId}::uuid)), 0)::float8`
+      : sql<number>`0::float8`;
+    // The open pool is a few hundred rows: rank them here, where å, ä and ö compare the same on any database.
     const rows = await db
-      .select(storeColumns)
+      .select({ ...storeColumns, tags: opportunities.tags, closeness })
       .from(opportunities)
-      .where(and(pool, terms.length ? sql`${document} @@ to_tsquery('english', ${terms.join(" | ")})` : isNotNull(opportunities.embedding)))
-      .orderBy(desc(matched), desc(closeness))
-      .limit(limit);
-    // English words miss Swedish calls: fill up with what is closest to the company.
-    if (companyId && terms.length && rows.length < limit) {
-      const found = rows.map((r) => r.id);
-      const more = await db
-        .select(storeColumns)
-        .from(opportunities)
-        .where(and(pool, isNotNull(opportunities.embedding), found.length ? notInArray(opportunities.id, found) : undefined))
-        .orderBy(desc(closeness))
-        .limit(limit - rows.length);
-      rows.push(...more);
-    }
-    return { hits: rows.map(storeHit), method: "keywords", fallbackReason };
+      .where(pool);
+    const ranked = rankByKeywords(
+      rows.map((row) => ({ ...row, closeness: Number(row.closeness) || 0 })),
+      plan,
+      { limit, fill: Boolean(companyId) },
+    );
+    return { hits: ranked.map(storeHit), method: "keywords", fallbackReason };
   }
 }
 

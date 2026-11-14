@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
+import { CopilotLauncherSlot } from "@/components/copilot/copilot-launcher-slot";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -34,6 +36,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        {/* Members only; reads the session, so it streams in after the page. */}
+        <Suspense fallback={null}>
+          <CopilotLauncherSlot />
+        </Suspense>
       </body>
     </html>
   );
