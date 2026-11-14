@@ -10,7 +10,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "curated",
-    "note": "MTC news article of 10 April 2026. The environment is in a build-up phase."
+    "note": "MTC news article of 10 April 2026. The environment is in a build-up phase.",
+    "town": "Karlskrona",
+    "lat": 56.1612,
+    "lon": 15.5869
   },
   {
     "externalId": "fmv-naval-test-ranges",
@@ -23,7 +26,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "curated",
-    "note": "The site sits behind Cloudflare: curl gets the page (200), while Node's fetch gets a 403 challenge page."
+    "note": "The site sits behind Cloudflare: curl gets the page (200), while Node's fetch gets a 403 challenge page. The pin is the Naval Test Centre in Karlskrona.",
+    "town": "Karlskrona",
+    "lat": 56.1612,
+    "lon": 15.5869
   },
   {
     "externalId": "rise-sspa-towing-tank",
@@ -35,7 +41,10 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "curated",
-    "note": "ri.se answers automated requests with 403 or an 'I'm not a robot' check, so this link could not be confirmed and the RISE page was not read. Facts come from https://www.investingothenburg.com/master-collaboration/testbed/testbeds-in-the-region/sspa-test-facilities (dated 2 March 2023). A person should open the RISE page in a browser, then set linkOk, verified and contact."
+    "note": "The RISE page was not read: ri.se shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14). The link checker gets 200 from ri.se even for a page that does not exist, so a 200 does not confirm this link. Facts and town come from https://www.investingothenburg.com/master-collaboration/testbed/testbeds-in-the-region/sspa-test-facilities (dated 2 March 2023). A person should open the RISE page in a browser, then set linkOk, verified and contact.",
+    "town": "Gothenburg",
+    "lat": 57.7089,
+    "lon": 11.9746
   },
   {
     "externalId": "mtc-test-bed-bth",
@@ -48,7 +57,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "curated",
-    "note": "The project page describes the test bed in the future tense and does not say that outside companies can book it today."
+    "note": "The project page describes the test bed in the future tense and does not say that outside companies can book it today.",
+    "town": "Karlskrona",
+    "lat": 56.1612,
+    "lon": 15.5869
   },
   {
     "externalId": "rise-cyber-range",
@@ -60,7 +72,10 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "curated",
-    "note": "Verified from the European Commission's Digital Skills and Jobs Platform: https://digital-skills-jobs.europa.eu/en/impact-shapers/good-practices/cyber-range-test-bed-digital-security-sweden. ri.se answers automated requests with 403 or an 'I'm not a robot' check, so the RISE link could not be confirmed and no contact route was read. A person should open the RISE page in a browser, then set linkOk and contact."
+    "note": "Verified from the European Commission's Digital Skills and Jobs Platform: https://digital-skills-jobs.europa.eu/en/impact-shapers/good-practices/cyber-range-test-bed-digital-security-sweden. The RISE page was not read: ri.se shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14), and https://cyberrange.ri.se/ is an app with no readable text. The link checker gets 200 from ri.se even for a page that does not exist, so a 200 does not confirm this link. A person should open the RISE page in a browser, then set linkOk and contact.",
+    "town": "Kista",
+    "lat": 59.4032,
+    "lon": 17.9447
   },
   {
     "externalId": "sweden-secure-tech-hub",
@@ -73,7 +88,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "curated",
-    "note": "The EU catalogue page https://european-digital-innovation-hubs.ec.europa.eu/edih-catalogue/sweden-secure-tech-hub-sweden-ict also loads and gives the address Campus Gräsvik 2, Karlskrona. The newest news item on the hub's site is from September 2024."
+    "note": "The EU catalogue page https://european-digital-innovation-hubs.ec.europa.eu/edih-catalogue/sweden-secure-tech-hub-sweden-ict also loads and gives the address Campus Gräsvik 2, Karlskrona. The newest news item on the hub's site is from September 2024.",
+    "town": "Karlskrona",
+    "lat": 56.1612,
+    "lon": 15.5869
   },
   {
     "externalId": "tech-concept-lab-ai-lab-blekinge",
@@ -85,7 +103,10 @@
     "verified": true,
     "linkOk": true,
     "checkedAt": "2026-11-14",
-    "origin": "curated"
+    "origin": "curated",
+    "town": "Karlskrona",
+    "lat": 56.1612,
+    "lon": 15.5869
   },
   {
     "externalId": "foi-crate",
@@ -98,7 +119,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Vinnova's list links an older FOI address, which now redirects to this page (updated 2026-11-09)."
+    "note": "Vinnova's list links an older FOI address, which now redirects to this page (updated 2026-11-09).",
+    "town": "Linköping",
+    "lat": 58.4108,
+    "lon": 15.6214
   },
   {
     "externalId": "ai-sweden-technology-infrastructure",
@@ -111,7 +135,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Vinnova lists it as 'Data Factory vid AI Sweden' (https://www.ai.se/en/data-factory); that link now redirects to this page."
+    "note": "Vinnova lists it as 'Data Factory vid AI Sweden' (https://www.ai.se/en/data-factory); that link now redirects to this page. The infrastructure page names no place: the town is AI Sweden's Gothenburg office address (c/o Lindholmen Science Park, Lindholmspiren 3-5) from https://www.ai.se/en/contact, which also lists offices in other towns.",
+    "town": "Gothenburg",
+    "lat": 57.7089,
+    "lon": 11.9746
   },
   {
     "externalId": "rise-printed-electronics-arena",
@@ -124,7 +151,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Listed by Vinnova as 'PEA Manufacturing'."
+    "note": "Listed by Vinnova as 'PEA Manufacturing'. Town from the contact page: RISE / Printed Electronics, Södra Grytsgatan 4, SE-602 33 Norrköping.",
+    "town": "Norrköping",
+    "lat": 58.5877,
+    "lon": 16.1924
   },
   {
     "externalId": "rise-astazero",
@@ -137,7 +167,10 @@
     "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Vinnova's link http://www.astazero.com/ redirects to this page."
+    "note": "Vinnova's link http://www.astazero.com/ redirects to this page. Town from the contact page: test site AstaZero Hällered, Göksholmen 1, 504 91 Sandhult.",
+    "town": "Sandhult",
+    "lat": 57.7667,
+    "lon": 12.8167
   },
   {
     "externalId": "sics-ice-datacenter-lulea",
@@ -149,7 +182,10 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: it redirects to the RISE home page."
+    "note": "Dead link: it redirects to the RISE home page. RISE's ICE Datacenter pages are on ri.se, which shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14), so no current page was read. https://ice.ri.se/ answers, but it is the ICE Connect sign-in portal for users, not a page about the facility. Town from Vinnova's list.",
+    "town": "Luleå",
+    "lat": 65.5848,
+    "lon": 22.1547
   },
   {
     "externalId": "rise-emc-wireless",
@@ -161,7 +197,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Not checked: ri.se answers automated requests with 403 or an 'I'm not a robot' check."
+    "note": "Not read: ri.se shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14). The link checker gets 200 from ri.se even for a page that does not exist, so a 200 does not confirm this link. No town is stated in what could be read."
   },
   {
     "externalId": "rise-robust-electronics",
@@ -173,7 +209,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Not checked: ri.se answers automated requests with 403 or an 'I'm not a robot' check."
+    "note": "Not read: ri.se shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14). The link checker gets 200 from ri.se even for a page that does not exist, so a 200 does not confirm this link. No town is stated in what could be read."
   },
   {
     "externalId": "sp-energy-technology-center",
@@ -185,19 +221,23 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: it redirects to a general RISE energy page, not to the facility."
+    "note": "Dead link: it redirects to a general RISE energy page, not to the facility. The facility's current pages are on ri.se, which shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14), so no current page was read."
   },
   {
     "externalId": "stri-high-voltage-testing",
-    "title": "STRI independent high-voltage testing",
-    "url": "http://www.stri.se/index.pl?id=2189",
-    "description": "According to Vinnova's list, a test bed run by STRI for independent high-voltage testing. Vinnova classes it as a lab and simulated environment.",
+    "title": "STRI high-voltage laboratory, Ludvika",
+    "url": "https://www.stri.se/testing/high-voltage-tests/",
+    "description": "STRI, an independent test laboratory in Ludvika, performs high-voltage tests on power products with system voltages up to 800 kV for manufacturers of electrical equipment worldwide. Type tests cover products such as insulators, cables and their accessories, bushings, breakers, GIS, surge arresters, disconnectors, instrument transformers, capacitors and HVDC valves. The laboratory has four high-voltage test halls, a climate test hall for pollution testing of 800 kV HVAC and HVDC equipment, smaller climate and ageing chambers, and an outdoor area for pre-qualification tests of HVAC and HVDC cables; it is accredited by SWEDAC.",
     "tags": ["energy"],
-    "verified": false,
-    "linkOk": false,
+    "contact": "STRI contact page: https://www.stri.se/contact-us/ or stri@stri.se (Lyviksvägen 8, Ludvika)",
+    "verified": true,
+    "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the page answers 404."
+    "note": "Vinnova's link http://www.stri.se/index.pl?id=2189 answers 404; this is the high-voltage testing page on STRI's current site. Facts also from https://www.stri.se/testing-facilities/.",
+    "town": "Ludvika",
+    "lat": 60.1496,
+    "lon": 15.1878
   },
   {
     "externalId": "solar-energy-testbed",
@@ -209,7 +249,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the site answers 503 with 'The website is being configured'."
+    "note": "Dead link: solartestbed.se answers 503 with 'The website is being configured', and www.solartestbed.se fails with a certificate error (rechecked 2026-11-14). Web search points to solar testbed pages on ri.se, which shows a bot check ('Verifying you are not a robot') to scripts and to an automated browser, so no current page was read."
   },
   {
     "externalId": "high-voltage-valley-mining-energy",
@@ -221,7 +261,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: on one check the domain did not resolve, on another it redirected to a 'The website is being configured' page."
+    "note": "Dead link: the old address now redirects to a host name that does not exist, and highvoltagevalley.se redirects to https://samarkand2015.com/ (rechecked 2026-11-14). High Voltage Valley is now part of AB Samarkand2015, whose High Voltage Valley page (https://samarkand2015.com/high-voltage-valley/) and project list do not mention this test bed, so no current official page was found."
   },
   {
     "externalId": "rise-high-voltage-lab",
@@ -233,7 +273,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Vinnova's list links a RISE search page, not a facility page; ri.se also answers automated requests with a bot check."
+    "note": "Vinnova's list links a RISE search page, not a facility page. ri.se shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14), so no facility page was found or read."
   },
   {
     "externalId": "rise-fiberlab",
@@ -245,19 +285,23 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "The link redirects to https://www.ri.se/en/test-demo/fiberlab, which could not be checked: ri.se answers automated requests with a bot check."
+    "note": "The link redirects to https://www.ri.se/en/test-demo/fiberlab, which was not read: ri.se shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14). The link checker gets 200 from ri.se even for a page that does not exist, so a 200 does not confirm this link."
   },
   {
     "externalId": "acreo-electrum-lab",
-    "title": "Acreo QLA Electrum lab (semiconductor cleanroom)",
-    "url": "https://www.acreo.se/groups/electrum-laboratory",
-    "description": "According to Vinnova's list, a cleanroom for semiconductor processing, run together with KTH within Myfab, where Acreo also ran its own lab. Vinnova classes it as a lab and simulated environment.",
-    "tags": ["sensor"],
-    "verified": false,
-    "linkOk": false,
+    "title": "Electrum Laboratory, KTH and RISE (semiconductor cleanroom), Kista",
+    "url": "https://www.kth.se/en/electrumlab/about-us",
+    "description": "The Electrum Laboratory in Kista is a KTH laboratory for fabrication and characterisation at the nano and micro scale, operated in close collaboration with RISE. It supports the whole chain from education, research and development to prototyping and production, and inventors and entrepreneurs use its ISO 9001-certified laboratories to make prototypes. It is part of Myfab, the Swedish research infrastructure for micro- and nanofabrication, an open user facility for research and for companies' product development, and from 2025 it is one of the nodes of the Wide Bandgap Pilot Line for high-voltage silicon carbide (SiC) power devices.",
+    "tags": ["sensor", "energy"],
+    "contact": "Carina Zaring, KTH: caza@kth.se, +46 8 790 43 88 (listed on https://myfab.se/labs/myfab-kth/); KTH's contact page: https://www.kth.se/en/electrumlab/kontakt",
+    "verified": true,
+    "linkOk": true,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: it redirects to the RISE home page."
+    "note": "Vinnova's link (acreo.se) redirects to the RISE home page. Facts come from KTH's Electrum Laboratory pages (about us, https://www.kth.se/en/electrumlab/samarbete) and Myfab's KTH page, https://myfab.se/labs/myfab-kth/.",
+    "town": "Kista",
+    "lat": 59.4032,
+    "lon": 17.9447
   },
   {
     "externalId": "foi-aerosol-chamber",
@@ -269,7 +313,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the page answers 404, and FOI's page for renting labs answers 404 too."
+    "note": "Dead link: the page answers 404 (rechecked 2026-11-14). FOI's section for renting labs is gone, and neither foi.se's sitemap nor its site search has a page for this facility."
   },
   {
     "externalId": "foi-lilla-gara",
@@ -281,7 +325,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the page answers 404."
+    "note": "Dead link: the page answers 404 (rechecked 2026-11-14). FOI's section for renting labs is gone, and neither foi.se's sitemap nor its site search has a page for this facility; Lilla Gåra appears only in FOI research reports."
   },
   {
     "externalId": "foi-optics-labs",
@@ -293,7 +337,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the page answers 404."
+    "note": "Dead link: the page answers 404 (rechecked 2026-11-14). FOI's section for renting labs is gone, and neither foi.se's sitemap nor its site search has a page for this facility; FOI's sensor research pages mention optics labs only as part of its own research."
   },
   {
     "externalId": "foi-spectral-material-characterisation",
@@ -305,7 +349,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the page answers 404."
+    "note": "Dead link: the page answers 404 (rechecked 2026-11-14). FOI's section for renting labs is gone, and neither foi.se's sitemap nor its site search has a page for this facility."
   },
   {
     "externalId": "foi-anechoic-room-acoustics",
@@ -317,7 +361,7 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: the page answers 404."
+    "note": "Dead link: the page answers 404 (rechecked 2026-11-14). FOI's section for renting labs is gone, and neither foi.se's sitemap nor its site search has a page for this facility."
   },
   {
     "externalId": "sp-battery-hybrid-systems",
@@ -329,6 +373,6 @@
     "linkOk": false,
     "checkedAt": "2026-11-14",
     "origin": "vinnova_list",
-    "note": "Dead link: it redirects to the RISE home page."
+    "note": "Dead link: it redirects to the RISE home page. RISE's pages are on ri.se, which shows a bot check ('Verifying you are not a robot') to scripts, to web fetch and to an automated browser (rechecked 2026-11-14), so no current page was read."
   }
 ]

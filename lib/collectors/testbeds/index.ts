@@ -5,6 +5,8 @@
  * one-off pass over Vinnova's national testbed list, each rewritten from the
  * official page and marked verified or not. A record whose link did not work
  * when checked stays in the file with `linkOk: false` and is left out here.
+ * `town`, `lat` and `lon` say where a facility is, for the map; they are not
+ * part of the collected opportunity.
  */
 import { z } from "zod";
 import testbedsJson from "../../../data/testbeds.seed.json";
@@ -30,8 +32,18 @@ export const TestbedRecord = z.strictObject({
   origin: z.enum(["curated", "vinnova_list"]),
   /** Why a record is unverified or its link is not ok, and where facts came from. Not collected. */
   note: z.string().trim().min(1).optional(),
-});
+  /** The town the facility is in, from the address its own page gives. Not collected: for the map. */
+  town: z.string().trim().min(1).optional(),
+  /** The town's centre (inside Sweden), town-level accuracy only. Set together with `town`. */
+  lat: z.number().min(55).max(69.1).optional(),
+  lon: z.number().min(10.9).max(24.2).optional(),
+}).refine(hasWholePlaceOrNone, { message: "town, lat and lon go together: set all three or none" });
 export type TestbedRecord = z.infer<typeof TestbedRecord>;
+
+function hasWholePlaceOrNone(r: { town?: string; lat?: number; lon?: number }): boolean {
+  const set = [r.town, r.lat, r.lon].filter((v) => v !== undefined).length;
+  return set === 0 || set === 3;
+}
 
 /** Check the seed data; throws a clear error on the first bad record or a repeated externalId. */
 export function parseTestbeds(data: unknown): TestbedRecord[] {

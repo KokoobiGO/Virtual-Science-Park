@@ -30,6 +30,21 @@ describe("testbeds seed file", () => {
     const unexplained = records.filter((r) => (!r.linkOk || !r.verified) && !r.note).map((r) => r.externalId);
     expect(unexplained).toEqual([]);
   });
+
+  it("gives a town and its coordinates for every record that is collected", () => {
+    const placeless = records.filter((r) => r.linkOk && r.town === undefined).map((r) => r.externalId);
+    expect(placeless).toEqual([]);
+  });
+
+  it("puts one town at one point", () => {
+    const pointOf = new Map<string, string>();
+    for (const r of records) {
+      if (r.town === undefined) continue;
+      const point = `${r.lat},${r.lon}`;
+      expect(pointOf.get(r.town) ?? point, r.town).toBe(point);
+      pointOf.set(r.town, point);
+    }
+  });
 });
 
 describe("parseTestbeds", () => {
@@ -37,6 +52,21 @@ describe("parseTestbeds", () => {
     expect(() => parseTestbeds([{ ...good, tags: [] }])).toThrow(/testbeds\.seed\.json has a bad record/);
     expect(() => parseTestbeds([{ ...good, tags: ["space"] }])).toThrow(/bad record/);
     expect(() => parseTestbeds([{ ...good, extra: 1 }])).toThrow(/bad record/);
+  });
+
+  it("takes a town with coordinates in Sweden, and only all three together", () => {
+    const place = { town: "Ludvika", lat: 60.1496, lon: 15.1878 };
+    expect(parseTestbeds([{ ...good, ...place }])[0]).toMatchObject(place);
+    expect(() => parseTestbeds([{ ...good, town: "Ludvika" }])).toThrow(/town, lat and lon go together/);
+    expect(() => parseTestbeds([{ ...good, lat: 60.1, lon: 15.2 }])).toThrow(/town, lat and lon go together/);
+    expect(() => parseTestbeds([{ ...good, ...place, lat: 48.85 }])).toThrow(/bad record/);
+    expect(() => parseTestbeds([{ ...good, ...place, lon: "15.2" }])).toThrow(/bad record/);
+  });
+
+  it("does not pass the place on to the collected opportunity", () => {
+    const [item] = toOpportunities([{ ...good, town: "Ludvika", lat: 60.1496, lon: 15.1878 }]);
+    expect(item).not.toHaveProperty("town");
+    expect(item).not.toHaveProperty("lat");
   });
 
   it("throws on a repeated externalId", () => {
