@@ -53,26 +53,26 @@ async function StartContent() {
   const t = createTranslator(locale, "home");
   return (
     <>
-      <div className="dark relative isolate overflow-hidden bg-[radial-gradient(120%_80%_at_20%_0%,oklch(0.3_0.06_295),oklch(0.17_0.03_280)_55%,oklch(0.13_0.02_270))] px-3 py-6 sm:px-8 sm:py-12">
+      <div data-landing className="dark relative isolate overflow-hidden bg-[radial-gradient(120%_80%_at_20%_0%,oklch(0.33_0.05_295),oklch(0.22_0.035_285)_55%,oklch(0.18_0.03_280))] px-3 py-6 sm:px-10 sm:py-14">
         <Starfield />
-        <section className="relative isolate mx-auto flex min-h-[38rem] w-full max-w-6xl flex-col items-center overflow-hidden rounded-[1.75rem] bg-[radial-gradient(90%_70%_at_15%_0%,oklch(0.27_0.03_300),oklch(0.16_0.005_280)_60%,oklch(0.14_0.004_280))] shadow-[0_40px_120px_-40px_black] ring-1 ring-white/10 md:min-h-[42rem]">
+        <section className="relative isolate mx-auto flex min-h-[40rem] w-full max-w-6xl flex-col items-center overflow-hidden rounded-[1.75rem] bg-[radial-gradient(70%_60%_at_10%_0%,oklch(0.3_0.02_330/0.9),oklch(0.17_0.004_300)_55%,oklch(0.15_0.003_280))] shadow-[0_40px_120px_-40px_black] ring-1 ring-white/10 md:min-h-[44rem]">
           <Starfield faint />
-          <div className="stagger relative z-10 flex flex-col items-center gap-5 px-6 pt-16 text-center md:pt-20">
+          <div className="stagger relative z-10 flex flex-col items-center gap-5 px-6 pt-28 text-center md:pt-32">
             <h1 className="max-w-[15ch] text-[2.4rem] leading-[1.05] font-medium tracking-[-0.035em] text-balance text-white md:max-w-[24ch] md:text-[3.6rem]">{t("title")}</h1>
             <p className="max-w-sm text-sm leading-relaxed text-white/55">{t("tagline")}</p>
             <Suspense fallback={<div className="h-9" aria-hidden />}>
               <StartAction locale={locale} />
             </Suspense>
           </div>
-          <LiquidOrb className="absolute bottom-[-30%] left-1/2 w-[min(36rem,125vw)] -translate-x-1/2 md:bottom-[-26%] md:w-[38rem]" />
+          <LiquidOrb className="absolute bottom-[-34%] left-1/2 w-[min(36rem,125vw)] -translate-x-1/2 md:bottom-[-36%] md:w-[44rem]" />
           <GlassCard
-            className="top-[58%] left-[5%] lg:left-[13%]"
+            className="top-[57%] left-[5%] lg:left-[15%]"
             label={t("cards.evidence.label")}
             title={t("cards.evidence.value")}
             aside={t("cards.evidence.text")}
           />
           <GlassCard
-            className="top-[68%] right-[5%] [animation-delay:-3.5s] lg:right-[13%]"
+            className="top-[66%] right-[5%] [animation-delay:-3.5s] lg:right-[14%]"
             label={t("cards.sources.label")}
             value={t("cards.sources.value", { count: COLLECTORS.length })}
             bar

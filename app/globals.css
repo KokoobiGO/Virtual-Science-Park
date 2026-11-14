@@ -390,3 +390,53 @@
     }
   }
 }
+
+/*
+ * The landing page (app/page.tsx, [data-landing]): the site header sits inside
+ * the dark hero frame, light on dark, with pill buttons. Unlayered, so it wins
+ * over the header's own utility classes. Every other page keeps the normal header,
+ * and the header stays the page's one banner landmark.
+ */
+body:has([data-landing]) [data-site-header] {
+  position: absolute;
+  top: 1.5rem;
+  left: 0;
+  right: 0;
+  padding-inline: 0.75rem;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+  color-scheme: dark;
+  --foreground: oklch(0.98 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --muted-foreground: oklch(0.98 0 0 / 0.62);
+  --primary: oklch(0.99 0 0);
+  --primary-foreground: oklch(0.2 0.01 280);
+  --ring: oklch(0.99 0 0);
+  --border: oklch(1 0 0 / 0.14);
+  --muted: oklch(1 0 0 / 0.08);
+  --accent: oklch(1 0 0 / 0.08);
+  --accent-foreground: oklch(0.98 0 0);
+  --secondary: oklch(1 0 0 / 0.1);
+  --secondary-foreground: oklch(0.98 0 0);
+  --card: oklch(0.2 0.006 290);
+  --popover: oklch(0.2 0.006 290);
+  --popover-foreground: oklch(0.98 0 0);
+  color: var(--foreground);
+}
+body:has([data-landing]) [data-site-header] > div {
+  padding: 0.75rem 1.25rem;
+}
+body:has([data-landing]) [data-site-header] [data-slot="button"] {
+  border-radius: 9999px;
+  padding-inline: 1rem;
+}
+@media (min-width: 40rem) {
+  body:has([data-landing]) [data-site-header] {
+    top: 3.5rem;
+    padding-inline: 2.5rem;
+  }
+  body:has([data-landing]) [data-site-header] > div {
+    padding: 1rem 3rem;
+  }
+}

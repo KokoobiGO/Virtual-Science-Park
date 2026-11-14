@@ -38,7 +38,7 @@ export function LiquidOrb({ className }: { className?: string }) {
     const uRes = gl.getUniformLocation(program, "u_res");
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const { width, height } = canvas.getBoundingClientRect();
       canvas.width = Math.max(1, Math.round(width * dpr));
       canvas.height = Math.max(1, Math.round(height * dpr));
@@ -96,14 +96,14 @@ uniform float u_time;
 uniform vec2 u_res;
 
 float blob(vec3 p) {
-  float t = u_time * 0.45;
-  // A tall, soft drop that wobbles.
-  vec3 q = p * vec3(0.92, 1.0, 1.0);
+  float t = u_time * 0.4;
+  // A wide, soft dome that wobbles slowly.
+  vec3 q = p * vec3(0.88, 0.97, 1.0);
   float d = length(q) - 1.0;
-  d += 0.11 * sin(2.1 * p.x + t * 1.3) * sin(2.4 * p.y + t * 0.9) * sin(1.9 * p.z + t);
-  d += 0.06 * sin(3.7 * p.y - t * 1.7 + 1.3 * p.x);
-  d += 0.04 * sin(4.3 * p.x + 2.0 * p.z + t * 2.1);
-  return d * 0.8;
+  d += 0.12 * sin(1.9 * p.x + t * 1.2) * sin(2.2 * p.y + t * 0.8) * sin(1.7 * p.z + t);
+  d += 0.05 * sin(3.1 * p.y - t * 1.5 + 1.4 * p.x);
+  d += 0.03 * sin(4.1 * p.x + 2.0 * p.z + t * 1.9);
+  return d * 0.7;
 }
 
 vec3 normalAt(vec3 p) {
@@ -114,15 +114,20 @@ vec3 normalAt(vec3 p) {
     blob(p + e.yyx) - blob(p - e.yyx)));
 }
 
-// What the polished surface reflects: a dark room, a warm gold light above-left,
-// sea blue below, and a white window light.
+float lamp(vec3 r, vec3 dir, float a, float b) {
+  return smoothstep(a, b, dot(r, normalize(dir)));
+}
+
+// What the polished surface reflects: a black studio with warm gold lamps on
+// both sides and above, and a deep blue light below.
 vec3 environment(vec3 r) {
-  vec3 col = vec3(0.008, 0.009, 0.014);
-  col += vec3(1.0, 0.68, 0.28) * 1.6 * smoothstep(0.62, 0.97, dot(r, normalize(vec3(-0.55, 0.75, 0.35))));
-  col += vec3(0.95, 0.62, 0.25) * 0.9 * smoothstep(0.7, 1.0, dot(r, normalize(vec3(0.8, 0.35, 0.2))));
-  col += vec3(0.12, 0.32, 0.95) * 1.3 * smoothstep(0.45, 0.95, dot(r, normalize(vec3(0.1, -0.85, 0.45))));
-  col += vec3(0.25, 0.75, 0.95) * 0.5 * smoothstep(0.6, 1.0, dot(r, normalize(vec3(0.7, -0.4, 0.5))));
-  col += vec3(1.0) * 1.6 * smoothstep(0.975, 0.995, dot(r, normalize(vec3(-0.35, 0.55, 0.75))));
+  vec3 col = vec3(0.004, 0.004, 0.006);
+  // Softboxes with crisp edges, so the reflections read as polished glass, not fog.
+  col += vec3(1.0, 0.64, 0.22) * 3.0 * lamp(r, vec3(-0.92, 0.35, 0.15), 0.55, 0.62);
+  col += vec3(1.0, 0.7, 0.3) * 2.4 * lamp(r, vec3(0.94, 0.15, 0.2), 0.58, 0.65);
+  col += vec3(1.0, 0.9, 0.7) * 3.0 * lamp(r, vec3(-0.35, 0.95, 0.25), 0.9, 0.93);
+  col += vec3(0.1, 0.32, 1.0) * 2.0 * lamp(r, vec3(0.05, -1.0, 0.3), 0.7, 0.85);
+  col += vec3(1.0, 0.75, 0.4) * 0.25 * lamp(r, vec3(0.0, 0.6, -0.8), 0.2, 0.9);
   return col;
 }
 
@@ -133,33 +138,37 @@ void main() {
 
   float t = 0.0;
   float hit = 0.0;
-  for (int i = 0; i < 72; i++) {
+  for (int i = 0; i < 80; i++) {
     float d = blob(ro + rd * t);
-    if (d < 0.001) { hit = 1.0; break; }
+    if (d < 0.0008) { hit = 1.0; break; }
     t += d;
     if (t > 6.0) break;
   }
-
   if (hit < 0.5) {
-    // A faint glow around the shape, so it sits in the dark.
-    float g = 0.22 * smoothstep(0.5, 0.33, length(uv));
-    gl_FragColor = vec4(vec3(0.45, 0.5, 0.95) * g, g);
+    gl_FragColor = vec4(0.0);
     return;
   }
 
   vec3 p = ro + rd * t;
   vec3 n = normalAt(p);
   vec3 v = -rd;
-  float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
-  vec3 refl = environment(reflect(rd, n));
-  // Light seen through the glass: a deep blue body with a little thin-film colour.
-  vec3 body = vec3(0.02, 0.03, 0.08) + 0.35 * vec3(0.1, 0.25, 0.9) * pow(max(dot(refract(rd, n, 0.75), vec3(0.0, -0.6, -0.8)), 0.0), 3.0);
-  vec3 film = 0.5 + 0.5 * cos(6.2831 * (fres * 1.2 + vec3(0.0, 0.33, 0.67)));
-  vec3 col = body + refl * (0.55 + 0.45 * fres);
-  col += film * fres * 0.18;
-  // The bright rim from a light behind the shape.
-  col += vec3(1.0, 0.95, 0.88) * pow(fres, 3.5) * 1.6;
-  col = col / (1.0 + col * 0.35);
+  float facing = max(dot(n, v), 0.0);
+  float fres = pow(1.0 - facing, 2.0);
+
+  // The body: almost black, with blue light glowing deep inside near the bottom.
+  vec3 col = vec3(0.012, 0.011, 0.014);
+  col += vec3(0.08, 0.3, 1.0) * 1.1 * pow(facing, 1.6) * smoothstep(0.2, -0.8, p.y);
+  col += vec3(0.6, 0.35, 0.12) * 0.12 * pow(facing, 3.0);
+
+  // Reflections, strong at grazing angles like real glass.
+  col += environment(reflect(rd, n)) * (0.02 + 1.3 * pow(1.0 - facing, 2.6));
+  // A thin film of colour at the edge, and the bright white rim.
+  vec3 film = 0.5 + 0.5 * cos(6.2831 * (fres * 1.4 + vec3(0.0, 0.33, 0.67)));
+  col += film * pow(fres, 2.0) * 0.12;
+  col += vec3(1.0, 0.97, 0.92) * pow(1.0 - facing, 7.0) * 2.4;
+
+  col = col / (1.0 + col * 0.45);
+  col = pow(col, vec3(0.9));
   gl_FragColor = vec4(col, 1.0);
 }
 `;
