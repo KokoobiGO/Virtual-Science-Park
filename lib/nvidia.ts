@@ -14,15 +14,18 @@
  * call one model can be tested on another without a code change.
  */
 export const NVIDIA_MODELS = {
-  /** Scope classifier, tagging: cheap and fast. */
-  fast: process.env.NVIDIA_MODEL_FAST || "nvidia/nemotron-3.5-lightning-30b-a3b",
   /**
-   * Profiler, matcher judge, digest, Scout, Copilot. nemotron-3-super-120b-a12b
-   * is in the model list but answered 404 "Function not found for account" for
-   * our free key on 2026-11-14, so main uses the fast model until a bigger
-   * model is confirmed for the account.
+   * Both slots use nemotron-3.5-super-vl-120b-a12b since 2026-11-14. In the
+   * benchmark on our free key (docs/model-choice.md) it got 15 of 15 judge
+   * verdicts right against 14 for nemotron-3.5-lightning-30b-a3b, 14 of 15
+   * judge entries through the code checks on the first answer against 11, and
+   * 10 of 10 texts tagged right against 7, at the same speed (about 6 s a
+   * call). Most other models in the list do not answer for a free key.
    */
-  main: process.env.NVIDIA_MODEL_MAIN || "nvidia/nemotron-3.5-lightning-30b-a3b",
+  /** Scope classifier, tagging. */
+  fast: process.env.NVIDIA_MODEL_FAST || "nvidia/nemotron-3.5-super-vl-120b-a12b",
+  /** Profiler, matcher judge, trend notes, connections, Scout, Copilot. */
+  main: process.env.NVIDIA_MODEL_MAIN || "nvidia/nemotron-3.5-super-vl-120b-a12b",
 };
 
 export const NVIDIA_DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1";
