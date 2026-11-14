@@ -21,6 +21,7 @@ function item(overrides: Partial<ExploreItem> = {}): ExploreItem {
     id: `id-${counter}`,
     kind: "funding",
     source: "Vinnova",
+    externalId: `call-${counter}`,
     title: `Call ${counter}`,
     url: "https://example.org",
     description: null,
@@ -29,6 +30,7 @@ function item(overrides: Partial<ExploreItem> = {}): ExploreItem {
     eventDate: null,
     tags: [],
     simulated: false,
+    verified: null,
     ...overrides,
   };
 }
@@ -42,8 +44,10 @@ describe("parseFilters", () => {
       q: "ocean wind",
       view: "timeline",
     });
-    expect(parseFilters({ kind: "grant", tag: "space", due: "later", view: "map" })).toEqual(NO_FILTERS);
+    expect(parseFilters({ kind: "grant", tag: "space", due: "later", view: "globe" })).toEqual(NO_FILTERS);
     expect(parseFilters({})).toEqual(NO_FILTERS);
+    expect(parseFilters({ view: "map" }).view).toBe("map");
+    expect(filtersToQuery({ ...NO_FILTERS, view: "map", tag: "marine" })).toBe("?view=map&tag=marine");
   });
 
   it("takes the first of repeated values and caps the query", () => {

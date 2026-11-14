@@ -38,7 +38,7 @@ export function ExploreList({
 function ExploreRow({ item, match, now }: { item: ExploreItem; match: MatchInfo | null; now: Date }) {
   const status = dateStatus(item, now);
   return (
-    <li className="flex flex-col gap-2 px-4 py-3" data-kind={item.kind}>
+    <li id={`opportunity-${item.id}`} className="flex scroll-mt-24 flex-col gap-2 px-4 py-3 target:bg-muted" data-kind={item.kind}>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <Badge variant="secondary">{KIND_LABELS[item.kind]}</Badge>
         {item.simulated ? <SimulatedBadge /> : null}

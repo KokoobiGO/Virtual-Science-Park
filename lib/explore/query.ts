@@ -24,6 +24,7 @@ export async function loadExplore(viewer: Viewer): Promise<ExploreData> {
         id: opportunities.id,
         kind: opportunities.kind,
         source: opportunities.source,
+        externalId: opportunities.externalId,
         title: opportunities.title,
         url: opportunities.url,
         description: opportunities.description,
@@ -32,6 +33,7 @@ export async function loadExplore(viewer: Viewer): Promise<ExploreData> {
         eventDate: opportunities.eventDate,
         tags: opportunities.tags,
         simulated: opportunities.simulated,
+        verified: opportunities.verified,
       })
       .from(opportunities)
       // The old hand-written test fixtures are never shown.

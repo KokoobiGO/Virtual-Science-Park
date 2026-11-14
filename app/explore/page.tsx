@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getViewer } from "@/lib/auth";
 import { filterItems, parseFilters } from "@/lib/explore/filter";
+import { buildTestbedMap } from "@/lib/explore/map";
 import { loadExplore } from "@/lib/explore/query";
 import { buildTimeline } from "@/lib/explore/timeline";
 import { ExploreList } from "./explore-list";
+import { ExploreMap } from "./explore-map";
 import { ExploreTimeline } from "./explore-timeline";
 import { FilterForm, ViewTabs } from "./filter-form";
 
@@ -41,6 +43,8 @@ async function Explorer({ searchParams }: Pick<PageProps<"/explore">, "searchPar
       <FilterForm filters={filters} />
       {filters.view === "timeline" ? (
         <ExploreTimeline timeline={buildTimeline(items, filters, now)} matches={matches} now={now} />
+      ) : filters.view === "map" ? (
+        <ExploreMap map={buildTestbedMap(items, filters)} matches={matches} filters={filters} />
       ) : (
         <ExploreList items={filterItems(items, filters, now)} total={items.length} matches={matches} now={now} />
       )}

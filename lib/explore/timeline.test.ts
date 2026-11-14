@@ -12,6 +12,7 @@ function item(overrides: Partial<ExploreItem> = {}): ExploreItem {
     id: `id-${counter}`,
     kind: "funding",
     source: "EU Funding & Tenders",
+    externalId: `item-${counter}`,
     title: `Item ${counter}`,
     url: "https://example.org",
     description: null,
@@ -20,6 +21,7 @@ function item(overrides: Partial<ExploreItem> = {}): ExploreItem {
     eventDate: null,
     tags: [],
     simulated: false,
+    verified: null,
     ...overrides,
   };
 }

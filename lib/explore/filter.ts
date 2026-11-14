@@ -11,6 +11,8 @@ export type ExploreItem = {
   id: string;
   kind: OpportunityKind;
   source: string;
+  /** The source's own id, e.g. a testbed's slug in data/testbeds.seed.json. */
+  externalId: string;
   title: string;
   url: string;
   description: string | null;
@@ -20,6 +22,8 @@ export type ExploreItem = {
   tags: string[];
   /** Hand-entered by the team, not read from a live source. */
   simulated: boolean;
+  /** For a test facility: true when an official page confirmed it and that outside companies can use it. */
+  verified: boolean | null;
 };
 
 export const KIND_LABELS: Record<OpportunityKind, string> = {
@@ -39,7 +43,8 @@ export const DUE_OPTIONS = {
 } as const;
 export type Due = keyof typeof DUE_OPTIONS;
 
-export type ExploreView = "list" | "timeline";
+export const EXPLORE_VIEWS = ["list", "timeline", "map"] as const;
+export type ExploreView = (typeof EXPLORE_VIEWS)[number];
 
 export type ExploreFilters = {
   kind: OpportunityKind | null;
@@ -63,12 +68,13 @@ export function parseFilters(params: Params): ExploreFilters {
   const kind = OpportunityKind.safeParse(first(params.kind));
   const tag = OpportunityTag.safeParse(first(params.tag));
   const due = first(params.due);
+  const view = first(params.view);
   return {
     kind: kind.success ? kind.data : null,
     tag: tag.success ? tag.data : null,
     due: due && Object.hasOwn(DUE_OPTIONS, due) ? (due as Due) : null,
     q: (first(params.q) ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_QUERY_CHARS),
-    view: first(params.view) === "timeline" ? "timeline" : "list",
+    view: EXPLORE_VIEWS.find((v) => v === view) ?? "list",
   };
 }
 

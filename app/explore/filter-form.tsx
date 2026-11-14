@@ -11,21 +11,22 @@ const SELECT_CLASS =
 
 /**
  * The filters as a GET form, so the URL holds them and a filtered list can be
- * shared. The timeline picks its own kinds and dates, so it only offers the
- * search and the tag; the other two are carried along unchanged.
+ * shared. The timeline picks its own kinds and dates, and the map shows only
+ * test facilities, so those two views only offer the search and the tag; the
+ * other two are carried along unchanged.
  */
 export function FilterForm({ filters }: { filters: ExploreFilters }) {
-  const timeline = filters.view === "timeline";
+  const searchAndTagOnly = filters.view !== "list";
   return (
     <Form
       action="/explore"
       // A new key when the filters change, so the fields show the URL's values after a link click.
       key={filtersToQuery(filters)}
-      className={`grid items-end gap-3 rounded-xl border p-4 sm:grid-cols-2 ${timeline ? "lg:grid-cols-[2fr_1fr_auto]" : "lg:grid-cols-[2fr_1fr_1fr_1fr_auto]"}`}
+      className={`grid items-end gap-3 rounded-xl border p-4 sm:grid-cols-2 ${searchAndTagOnly ? "lg:grid-cols-[2fr_1fr_auto]" : "lg:grid-cols-[2fr_1fr_1fr_1fr_auto]"}`}
     >
-      {timeline ? (
+      {searchAndTagOnly ? (
         <>
-          <input type="hidden" name="view" value="timeline" />
+          <input type="hidden" name="view" value={filters.view} />
           {filters.kind ? <input type="hidden" name="kind" value={filters.kind} /> : null}
           {filters.due ? <input type="hidden" name="due" value={filters.due} /> : null}
         </>
@@ -36,7 +37,7 @@ export function FilterForm({ filters }: { filters: ExploreFilters }) {
         <Input id="explore-q" name="q" type="search" defaultValue={filters.q} placeholder="For example: offshore wind" />
       </div>
 
-      {timeline ? null : (
+      {searchAndTagOnly ? null : (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="explore-kind">Kind</Label>
           <select id="explore-kind" name="kind" defaultValue={filters.kind ?? ""} className={SELECT_CLASS}>
@@ -62,7 +63,7 @@ export function FilterForm({ filters }: { filters: ExploreFilters }) {
         </select>
       </div>
 
-      {timeline ? null : (
+      {searchAndTagOnly ? null : (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="explore-due">Deadline</Label>
           <select id="explore-due" name="due" defaultValue={filters.due ?? ""} className={SELECT_CLASS}>
@@ -86,11 +87,12 @@ export function FilterForm({ filters }: { filters: ExploreFilters }) {
   );
 }
 
-/** The two views, as links that keep the filters. */
+/** The three views, as links that keep the filters. */
 export function ViewTabs({ filters }: { filters: ExploreFilters }) {
   const tabs = [
     { view: "list", label: "List" },
     { view: "timeline", label: "Deadline timeline" },
+    { view: "map", label: "Map" },
   ] as const;
   return (
     <nav aria-label="View" className="flex gap-1 border-b">
