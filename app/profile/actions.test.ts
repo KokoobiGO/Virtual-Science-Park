@@ -10,6 +10,14 @@ const mocks = vi.hoisted(() => ({
   inserts: [] as unknown[],
   /** company_private rows the stand-in transaction returns. */
   privateRows: [] as { userPriorities: string[] }[],
+  /** The language cookie the stand-in request carries (C19). */
+  locale: undefined as string | undefined,
+}));
+
+// The actions read the language cookie (lib/i18n/server.ts, server-only); outside a request, a stand-in cookie store.
+vi.mock("server-only", () => ({}));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: (name: string) => (name === "vsp_locale" && mocks.locale ? { value: mocks.locale } : undefined) }),
 }));
 
 vi.mock("@/lib/auth", () => ({ getViewer: async () => mocks.viewer }));
@@ -49,6 +57,7 @@ beforeEach(() => {
   mocks.inserts.length = 0;
   mocks.send.mockClear();
   mocks.refresh.mockClear();
+  mocks.locale = undefined;
 });
 
 describe("profile actions", () => {
@@ -70,6 +79,16 @@ describe("profile actions", () => {
     expect((await reviewSuggestion({ error: null }, form({ claimId: "not-a-uuid", decision: "accept" }))).error).toBe("Unknown suggestion.");
     expect(mocks.updates).toEqual([]);
     expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it("answer in Swedish when the reader chose Svenska (C19)", async () => {
+    mocks.locale = "sv";
+    expect((await setPriority("holidays", true)).error).toBe("Okänd prioritering.");
+    expect((await saveClaim({ error: null }, form({ field: "summary", value: "x".repeat(700) }))).error).toBe(
+      "Håll sammanfattningen under 600 tecken.",
+    );
+    mocks.viewer = null;
+    expect((await setPriority("testing", true)).error).toBe("Bara en medlem kan ändra sitt eget företags profil.");
   });
 
   it("switch a priority in company_private and ask the matcher to re-rank this company", async () => {

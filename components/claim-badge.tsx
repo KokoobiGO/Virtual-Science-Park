@@ -1,6 +1,8 @@
 import { cn } from "cn";
 import { CircleDashed, PencilLine, Quote, Sparkles, UserCheck, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { MESSAGES } from "@/lib/i18n/translate";
 import type { ClaimStatus } from "@/lib/schemas";
 
 type ClaimStatusMeta = {
@@ -11,54 +13,52 @@ type ClaimStatusMeta = {
   icon: LucideIcon;
 };
 
-/**
- * How each claim status looks (C1). Every status has its own colour, its own
- * icon and its own word, so the colour never carries the meaning alone.
- */
-export const CLAIM_STATUS_META: Record<ClaimStatus, ClaimStatusMeta> = {
-  stated: {
-    label: "Stated",
-    description: "The company's own page says this; a quote from the page backs it.",
-    variant: "success",
-    icon: Quote,
-  },
-  inferred: {
-    label: "Inferred",
-    description: "Worked out from the pages, not said in so many words.",
-    variant: "warning",
-    icon: Sparkles,
-  },
-  missing: {
-    label: "Missing",
-    description: "The public pages do not say this.",
-    variant: "muted",
-    icon: CircleDashed,
-  },
-  user_confirmed: {
-    label: "Confirmed by member",
-    description: "The member checked this and said it is right.",
-    variant: "info",
-    icon: UserCheck,
-  },
-  user_corrected: {
-    label: "Corrected by member",
-    description: "The member changed this value.",
-    variant: "info",
-    icon: PencilLine,
-  },
+const LOOK: Record<ClaimStatus, Pick<ClaimStatusMeta, "variant" | "icon">> = {
+  stated: { variant: "success", icon: Quote },
+  inferred: { variant: "warning", icon: Sparkles },
+  missing: { variant: "muted", icon: CircleDashed },
+  user_confirmed: { variant: "info", icon: UserCheck },
+  user_corrected: { variant: "info", icon: PencilLine },
 };
+
+/** The word and the sentence for a status in one language (messages/*.json, `claimStatus`). */
+export function claimStatusText(status: ClaimStatus, locale: Locale = DEFAULT_LOCALE): { label: string; description: string } {
+  return MESSAGES[locale].claimStatus[status];
+}
+
+/**
+ * How each claim status looks (C1), in English. Every status has its own
+ * colour, its own icon and its own word, so the colour never carries the
+ * meaning alone.
+ */
+export const CLAIM_STATUS_META: Record<ClaimStatus, ClaimStatusMeta> = Object.fromEntries(
+  (Object.keys(LOOK) as ClaimStatus[]).map((status) => [status, { ...claimStatusText(status), ...LOOK[status] }]),
+) as Record<ClaimStatus, ClaimStatusMeta>;
 
 /** The order a legend shows the statuses in. */
 export const CLAIM_STATUSES = Object.keys(CLAIM_STATUS_META) as ClaimStatus[];
 
-/** A badge that says where a profile value comes from: Stated, Inferred, Missing, or the member's own word. */
-export function ClaimBadge({ status, label, className }: { status: ClaimStatus; label?: string; className?: string }) {
-  const meta = CLAIM_STATUS_META[status];
-  const Icon = meta.icon;
+/**
+ * A badge that says where a profile value comes from: Stated, Inferred, Missing, or the member's own word.
+ * `locale` picks the language (C19); English when left out.
+ */
+export function ClaimBadge({
+  status,
+  label,
+  locale = DEFAULT_LOCALE,
+  className,
+}: {
+  status: ClaimStatus;
+  label?: string;
+  locale?: Locale;
+  className?: string;
+}) {
+  const { icon: Icon, variant } = LOOK[status];
+  const text = claimStatusText(status, locale);
   return (
-    <Badge variant={meta.variant} title={meta.description} data-claim-status={status} className={cn(className)}>
+    <Badge variant={variant} title={text.description} data-claim-status={status} className={cn(className)}>
       <Icon aria-hidden data-icon="inline-start" />
-      {label ?? meta.label}
+      {label ?? text.label}
     </Badge>
   );
 }

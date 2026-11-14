@@ -3,16 +3,25 @@
 import { useState, type KeyboardEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CONNECTION_DISCLAIMER } from "@/lib/connections";
+import { useT } from "@/lib/i18n/client";
+import { formatDay } from "@/lib/i18n/format";
+import type { Translator } from "@/lib/i18n/translate";
 import { evidenceFor, fieldLabel, GRAPH_SIZE, layoutGraph, type EcoConnection } from "@/lib/staff-views/ecosystem";
 
-const dayFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Stockholm", day: "numeric", month: "short", year: "numeric" });
+/** A claim field's name: the catalogue's when it has one, else "applicationAreas" as "Application areas". */
+function fieldName(t: Translator<"ecosystem">, field: string): string {
+  const key = `fields.${field}` as Parameters<Translator<"ecosystem">>[0];
+  const text = t(key);
+  return text === `ecosystem.${key}` ? fieldLabel(field) : text;
+}
 
 /**
  * The graph and the list of pairs. Clicking a line, or a pair in the list,
- * opens the stated basis of that possible collaboration.
+ * opens the stated basis of that possible collaboration. Words in the
+ * reader's language (C19); names, basis and claims as stored.
  */
 export function EcosystemView({ connections, openId = null }: { connections: EcoConnection[]; openId?: string | null }) {
+  const t = useT("ecosystem");
   const [selectedId, setSelectedId] = useState<string | null>(openId);
   const { nodes, edges } = layoutGraph(connections);
   const selected = connections.find((c) => c.id === selectedId) ?? null;
@@ -28,13 +37,13 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
     <div className="flex flex-col gap-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <Card>
-          <p className="px-(--card-spacing) text-xs text-muted-foreground md:hidden">Scroll sideways to see the whole map.</p>
+          <p className="px-(--card-spacing) text-xs text-muted-foreground md:hidden">{t("scrollHint")}</p>
           <CardContent className="overflow-x-auto">
             <svg
               viewBox={`0 0 ${GRAPH_SIZE.width} ${GRAPH_SIZE.height}`}
               className="h-auto w-full min-w-[36rem]"
               role="group"
-              aria-label={`Graph of ${nodes.length} members linked by ${edges.length} possible collaborations`}
+              aria-label={t("graphLabel", { members: nodes.length, links: edges.length })}
             >
               {edges.map((edge) => {
                 const active = edge.id === selectedId;
@@ -45,12 +54,12 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
                     role="button"
                     tabIndex={0}
                     aria-pressed={active}
-                    aria-label={`${pair.aName} and ${pair.bName}`}
+                    aria-label={t("pair", { a: pair.aName, b: pair.bName })}
                     onClick={() => setSelectedId(edge.id)}
                     onKeyDown={onKey(edge.id)}
                     className="group cursor-pointer outline-none"
                   >
-                    <title>{`${pair.aName} and ${pair.bName}: ${pair.sharedOn.join(", ")}`}</title>
+                    <title>{t("pairTitle", { a: pair.aName, b: pair.bName, shared: pair.sharedOn.join(", ") })}</title>
                     <line
                       x1={edge.x1}
                       y1={edge.y1}
@@ -91,7 +100,7 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
         </Card>
 
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">Possible collaborations ({connections.length})</h2>          <ul className="flex flex-col gap-1.5">
+          <h2 className="text-sm font-medium">{t("listTitle", { count: connections.length })}</h2>          <ul className="flex flex-col gap-1.5">
             {connections.map((c) => (
               <li key={c.id}>
                 <button
@@ -100,11 +109,9 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
                   onClick={() => setSelectedId(c.id)}
                   className={`flex w-full flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${c.id === selectedId ? "border-primary bg-muted" : ""}`}
                 >
-                  <span className="font-medium break-words">
-                    {c.aName} and {c.bName}
-                  </span>
+                  <span className="font-medium break-words">{t("pair", { a: c.aName, b: c.bName })}</span>
                   <span className="text-xs break-words text-muted-foreground">{c.sharedOn.join(", ")}</span>
-                  {c.id === selectedId ? <span className="text-xs font-medium text-primary">Shown below</span> : null}
+                  {c.id === selectedId ? <span className="text-xs font-medium text-primary">{t("shownBelow")}</span> : null}
                 </button>
               </li>
             ))}
@@ -114,20 +121,19 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
 
       {/* Always in the page, so a screen reader hears which pair opened. */}
       <p role="status" className="sr-only">
-        {selected ? `Showing ${selected.aName} and ${selected.bName}.` : ""}
+        {selected ? t("showing", { a: selected.aName, b: selected.bName }) : ""}
       </p>
       {selected ? (
         <PairDetail connection={selected} />
       ) : (
-        <p className="rounded-xl border p-4 text-sm text-muted-foreground">
-          Click a line in the graph, or a pair in the list, to see why the two members might talk.
-        </p>
+        <p className="rounded-xl border p-4 text-sm text-muted-foreground">{t("pickHint")}</p>
       )}
     </div>
   );
 }
 
 function PairDetail({ connection }: { connection: EcoConnection }) {
+  const t = useT("ecosystem");
   const sides = [
     { id: connection.aId, name: connection.aName },
     { id: connection.bId, name: connection.bName },
@@ -136,19 +142,17 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <h2 className="text-heading break-words">
-            {connection.aName} and {connection.bName}
-          </h2>
+          <h2 className="text-heading break-words">{t("pair", { a: connection.aName, b: connection.bName })}</h2>
         </CardTitle>
-        <CardDescription>{CONNECTION_DISCLAIMER}</CardDescription>
+        <CardDescription>{t("disclaimer")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Stated basis</h3>
+          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("basis")}</h3>
           <p className="break-words">{connection.basis}</p>
         </div>
         <div className="flex flex-col gap-1.5">
-          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Shared on</h3>
+          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("sharedOn")}</h3>
           <div className="flex flex-wrap gap-1.5">
             {connection.sharedOn.map((label) => (
               <Badge key={label} variant="secondary">
@@ -160,13 +164,11 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
         <div className="grid gap-4 md:grid-cols-2">
           {sides.map((side) => (
             <div key={side.id} className="flex flex-col gap-1.5">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                What {side.name}&apos;s public profile says
-              </h3>
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("says", { name: side.name })}</h3>
               <ul className="flex flex-col gap-2">
                 {evidenceFor(connection, side.id).map((e) => (
                   <li key={e.claimId} className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">{fieldLabel(e.field)}</span>
+                    <span className="text-xs text-muted-foreground">{fieldName(t, e.field)}</span>
                     <span className="break-words">{e.value}</span>
                   </li>
                 ))}
@@ -174,9 +176,7 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">
-          From public profile claims only. Found on {dayFormat.format(new Date(connection.computedAt))}.
-        </p>
+        <p className="text-xs text-muted-foreground">{t("footer", { date: formatDay(connection.computedAt, t.locale) })}</p>
       </CardContent>
     </Card>
   );

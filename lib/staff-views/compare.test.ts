@@ -88,9 +88,9 @@ describe("parseSlugPair", () => {
   });
 
   it("refuses a missing, malformed or repeated slug", () => {
-    expect(parseSlugPair("embeddedart", null)).toEqual({ ok: false, error: "Pick two members." });
-    expect(parseSlugPair(undefined, "")).toEqual({ ok: false, error: "Pick two members." });
-    expect(parseSlugPair("embeddedart", "drop table;")).toEqual({ ok: false, error: "That is not a member slug." });
-    expect(parseSlugPair("saab", "SAAB")).toEqual({ ok: false, error: "Pick two different members." });
+    expect(parseSlugPair("embeddedart", null)).toEqual({ ok: false, code: "missing", error: "Pick two members." });
+    expect(parseSlugPair(undefined, "")).toEqual({ ok: false, code: "missing", error: "Pick two members." });
+    expect(parseSlugPair("embeddedart", "drop table;")).toEqual({ ok: false, code: "invalid", error: "That is not a member slug." });
+    expect(parseSlugPair("saab", "SAAB")).toEqual({ ok: false, code: "same", error: "Pick two different members." });
   });
 });

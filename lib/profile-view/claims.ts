@@ -8,7 +8,11 @@
  * profiler's, then the newest. A field without one is shown as missing, never
  * hidden.
  */
+import en from "@/messages/en.json";
 import type { claims } from "../db/schema";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
+import { formatDay } from "../i18n/format";
+import { MESSAGES } from "../i18n/translate";
 import { isStale } from "../profiler/stale";
 import { ProfileField, type ClaimAuthor, type ClaimStatus, type ProfileStatus, type QuoteLang, type Visibility } from "../schemas";
 
@@ -28,23 +32,15 @@ export type ClaimRow = {
   updatedAt: Date;
 };
 
-export const FIELD_TEXT: Record<ProfileField, { label: string; hint: string }> = {
-  summary: { label: "Summary", hint: "What the company does, in one or two sentences." },
-  offerings: { label: "Products and services", hint: "What the company sells or delivers." },
-  technologies: { label: "Technologies", hint: "Technical skills and technologies it works with." },
-  applicationAreas: { label: "Application areas", hint: "Where its products are used." },
-  markets: { label: "Markets", hint: "Industries and customer groups." },
-  geography: { label: "Geography", hint: "Where it works and sells." },
-  statedPriorities: { label: "Projects and priorities", hint: "Projects and collaborations the pages mention." },
-  inferredInterests: { label: "Likely interests", hint: "Our reading of the pages. It stays inferred until the member confirms it." },
-};
+/** Each field's name and hint, in English (messages/en.json). The screen picks its language with `profileView(..., { locale })` (C19). */
+export const FIELD_TEXT: Record<ProfileField, { label: string; hint: string }> = en.profile.fields;
 
 // The status badge itself (word, icon, colour) is components/claim-badge, shared by every screen.
 
 export type ConfidenceLevel = "low" | "med" | "high";
 
-/** The words the screen shows for each level. */
-export const CONFIDENCE_TEXT: Record<ConfidenceLevel, string> = { low: "low", med: "medium", high: "high" };
+/** The words the screen shows for each level, in English (`profile.confidenceLevels`). */
+export const CONFIDENCE_TEXT: Record<ConfidenceLevel, string> = en.profile.confidenceLevels;
 
 /** The id of a field's heading on the profile screen, so focus can go back to it. */
 export function fieldHeadingId(field: ProfileField): string {
@@ -96,10 +92,15 @@ export type ProfileViewOptions = {
   now?: Date;
   /** The public view: private claims are never shown, and there are no suggestions. */
   publicOnly?: boolean;
+  /** The language of the field names and hints (C19); English when left out. */
+  locale?: Locale;
 };
 
 /** One entry per profile field, in display order. */
-export function profileView(rows: readonly ClaimRow[], { now = new Date(), publicOnly = false }: ProfileViewOptions = {}): FieldView[] {
+export function profileView(
+  rows: readonly ClaimRow[],
+  { now = new Date(), publicOnly = false, locale = DEFAULT_LOCALE }: ProfileViewOptions = {},
+): FieldView[] {
   const visible = publicOnly ? rows.filter((r) => r.visibility === "public") : rows;
   const winners = claimsInCharge(visible);
 
@@ -113,7 +114,7 @@ export function profileView(rows: readonly ClaimRow[], { now = new Date(), publi
           .reduce<ClaimRow | null>((best, r) => (!best || newer(r, best) ? r : best), null));
     return {
       field,
-      ...FIELD_TEXT[field],
+      ...MESSAGES[locale].profile.fields[field],
       claim,
       status,
       confidence: claim && showsConfidence(status) ? confidenceLevel(claim.confidence) : null,
@@ -129,23 +130,20 @@ export function valueItems(value: string | string[] | null): string[] {
   return (typeof value === "string" ? [value] : value).map((v) => v.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
 
-/** How the company's last profiling run went (A8); "none" when it was never profiled. */
-export const PROFILE_STATUS_TEXT: Record<ProfileStatus | "none", string> = {
-  profiled: "Profiled",
-  thin: "Thin profile: too little public info",
-  failed: "Profiling failed",
-  none: "Not profiled yet",
-};
+/** How the company's last profiling run went (A8); "none" when it was never profiled. English (`profile.status`). */
+export const PROFILE_STATUS_TEXT: Record<ProfileStatus | "none", string> = en.profile.status;
 
+/** The key of a quote's language under `profile.evidence.languages` ("other" is "original": a plural entry has an "other" key). */
+export const QUOTE_LANG_KEY = { sv: "sv", en: "en", other: "original" } as const satisfies Record<QuoteLang, string>;
+
+/** The language of a quote, in English (`profile.evidence.languages`). */
 export const QUOTE_LANG_TEXT: Record<QuoteLang, string> = {
-  sv: "Swedish",
-  en: "English",
-  other: "Original language",
+  sv: en.profile.evidence.languages.sv,
+  en: en.profile.evidence.languages.en,
+  other: en.profile.evidence.languages.original,
 };
 
-const DATE_FORMAT = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Stockholm" });
-
-/** "14 Nov 2026", Swedish time. */
-export function formatDate(date: Date): string {
-  return DATE_FORMAT.format(date);
+/** "14 Nov 2026" ("14 nov. 2026" in Swedish), Swedish time. */
+export function formatDate(date: Date, locale: Locale = DEFAULT_LOCALE): string {
+  return formatDay(date, locale);
 }

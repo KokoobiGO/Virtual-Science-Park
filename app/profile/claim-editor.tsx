@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/lib/i18n/client";
 import { saveClaim, type ProfileActionState } from "./actions";
 
 const initialState: ProfileActionState = { error: null };
@@ -14,7 +15,8 @@ const initialState: ProfileActionState = { error: null };
  *
  * The text and the Private box are controlled, so a failed save keeps what the
  * member typed (React resets an uncontrolled form after its action). After a
- * save or Cancel, focus goes back to the Edit button.
+ * save or Cancel, focus goes back to the Edit button. Words in the reader's
+ * language (C19); `label` comes translated from the server.
  */
 export function ClaimEditor({
   field,
@@ -35,6 +37,7 @@ export function ClaimEditor({
   children: ReactNode;
 }) {
   const id = useId();
+  const t = useT("profile");
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(initialText);
   const [isPrivate, setIsPrivate] = useState(defaultPrivate);
@@ -74,7 +77,8 @@ export function ClaimEditor({
   };
 
   const errorId = `${id}-error`;
-  const verb = initialText ? "Edit" : "Add";
+  const verb = initialText ? t("editor.edit") : t("editor.add");
+  const verbLabel = initialText ? t("editor.editField", { field: label }) : t("editor.addField", { field: label });
 
   return (
     <div className="flex flex-col gap-2">
@@ -82,7 +86,7 @@ export function ClaimEditor({
         <form action={action} className="flex flex-col gap-2">
           <input type="hidden" name="field" value={field} />
           <input type="hidden" name="claimId" value={claimId} />
-          <Label htmlFor={`${id}-value`}>{isList ? `${label}, one per line` : label}</Label>
+          <Label htmlFor={`${id}-value`}>{isList ? t("editor.listLabel", { field: label }) : label}</Label>
           <textarea
             id={`${id}-value`}
             name="value"
@@ -103,7 +107,7 @@ export function ClaimEditor({
               onChange={(event) => setIsPrivate(event.target.checked)}
               className="size-4 accent-primary"
             />
-            Private: only your company sees this value
+            {t("editor.private")}
           </Label>
           {error ? (
             <p id={errorId} role="alert" className="text-sm text-destructive">
@@ -112,10 +116,10 @@ export function ClaimEditor({
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={pending}>
-              {pending ? "Saving…" : "Save"}
+              {pending ? t("editor.saving") : t("editor.save")}
             </Button>
             <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={close}>
-              Cancel
+              {t("editor.cancel")}
             </Button>
           </div>
         </form>
@@ -123,7 +127,7 @@ export function ClaimEditor({
         <>
           {children}
           <div>
-            <Button ref={editButton} type="button" variant="outline" size="sm" onClick={open} aria-label={`${verb} ${label}`}>
+            <Button ref={editButton} type="button" variant="outline" size="sm" onClick={open} aria-label={verbLabel}>
               {verb}
             </Button>
           </div>

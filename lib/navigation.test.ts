@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import en from "@/messages/en.json";
 import { HOME, NAV, ROLE_ONLY, SHARED_NAV, SIGNED_IN_ONLY, isCurrentPath } from "./navigation";
 import type { AppRole } from "./schemas";
 
@@ -51,6 +52,14 @@ describe("menus by role", () => {
       const hrefs = NAV[role].map((i) => i.href);
       expect(new Set(hrefs).size).toBe(hrefs.length);
       for (const item of NAV[role]) expect(item.description.length).toBeGreaterThan(10);
+    }
+  });
+});
+
+describe("menu texts (C19)", () => {
+  it("has the same English label and description in messages/en.json, so the menu reads as before", () => {
+    for (const item of [...NAV.member, ...NAV.staff, ...SHARED_NAV]) {
+      expect(en.nav[item.id], item.href).toEqual({ label: item.label, description: item.description });
     }
   });
 });

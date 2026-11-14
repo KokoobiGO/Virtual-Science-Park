@@ -1,26 +1,46 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LoadingState, Skeleton } from "@/components/loading-skeleton";
+import { LoadingState, PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
 import { requireRole } from "@/lib/auth";
-import { CONNECTION_DISCLAIMER } from "@/lib/connections";
+import { LocaleProvider } from "@/lib/i18n/client";
+import type { Locale } from "@/lib/i18n/config";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/translate";
 import { unconnected } from "@/lib/staff-views/ecosystem";
 import { loadEcosystem } from "@/lib/staff-views/query";
 import { EcosystemView } from "./ecosystem-view";
 
-export const metadata = { title: "Ecosystem map" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("ecosystem"))("title") };
+}
 
+/**
+ * C17. The words follow the reader's language (C19), the disclaimer included
+ * (`ecosystem.disclaimer`, the same words as CONNECTION_DISCLAIMER in English);
+ * member names, the stated basis and the claims are shown as stored.
+ */
 export default function Page({ searchParams }: PageProps<"/staff/ecosystem">) {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
+      <Suspense fallback={<PageShellSkeleton />}>
+        <EcosystemFrame searchParams={searchParams} />
+      </Suspense>
+    </section>
+  );
+}
+
+async function EcosystemFrame({ searchParams }: Pick<PageProps<"/staff/ecosystem">, "searchParams">) {
+  const locale = await getLocale();
+  const t = createTranslator(locale, "ecosystem");
+  return (
+    <LocaleProvider locale={locale}>
       <div className="flex flex-col gap-1">
-        <h1 className="text-title">Ecosystem map</h1>
-        <p className="text-muted-foreground">
-          Members that may have a reason to talk, found from their public profiles: each line is one possible
-          collaboration with a stated basis. {CONNECTION_DISCLAIMER}
-        </p>
+        <h1 className="text-title">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("intro", { disclaimer: t("disclaimer") })}</p>
       </div>
       <Suspense
         fallback={
-          <LoadingState label="Loading the map…">
+          <LoadingState label={t("loading")}>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
               <Skeleton className="aspect-[760/440] w-full rounded-xl" />
               <div className="flex flex-col gap-1.5">
@@ -32,16 +52,17 @@ export default function Page({ searchParams }: PageProps<"/staff/ecosystem">) {
           </LoadingState>
         }
       >
-        <Ecosystem searchParams={searchParams} />
+        <Ecosystem searchParams={searchParams} locale={locale} />
       </Suspense>
-    </section>
+    </LocaleProvider>
   );
 }
 
 /** Reads the session and the stored connections, so it streams in behind the Suspense boundary above. */
-async function Ecosystem({ searchParams }: Pick<PageProps<"/staff/ecosystem">, "searchParams">) {
+async function Ecosystem({ searchParams, locale }: Pick<PageProps<"/staff/ecosystem">, "searchParams"> & { locale: Locale }) {
   // The proxy already sends members away; this refuses them on the server too.
   const viewer = await requireRole("staff");
+  const t = createTranslator(locale, "ecosystem");
   const { members, connections } = await loadEcosystem(viewer.claims);
   const alone = unconnected(members, connections);
   // `?pair=<id>` opens one pair straight away, so a link can point at it.
@@ -54,17 +75,14 @@ async function Ecosystem({ searchParams }: Pick<PageProps<"/staff/ecosystem">, "
         <EcosystemView connections={connections} openId={openId} />
       ) : (
         <p className="rounded-xl border p-6 text-sm text-muted-foreground">
-          No possible collaborations are stored yet. They appear after the connection finder has run; the team starts it
-          with <code className="font-mono">npm run connections</code>.
+          {t.rich("empty", { code: (chunk) => <code className="font-mono">{chunk}</code> })}
         </p>
       )}
       <div className="flex flex-col gap-2">
-        <h2 className="text-heading">Members without a stored connection ({alone.length})</h2>
+        <h2 className="text-heading">{t("aloneTitle", { count: alone.length })}</h2>
         {alone.length ? (
           <>
-            <p className="text-sm text-muted-foreground">
-              The finder found no pair with a concrete reason for these members in its latest run.
-            </p>
+            <p className="text-sm text-muted-foreground">{t("aloneIntro")}</p>
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {alone.map((m) => (
                 <li key={m.id} className="break-words">
@@ -74,7 +92,7 @@ async function Ecosystem({ searchParams }: Pick<PageProps<"/staff/ecosystem">, "
             </ul>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">Every member has at least one stored connection.</p>
+          <p className="text-sm text-muted-foreground">{t("aloneNone")}</p>
         )}
       </div>
     </div>

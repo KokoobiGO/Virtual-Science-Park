@@ -11,6 +11,7 @@
  * - Accepting a suggestion makes it active and supersedes the active claims
  *   of its field; rejecting it marks it `rejected`. Nothing is deleted.
  */
+import en from "@/messages/en.json";
 import { ListClaim, ProfileField, TextClaim, USER_STATUSES, UserPriority, type ClaimStatus, type Visibility } from "../schemas";
 import type { ClaimRow } from "./claims";
 
@@ -26,14 +27,18 @@ export function valueToInput(value: string | string[] | null): string {
   return typeof value === "string" ? value : value.join("\n");
 }
 
-export type ParsedValue = { ok: true; value: string | string[] } | { ok: false; error: string };
+/** Why an input was refused: the key of its text under `profile.actions` in messages/*.json (C19). */
+export type InputProblem = "summaryEmpty" | "summaryTooLong" | "itemsEmpty" | "tooManyItems" | "itemTooLong";
+
+/** `max` is the limit the text names ("under {max} characters"). */
+export type ParsedValue = { ok: true; value: string | string[] } | { ok: false; problem: InputProblem; max?: number };
 
 /** What the member typed, as a value for this field: a sentence for the summary, one item per line otherwise. */
 export function parseValueInput(field: ProfileField, raw: string): ParsedValue {
   if (field === "summary") {
     const value = collapse(raw);
-    if (!value) return { ok: false, error: "Write a short summary, or cancel." };
-    if (value.length > MAX_SUMMARY_CHARS) return { ok: false, error: `Keep the summary under ${MAX_SUMMARY_CHARS} characters.` };
+    if (!value) return { ok: false, problem: "summaryEmpty" };
+    if (value.length > MAX_SUMMARY_CHARS) return { ok: false, problem: "summaryTooLong", max: MAX_SUMMARY_CHARS };
     return { ok: true, value };
   }
 
@@ -42,9 +47,9 @@ export function parseValueInput(field: ProfileField, raw: string): ParsedValue {
     const item = collapse(line);
     if (item && !items.some((i) => i.toLowerCase() === item.toLowerCase())) items.push(item);
   }
-  if (!items.length) return { ok: false, error: "Add at least one item, one per line, or cancel." };
-  if (items.length > MAX_ITEMS) return { ok: false, error: `At most ${MAX_ITEMS} items.` };
-  if (items.some((i) => i.length > MAX_ITEM_CHARS)) return { ok: false, error: `Keep each item under ${MAX_ITEM_CHARS} characters.` };
+  if (!items.length) return { ok: false, problem: "itemsEmpty" };
+  if (items.length > MAX_ITEMS) return { ok: false, problem: "tooManyItems", max: MAX_ITEMS };
+  if (items.some((i) => i.length > MAX_ITEM_CHARS)) return { ok: false, problem: "itemTooLong", max: MAX_ITEM_CHARS };
   return { ok: true, value: items };
 }
 
@@ -117,20 +122,16 @@ export function planReview(
   decision: "accept" | "reject",
   suggestion: Pick<ClaimRow, "id" | "field" | "reviewState">,
   activeRows: readonly Pick<ClaimRow, "id" | "field" | "reviewState">[],
-): ReviewPlan | { error: string } {
-  if (suggestion.reviewState !== "suggested") return { error: "This suggestion was already handled. Reload the page." };
+): ReviewPlan | { error: "alreadyHandled" } {
+  // The key of the text under `profile.actions` (C19).
+  if (suggestion.reviewState !== "suggested") return { error: "alreadyHandled" };
   if (decision === "reject") return { activate: null, supersede: [], reject: suggestion.id };
   const supersede = activeRows.filter((r) => r.field === suggestion.field && r.reviewState === "active" && r.id !== suggestion.id).map((r) => r.id);
   return { activate: suggestion.id, supersede, reject: null };
 }
 
-export const PRIORITY_TEXT: Record<UserPriority, string> = {
-  funding: "Funding",
-  testing: "Testing and testbeds",
-  partners: "Partners",
-  events: "Events",
-  market: "New markets",
-};
+/** The switches' names in English; the screen shows `profile.priorities.names` in the reader's language (C19). */
+export const PRIORITY_TEXT: Record<UserPriority, string> = en.profile.priorities.names;
 
 /** The member's priorities with one switched on or off, in the fixed order. Unknown values are dropped. */
 export function withPriority(current: readonly string[], priority: UserPriority, on: boolean): UserPriority[] {

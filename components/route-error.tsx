@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
+import type { Messages } from "@/lib/i18n/translate";
 
 /** The reference to quote to the team: Next.js gives server errors a digest that matches the server log. */
 export function errorReference(error: unknown): string | null {
@@ -12,25 +14,35 @@ export function errorReference(error: unknown): string | null {
   return null;
 }
 
+/** The pages with their own error texts in messages/*.json (`errors.pages`). */
+export type ErrorPage = keyof Messages["errors"]["pages"];
+
 /**
  * What an error.tsx shows (C20): what went wrong in plain words, what to do,
  * a Try again button and a way out. Focus moves to the heading so a screen
  * reader hears it at once. The error's own message is not shown: in
  * production it is a generic text, and it can hold details users need not see.
+ *
+ * The words are in the reader's language (C19): `page` picks the texts from
+ * the catalogue. `title`, `what` and `back.label` override them (screens not
+ * translated yet pass their English texts).
  */
 export function RouteError({
   error,
   retry,
-  title = "This page could not be loaded",
-  what = "Something went wrong on our side while loading it.",
-  back = { href: "/", label: "Go to the start page" },
+  page = "default",
+  title,
+  what,
+  back,
 }: {
   error: unknown;
   retry: () => void;
+  page?: ErrorPage;
   title?: string;
   what?: string;
-  back?: { href: string; label: string };
+  back?: { href: string; label?: string };
 }) {
+  const t = useT("errors");
   const heading = useRef<HTMLHeadingElement>(null);
   const reference = errorReference(error);
 
@@ -42,24 +54,22 @@ export function RouteError({
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-12">
       <h1 ref={heading} tabIndex={-1} className="text-title outline-none">
-        {title}
+        {title ?? t(`pages.${page}.title`)}
       </h1>
       <p className="max-w-prose text-muted-foreground">
-        {what} Try again in a moment. If it keeps happening, tell BSP staff
-        {reference ? (
-          <>
-            {" "}
-            and give them this reference: <code className="font-mono text-sm break-all text-foreground">{reference}</code>
-          </>
-        ) : null}
-        .
+        {what ?? t(`pages.${page}.what`)}{" "}
+        {reference
+          ? t.rich("adviceWithReference", {
+              reference: <code className="font-mono text-sm break-all text-foreground">{reference}</code>,
+            })
+          : t("advice")}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" onClick={() => retry()}>
-          Try again
+          {t("tryAgain")}
         </Button>
-        <Button variant="outline" render={<Link href={back.href} />} nativeButton={false}>
-          {back.label}
+        <Button variant="outline" render={<Link href={back?.href ?? "/"} />} nativeButton={false}>
+          {back?.label ?? t(`pages.${page}.back`)}
         </Button>
       </div>
     </section>

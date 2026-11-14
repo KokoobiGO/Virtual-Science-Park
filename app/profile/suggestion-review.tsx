@@ -3,6 +3,7 @@
 import { useActionState, useId, type MouseEvent } from "react";
 import { announce } from "@/components/announcer";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import { reviewSuggestion, type ProfileActionState } from "./actions";
 
 const initialState: ProfileActionState = { error: null };
@@ -24,6 +25,7 @@ export function SuggestionReview({
   returnFocusTo?: string;
 }) {
   const errorId = useId();
+  const t = useT("profile");
   const [state, action, pending] = useActionState(async (prev: ProfileActionState, formData: FormData) => {
     const result = await reviewSuggestion(prev, formData);
     if (!result.error) {
@@ -46,12 +48,12 @@ export function SuggestionReview({
         value="accept"
         size="sm"
         aria-disabled={pending || undefined}
-        aria-label={`Accept the suggested ${fieldLabel}`}
+        aria-label={t("suggestion.acceptLabel", { field: fieldLabel })}
         className="aria-disabled:opacity-60"
         aria-describedby={state.error ? errorId : undefined}
         onClick={guard}
       >
-        Accept
+        {t("suggestion.accept")}
       </Button>
       <Button
         type="submit"
@@ -60,14 +62,14 @@ export function SuggestionReview({
         variant="outline"
         size="sm"
         aria-disabled={pending || undefined}
-        aria-label={`Reject the suggested ${fieldLabel}`}
+        aria-label={t("suggestion.rejectLabel", { field: fieldLabel })}
         className="aria-disabled:opacity-60"
         onClick={guard}
       >
-        Reject
+        {t("suggestion.reject")}
       </Button>
       <span role="status" className="text-xs text-muted-foreground">
-        {pending ? "Saving…" : ""}
+        {pending ? t("suggestion.saving") : ""}
       </span>
       {state.error ? (
         <p id={errorId} role="alert" className="w-full text-sm text-destructive">

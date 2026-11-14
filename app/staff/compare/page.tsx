@@ -1,43 +1,58 @@
+import type { Metadata } from "next";
 import Form from "next/form";
 import { Suspense } from "react";
 import { DataStatusLabel, itemDataStatus } from "@/components/data-status-label";
-import { LoadingState, Skeleton } from "@/components/loading-skeleton";
+import { LoadingState, PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { requireRole } from "@/lib/auth";
-import { KIND_LABELS } from "@/lib/explore/filter";
+import type { Locale } from "@/lib/i18n/config";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/translate";
 import { parseSlugPair, type CompareItem } from "@/lib/staff-views/compare";
 import { listMembers, loadComparison, type CompareSide, type Member } from "@/lib/staff-views/query";
 
-export const metadata = { title: "Compare members" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT("compare"))("title") };
+}
 
 const SELECT_CLASS =
   "h-8 w-full min-w-0 rounded-lg border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
+/** C9. The words follow the reader's language (C19); member names, titles, sources and the judge's why are shown as stored. */
 export default function Page({ searchParams }: PageProps<"/staff/compare">) {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-title">Compare members</h1>
-        <p className="text-muted-foreground">
-          Two members&apos; top five from the public ranking, side by side. The public ranking uses public profile
-          information only, never what a member entered privately. Every line is a potential match, not a decision.
-        </p>
-      </div>
-      <Suspense fallback={<CompareSkeleton />}>
-        <Comparison searchParams={searchParams} />
+      <Suspense fallback={<PageShellSkeleton />}>
+        <CompareFrame searchParams={searchParams} />
       </Suspense>
     </section>
   );
 }
 
-function CompareSkeleton() {
+async function CompareFrame({ searchParams }: Pick<PageProps<"/staff/compare">, "searchParams">) {
+  const locale = await getLocale();
+  const t = createTranslator(locale, "compare");
   return (
-    <LoadingState label="Loading the members…" className="gap-6">
+    <>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("intro")}</p>
+      </div>
+      <Suspense fallback={<CompareSkeleton label={t("loading")} />}>
+        <Comparison searchParams={searchParams} locale={locale} />
+      </Suspense>
+    </>
+  );
+}
+
+function CompareSkeleton({ label }: { label: string }) {
+  return (
+    <LoadingState label={label} className="gap-6">
       <div className="grid items-end gap-3 rounded-xl border p-4 sm:grid-cols-[1fr_1fr_auto]">
         <Skeleton className="h-14" />
         <Skeleton className="h-14" />
@@ -48,41 +63,41 @@ function CompareSkeleton() {
 }
 
 /** Reads the session and the URL, so it streams in behind the Suspense boundary above. */
-async function Comparison({ searchParams }: Pick<PageProps<"/staff/compare">, "searchParams">) {
+async function Comparison({ searchParams, locale }: Pick<PageProps<"/staff/compare">, "searchParams"> & { locale: Locale }) {
   // The proxy already sends members away; this refuses them on the server too.
   const viewer = await requireRole("staff");
+  const t = createTranslator(locale, "compare");
   const params = await searchParams;
   const a = first(params.a);
   const b = first(params.b);
   const members = await listMembers(viewer.claims);
   const pair = parseSlugPair(a, b);
   const result = pair.ok ? await loadComparison(viewer.claims, pair.a, pair.b) : null;
-  const error = !pair.ok ? (a || b ? pair.error : null) : result?.ok ? null : (result?.error ?? null);
+  const error = !pair.ok
+    ? a || b
+      ? t(`errors.${pair.code}`)
+      : null
+    : result && !result.ok
+      ? t("errors.unknown", { slug: result.slug })
+      : null;
 
   if (members.length < 2) {
-    return (
-      <p className="rounded-xl border border-dashed p-6 text-muted-foreground">
-        Comparing needs at least two member companies, and there {members.length === 1 ? "is one" : "are none"} yet. Run
-        the member import under Service checks first.
-      </p>
-    );
+    return <p className="rounded-xl border border-dashed p-6 text-muted-foreground">{t("tooFew", { count: members.length })}</p>;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <PickForm members={members} a={a ?? ""} b={b ?? ""} error={error} />
+      <PickForm members={members} a={a ?? ""} b={b ?? ""} error={error} locale={locale} />
       {!pair.ok || !result?.ok ? (
-        error ? null : <p className="text-sm text-muted-foreground">Pick two members and press Compare.</p>
+        error ? null : <p className="text-sm text-muted-foreground">{t("pickPrompt")}</p>
       ) : (
         <>
           <p className="text-sm text-muted-foreground" aria-live="polite">
-            {result.comparison.shared.length === 0
-              ? "No opportunity is in both top fives."
-              : `${result.comparison.shared.length} ${result.comparison.shared.length === 1 ? "opportunity is" : "opportunities are"} in both top fives, marked "In both".`}
+            {t("shared", { count: result.comparison.shared.length })}
           </p>
           <div className="grid gap-4 md:grid-cols-2">
-            <SideCard side={result.comparison.a} />
-            <SideCard side={result.comparison.b} />
+            <SideCard side={result.comparison.a} locale={locale} />
+            <SideCard side={result.comparison.b} locale={locale} />
           </div>
         </>
       )}
@@ -91,7 +106,8 @@ async function Comparison({ searchParams }: Pick<PageProps<"/staff/compare">, "s
 }
 
 /** A plain GET form: the choice lives in the URL, and the pickers keep it after an error. */
-function PickForm({ members, a, b, error }: { members: Member[]; a: string; b: string; error: string | null }) {
+function PickForm({ members, a, b, error, locale }: { members: Member[]; a: string; b: string; error: string | null; locale: Locale }) {
+  const t = createTranslator(locale, "compare");
   const errorId = "compare-error";
   const picker = (name: "a" | "b", label: string, value: string) => (
     <div className="flex min-w-0 flex-col gap-1.5">
@@ -105,7 +121,7 @@ function PickForm({ members, a, b, error }: { members: Member[]; a: string; b: s
         aria-describedby={error ? errorId : undefined}
         className={SELECT_CLASS}
       >
-        <option value="">Choose a member</option>
+        <option value="">{t("choose")}</option>
         {members.map((m) => (
           <option key={m.slug} value={m.slug}>
             {m.name}
@@ -117,9 +133,9 @@ function PickForm({ members, a, b, error }: { members: Member[]; a: string; b: s
   return (
     <Form action="/staff/compare" key={`${a}|${b}`} className="flex flex-col gap-3 rounded-xl border p-4">
       <div className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
-        {picker("a", "First member", a)}
-        {picker("b", "Second member", b)}
-        <Button type="submit">Compare</Button>
+        {picker("a", t("first"), a)}
+        {picker("b", t("second"), b)}
+        <Button type="submit">{t("submit")}</Button>
       </div>
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
@@ -130,7 +146,8 @@ function PickForm({ members, a, b, error }: { members: Member[]; a: string; b: s
   );
 }
 
-function SideCard({ side }: { side: CompareSide }) {
+function SideCard({ side, locale }: { side: CompareSide; locale: Locale }) {
+  const t = createTranslator(locale, "compare");
   return (
     <Card className="min-w-0">
       <CardHeader>
@@ -138,18 +155,14 @@ function SideCard({ side }: { side: CompareSide }) {
           <h2 className="text-heading break-words">{side.name}</h2>
         </CardTitle>
         <CardDescription>
-          {side.top.length === 0
-            ? "No potential matches in the public ranking yet. They appear after the nightly matching has run for this member."
-            : side.top.length < 5
-              ? `Only ${side.top.length} potential ${side.top.length === 1 ? "match" : "matches"} in the public ranking.`
-              : "The top five potential matches in the public ranking."}
+          {side.top.length === 0 ? t("side.none") : side.top.length < 5 ? t("side.few", { count: side.top.length }) : t("side.five")}
         </CardDescription>
       </CardHeader>
       {side.top.length ? (
         <CardContent>
           <ol className="flex flex-col divide-y">
             {side.top.map((item) => (
-              <CompareRow key={item.opportunityId} item={item} />
+              <CompareRow key={item.opportunityId} item={item} locale={locale} />
             ))}
           </ol>
         </CardContent>
@@ -158,7 +171,9 @@ function SideCard({ side }: { side: CompareSide }) {
   );
 }
 
-function CompareRow({ item }: { item: CompareItem }) {
+function CompareRow({ item, locale }: { item: CompareItem; locale: Locale }) {
+  const t = createTranslator(locale, "compare");
+  const common = createTranslator(locale, "common");
   const status = itemDataStatus(item);
   return (
     <li className={`flex gap-3 py-3 first:pt-0 last:pb-0 ${item.inBoth ? "-mx-2 rounded-lg bg-muted px-2" : ""}`} data-in-both={item.inBoth || undefined}>
@@ -167,9 +182,9 @@ function CompareRow({ item }: { item: CompareItem }) {
       </span>
       <div className="flex min-w-0 flex-col gap-1.5">
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <Badge variant="secondary">{KIND_LABELS[item.kind]}</Badge>
-          {item.inBoth ? <Badge>In both</Badge> : null}
-          {status ? <DataStatusLabel kind={status} date={item.cachedAt} /> : null}
+          <Badge variant="secondary">{common(`kinds.${item.kind}`)}</Badge>
+          {item.inBoth ? <Badge>{t("inBoth")}</Badge> : null}
+          {status ? <DataStatusLabel kind={status} date={item.cachedAt} locale={locale} /> : null}
           <span className="text-muted-foreground">{item.source}</span>
         </div>
         <a
@@ -179,9 +194,9 @@ function CompareRow({ item }: { item: CompareItem }) {
           className="text-sm font-medium break-words underline-offset-4 hover:underline"
         >
           {item.title}
-          <span className="sr-only"> (opens in a new tab)</span>
+          <span className="sr-only">{common("opensInNewTab")}</span>
         </a>
-        <p className="text-sm break-words text-muted-foreground">{item.why ?? "Not judged yet, so there is no reason written down."}</p>
+        <p className="text-sm break-words text-muted-foreground">{item.why ?? t("notJudged")}</p>
       </div>
     </li>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import type { MemberImportResult } from "@/lib/inngest/functions/import-members";
 
 type State =
@@ -14,13 +15,14 @@ type State =
 const POLL_MS = 3_000;
 const GIVE_UP_MS = 4 * 60_000;
 
-/** Starts the import-members job and polls until it has finished. */
+/** Starts the import-members job and polls until it has finished. Words in the reader's language (C19); job statuses as Inngest sends them. */
 export function ImportMembersButton() {
+  const t = useT("checks");
   const [state, setState] = useState<State>({ kind: "idle" });
 
   async function run() {
     if (state.kind === "running") return;
-    setState({ kind: "running", status: "Starting" });
+    setState({ kind: "running", status: t("import.starting") });
     try {
       const start = await fetch("/api/members/import", { method: "POST" });
       const started = (await start.json()) as { eventId?: string; error?: string };
@@ -36,11 +38,13 @@ export function ImportMembersButton() {
           setState({ kind: "running", status: body.status ?? "Running" });
           continue;
         }
-        if (body.status !== "Completed") throw new Error(`The job ${body.status?.toLowerCase()}: ${JSON.stringify(body.output)}`);
+        if (body.status !== "Completed") {
+          throw new Error(t("import.jobEnded", { status: body.status?.toLowerCase() ?? "", output: JSON.stringify(body.output) }));
+        }
         setState({ kind: "done", result: body.output as MemberImportResult });
         return;
       }
-      throw new Error("Still running after 4 minutes. See the Inngest dashboard.");
+      throw new Error(t("import.tooLong"));
     } catch (error) {
       setState({ kind: "error", message: (error as Error).message });
     }
@@ -50,10 +54,10 @@ export function ImportMembersButton() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={run} aria-disabled={state.kind === "running" || undefined} className="aria-disabled:opacity-60">
-          {state.kind === "running" ? "Importing…" : "Import members"}
+          {state.kind === "running" ? t("import.running") : t("import.button")}
         </Button>
         <span role="status" className="text-sm text-muted-foreground">
-          {state.kind === "running" ? `${state.status} (about a minute)` : state.kind === "done" ? "Import finished." : ""}
+          {state.kind === "running" ? t("import.status", { status: state.status }) : state.kind === "done" ? t("import.finished") : ""}
         </span>
       </div>
 
@@ -67,14 +71,12 @@ export function ImportMembersButton() {
         <div className="flex flex-col gap-2 rounded-lg border px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant={state.result.failed.length ? "destructive" : "default"}>
-              {state.result.failed.length ? "Partly done" : "Done"}
+              {state.result.failed.length ? t("import.partly") : t("import.done")}
             </Badge>
-            <span className="font-medium">
-              {state.result.imported} of {state.result.total} members imported
-            </span>
+            <span className="font-medium">{t("import.imported", { imported: state.result.imported, total: state.result.total })}</span>
           </div>
           <p className="text-sm break-words text-muted-foreground">
-            Website missing: {state.result.websiteMissing.length ? state.result.websiteMissing.join(", ") : "none"}
+            {t("import.websiteMissing", { list: state.result.websiteMissing.length ? state.result.websiteMissing.join(", ") : t("import.none") })}
           </p>
           {state.result.failed.map((member) => (
             <p key={member.slug} className="text-sm break-words text-destructive">

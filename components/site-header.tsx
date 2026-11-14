@@ -1,14 +1,22 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/actions/auth";
+import { LanguageSwitch } from "@/components/language-switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NavMenu } from "@/components/ui/nav-menu";
 import { getViewer } from "@/lib/auth";
+import { getLocale } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/translate";
 import { NAV, SHARED_NAV } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-/** The site chrome (C2): header with the menu for the signed-in role, and the footer. */
+/**
+ * The site chrome (C2): header with the menu for the signed-in role, and the
+ * footer. The names "Virtual Science Park" and "Blue Science Park" are the
+ * same in every language, so the brand stays in the static shell; everything
+ * with words streams in with the reader's language (C19).
+ */
 export function SiteHeader() {
   return (
     <header className="border-b bg-card/70">
@@ -28,15 +36,20 @@ export function SiteHeader() {
   );
 }
 
-/** Reads the session, so it streams in behind the Suspense boundary above. */
+/** Reads the session and the language, so it streams in behind the Suspense boundary above. */
 async function HeaderNav() {
-  const viewer = await getViewer();
+  const [viewer, locale] = await Promise.all([getViewer(), getLocale()]);
+  const t = createTranslator(locale, "layout");
+  const nav = createTranslator(locale, "nav");
+  const common = createTranslator(locale, "common");
+  const languageSwitch = <LanguageSwitch locale={locale} label={t("language")} />;
 
   if (!viewer) {
     return (
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-3">
+        {languageSwitch}
         <Button size="sm" render={<Link href="/sign-in" />} nativeButton={false}>
-          Sign in
+          {t("signIn")}
         </Button>
       </div>
     );
@@ -50,22 +63,22 @@ async function HeaderNav() {
     companyName = data?.name ?? null;
   }
 
-  const items = NAV[viewer.role].map(({ href, label }) => ({ href, label }));
+  const items = NAV[viewer.role].map(({ id, href }) => ({ href, label: nav(`${id}.label`) }));
   return (
     <NavMenu
       items={items}
-      label={viewer.role === "staff" ? "Staff menu" : "Member menu"}
+      label={viewer.role === "staff" ? t("staffMenu") : t("memberMenu")}
+      menuLabel={t("menuButton")}
       extra={
         <>
-          <Badge variant={viewer.role === "staff" ? "default" : "secondary"}>
-            {viewer.role === "staff" ? "BSP staff" : "Member"}
-          </Badge>
+          {languageSwitch}
+          <Badge variant={viewer.role === "staff" ? "default" : "secondary"}>{common(`roles.${viewer.role}`)}</Badge>
           <span className="max-w-48 truncate text-sm text-muted-foreground" data-testid="signed-in-as" title={companyName ?? viewer.email ?? undefined}>
             {companyName ?? viewer.email}
           </span>
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">
-              Sign out
+              {t("signOut")}
             </Button>
           </form>
         </>
@@ -78,10 +91,9 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto border-t">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-        <p className="max-w-prose">
-          Virtual Science Park for Blue Science Park, Karlskrona. Every item is a potential match with its source;
-          whether to apply is for people to decide.
-        </p>
+        <Suspense fallback={<div className="h-10 max-w-prose flex-1" aria-hidden />}>
+          <FooterText />
+        </Suspense>
         <Suspense fallback={null}>
           <FooterNav />
         </Suspense>
@@ -90,16 +102,24 @@ export function SiteFooter() {
   );
 }
 
+/** Reads the language only, so it arrives with the first bytes of the dynamic part. */
+async function FooterText() {
+  const t = createTranslator(await getLocale(), "layout");
+  return <p className="max-w-prose">{t("footerText")}</p>;
+}
+
 async function FooterNav() {
-  const viewer = await getViewer();
+  const [viewer, locale] = await Promise.all([getViewer(), getLocale()]);
   if (!viewer) return null;
+  const t = createTranslator(locale, "layout");
+  const nav = createTranslator(locale, "nav");
   return (
-    <nav aria-label="More">
+    <nav aria-label={t("footerNav")}>
       <ul className="flex flex-wrap gap-x-4 gap-y-1">
         {SHARED_NAV.map((item) => (
           <li key={item.href}>
             <Link href={item.href} className="font-medium text-foreground underline-offset-4 hover:underline">
-              {item.label}
+              {nav(`${item.id}.label`)}
             </Link>
           </li>
         ))}

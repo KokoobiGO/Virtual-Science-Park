@@ -19,6 +19,21 @@ export function LoadingState({ label, children, className }: { label: string; ch
   );
 }
 
+/**
+ * The static shell's stand-in for a page heading and its intro, while the
+ * reader's language is read (C19). It has no words, so it is right in every
+ * language; the texts arrive with the first bytes of the dynamic part.
+ */
+export function PageShellSkeleton({ className }: { className?: string }) {
+  return (
+    <div aria-busy="true" className={cn("flex flex-col gap-3", className)}>
+      <Skeleton className="h-9 w-72 max-w-full" />
+      <Skeleton className="h-4 w-full max-w-prose" />
+      <Skeleton className="h-4 w-2/3 max-w-prose" />
+    </div>
+  );
+}
+
 /** A list of rows: the company list, the handoffs, the check results. */
 export function ListSkeleton({ label, rows = 5, rowClassName = "h-12" }: { label: string; rows?: number; rowClassName?: string }) {
   return (

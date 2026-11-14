@@ -16,8 +16,19 @@ export type NavMenuItem = { href: string; label: string };
  * sign out) sits at the end of that row and the links get a row of their own
  * below it, so any number of items fits. Below md a Menu button opens the links
  * and `extra` as a list. The current page is marked with aria-current="page".
+ * `menuLabel` is the Menu button's text, in the reader's language (C19).
  */
-export function NavMenu({ items, label = "Main", extra }: { items: NavMenuItem[]; label?: string; extra?: ReactNode }) {
+export function NavMenu({
+  items,
+  label = "Main",
+  menuLabel = "Menu",
+  extra,
+}: {
+  items: NavMenuItem[];
+  label?: string;
+  menuLabel?: string;
+  extra?: ReactNode;
+}) {
   const pathname = usePathname();
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -45,7 +56,7 @@ export function NavMenu({ items, label = "Main", extra }: { items: NavMenuItem[]
         onKeyDown={closeOnEscape}
       >
         {open ? <X aria-hidden /> : <Menu aria-hidden />}
-        Menu
+        {menuLabel}
       </Button>
       <div
         id={panelId}

@@ -1,6 +1,9 @@
 import { cn } from "cn";
 import { Archive, ClockFading, FlaskConical, PenLine, Radio, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { formatDayOrNull } from "@/lib/i18n/format";
+import { createTranslator, MESSAGES } from "@/lib/i18n/translate";
 import type { SourceState } from "@/lib/schemas";
 import type { SourceVerdict } from "@/lib/sources/health";
 
@@ -23,33 +26,23 @@ type DataStatusMeta = {
   icon: LucideIcon;
 };
 
-export const DATA_STATUS_META: Record<DataStatusKind, DataStatusMeta> = {
-  live: { label: "Live", description: "Read from the source itself.", variant: "success", icon: Radio },
-  stale: {
-    label: "Stale",
-    description: "A live source that has not been read for more than 48 hours.",
-    variant: "warning",
-    icon: ClockFading,
-  },
-  cached: {
-    label: "Cached copy",
-    description: "A recorded copy of the source, from the date shown.",
-    variant: "info",
-    icon: Archive,
-  },
-  simulated: {
-    label: "Simulated",
-    description: "Sample data written by the team. Not real.",
-    variant: "simulated",
-    icon: FlaskConical,
-  },
-  hand_entered: {
-    label: "Hand-entered",
-    description: "Typed in by the team from the source, not read automatically.",
-    variant: "simulated",
-    icon: PenLine,
-  },
+const LOOK: Record<DataStatusKind, Pick<DataStatusMeta, "variant" | "icon">> = {
+  live: { variant: "success", icon: Radio },
+  stale: { variant: "warning", icon: ClockFading },
+  cached: { variant: "info", icon: Archive },
+  simulated: { variant: "simulated", icon: FlaskConical },
+  hand_entered: { variant: "simulated", icon: PenLine },
 };
+
+/** The name and the sentence for a kind in one language (messages/*.json, `dataStatus.kinds`). */
+export function dataStatusName(kind: DataStatusKind, locale: Locale = DEFAULT_LOCALE): { label: string; description: string } {
+  return MESSAGES[locale].dataStatus.kinds[kind];
+}
+
+/** Each kind in English: its name, sentence, colour and icon. */
+export const DATA_STATUS_META: Record<DataStatusKind, DataStatusMeta> = Object.fromEntries(
+  (Object.keys(LOOK) as DataStatusKind[]).map((kind) => [kind, { ...dataStatusName(kind), ...LOOK[kind] }]),
+) as Record<DataStatusKind, DataStatusMeta>;
 
 export const DATA_STATUS_KINDS = Object.keys(DATA_STATUS_META) as DataStatusKind[];
 
@@ -85,34 +78,26 @@ export function itemDataStatus(item: {
   return null;
 }
 
-const dayFormat = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "Europe/Stockholm",
-});
-
-/** "14 Nov 2026" in Swedish time, or null for no or an unreadable date. */
-export function formatStatusDate(date: Date | string | null | undefined): string | null {
-  if (!date) return null;
-  const d = typeof date === "string" ? new Date(date) : date;
-  return Number.isNaN(d.getTime()) ? null : dayFormat.format(d);
+/** "14 Nov 2026" in Swedish time ("14 nov. 2026" in Swedish), or null for no or an unreadable date. */
+export function formatStatusDate(date: Date | string | null | undefined, locale: Locale = DEFAULT_LOCALE): string | null {
+  return formatDayOrNull(date, locale);
 }
 
-/** The words on the label, e.g. "Cached copy · 10 Nov 2026". */
-export function dataStatusText(kind: DataStatusKind, date?: Date | string | null): string {
-  const day = formatStatusDate(date);
+/** The words on the label, e.g. "Cached copy · 10 Nov 2026". English when `locale` is left out. */
+export function dataStatusText(kind: DataStatusKind, date?: Date | string | null, locale: Locale = DEFAULT_LOCALE): string {
+  const day = formatStatusDate(date, locale);
+  const t = createTranslator(locale, "dataStatus");
   switch (kind) {
     case "live":
-      return day ? `Live · read ${day}` : "Live";
+      return day ? t("liveRead", { day }) : t("kinds.live.label");
     case "stale":
-      return day ? `Stale · last read ${day}` : "Stale · never read";
+      return day ? t("staleRead", { day }) : t("staleNever");
     case "cached":
-      return day ? `Cached copy · ${day}` : "Cached copy · date unknown";
+      return day ? t("cachedDay", { day }) : t("cachedUnknown");
     case "simulated":
-      return "Simulated";
+      return t("kinds.simulated.label");
     case "hand_entered":
-      return "Hand-entered";
+      return t("kinds.hand_entered.label");
   }
 }
 
@@ -121,6 +106,7 @@ export function DataStatusLabel({
   kind,
   date,
   nameOnly = false,
+  locale = DEFAULT_LOCALE,
   className,
 }: {
   kind: DataStatusKind;
@@ -128,14 +114,16 @@ export function DataStatusLabel({
   date?: Date | string | null;
   /** Just the name ("Cached copy"), for a legend. */
   nameOnly?: boolean;
+  /** The language of the words (C19); English when left out. */
+  locale?: Locale;
   className?: string;
 }) {
-  const meta = DATA_STATUS_META[kind];
-  const Icon = meta.icon;
+  const { icon: Icon, variant } = LOOK[kind];
+  const name = dataStatusName(kind, locale);
   return (
-    <Badge variant={meta.variant} title={meta.description} data-data-status={kind} className={cn(className)}>
+    <Badge variant={variant} title={name.description} data-data-status={kind} className={cn(className)}>
       <Icon aria-hidden data-icon="inline-start" />
-      {nameOnly ? meta.label : dataStatusText(kind, date)}
+      {nameOnly ? name.label : dataStatusText(kind, date, locale)}
     </Badge>
   );
 }

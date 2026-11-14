@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import type { CheckResult } from "@/lib/nvidia-checks";
 
 type Check = { id: string; label: string };
@@ -12,9 +13,11 @@ const BADGE = { PASS: "default", FAIL: "destructive", NOTE: "secondary" } as con
 
 /**
  * Runs every check of one service in parallel, one request each to
- * `${endpoint}?check=<id>`, and shows results as they arrive.
+ * `${endpoint}?check=<id>`, and shows results as they arrive. Words in the
+ * reader's language (C19); check names and results as the server sends them.
  */
 export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; button: string; checks: Check[] }) {
+  const t = useT("checks");
   const [outcomes, setOutcomes] = useState<Record<string, Outcome | "running">>({});
   const running = Object.values(outcomes).includes("running");
   const hint = Object.values(outcomes).find((o): o is Outcome => typeof o === "object" && !!o.hint)?.hint;
@@ -36,12 +39,12 @@ export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; 
     <div className="flex flex-col gap-4">
       <div>
         <Button onClick={runAll} aria-disabled={running || undefined} className="aria-disabled:opacity-60">
-          {running ? "Running…" : button}
+          {running ? t("service.running") : button}
         </Button>
       </div>
       {/* Always in the page, so screen readers hear the progress. */}
       <p role="status" className="sr-only">
-        {Object.keys(outcomes).length ? `${done} of ${checks.length} checks done.` : ""}
+        {Object.keys(outcomes).length ? t("service.progress", { done, total: checks.length }) : ""}
       </p>
       <ul className="flex flex-col divide-y rounded-lg border">
         {checks.map((check) => {
@@ -50,11 +53,11 @@ export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; 
             <li key={check.id} className="flex flex-col gap-1 px-4 py-3">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 {outcome === "running" ? (
-                  <Badge variant="outline">Running</Badge>
+                  <Badge variant="outline">{t("service.badgeRunning")}</Badge>
                 ) : outcome ? (
-                  <Badge variant={BADGE[outcome.status]}>{outcome.status}</Badge>
+                  <Badge variant={BADGE[outcome.status]}>{t(`service.statuses.${outcome.status}`)}</Badge>
                 ) : (
-                  <Badge variant="outline">Not run</Badge>
+                  <Badge variant="outline">{t("service.notRun")}</Badge>
                 )}
                 <span className="font-medium">{check.label}</span>
               </div>

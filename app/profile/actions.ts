@@ -10,11 +10,15 @@
  * After a change that affects matching (an edit, an accepted suggestion, a
  * priority) the matcher is asked to re-rank the company with
  * `app/company.profile.changed`.
+ *
+ * Every message goes back in the reader's language (C19, messages/*.json
+ * `profile.actions`): the action reads the language cookie itself.
  */
 import { and, eq, inArray } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { getViewer, type Viewer } from "@/lib/auth";
+import { getT } from "@/lib/i18n/server";
 import { claims, companyPrivate } from "@/lib/db/schema";
 import { withUserDb } from "@/lib/db/user";
 import { inngest } from "@/lib/inngest/client";
@@ -24,7 +28,7 @@ import { ProfileField, UserPriority } from "@/lib/schemas";
 
 export type ProfileActionState = { error: string | null; message?: string };
 
-const STALE_FORM = "Your profile changed since this page was opened. Reload the page and try again.";
+const texts = () => getT("profile");
 
 const claimColumns = {
   id: claims.id,
@@ -54,17 +58,16 @@ async function profileChanged(companyId: string) {
   }
 }
 
-const NOT_A_MEMBER: ProfileActionState = { error: "Only a member can change its own company profile." };
-const SAVE_FAILED: ProfileActionState = { error: "Could not save the change. Try again in a moment." };
 
 /** Save a member's own value for one field. Form fields: field, claimId (the claim the member edited, or empty), value, private. */
 export async function saveClaim(_prev: ProfileActionState, formData: FormData): Promise<ProfileActionState> {
+  const t = await texts();
   const viewer = await signedInMember();
-  if (!viewer) return NOT_A_MEMBER;
+  if (!viewer) return { error: t("actions.notMember") };
   const field = ProfileField.safeParse(formData.get("field"));
-  if (!field.success) return { error: "Unknown profile field." };
+  if (!field.success) return { error: t("actions.unknownField") };
   const parsed = parseValueInput(field.data, String(formData.get("value") ?? ""));
-  if (!parsed.ok) return { error: parsed.error };
+  if (!parsed.ok) return { error: t(`actions.${parsed.problem}`, parsed.max === undefined ? undefined : { max: parsed.max }) };
   const editedId = String(formData.get("claimId") ?? "");
   const visibility = formData.get("private") === "on" ? "private" : "public";
 
@@ -93,33 +96,34 @@ export async function saveClaim(_prev: ProfileActionState, formData: FormData): 
     });
   } catch (error) {
     console.error("saveClaim failed:", error);
-    return SAVE_FAILED;
+    return { error: t("actions.saveFailed") };
   }
 
-  if (outcome === "stale") return { error: STALE_FORM };
-  if (outcome === "unchanged") return { error: null, message: "Nothing changed." };
+  if (outcome === "stale") return { error: t("actions.staleForm") };
+  if (outcome === "unchanged") return { error: null, message: t("actions.nothingChanged") };
   await profileChanged(viewer.companyId);
   refresh();
-  return { error: null, message: "Saved." };
+  return { error: null, message: t("actions.saved") };
 }
 
 const ReviewInput = z.object({ claimId: z.uuid(), decision: z.enum(["accept", "reject"]) });
 
 /** Accept or reject a suggested claim from the weekly profile refresh. Form fields: claimId, decision. */
 export async function reviewSuggestion(_prev: ProfileActionState, formData: FormData): Promise<ProfileActionState> {
+  const t = await texts();
   const viewer = await signedInMember();
-  if (!viewer) return NOT_A_MEMBER;
+  if (!viewer) return { error: t("actions.notMember") };
   const input = ReviewInput.safeParse({ claimId: formData.get("claimId"), decision: formData.get("decision") });
-  if (!input.success) return { error: "Unknown suggestion." };
+  if (!input.success) return { error: t("actions.unknownSuggestion") };
 
-  let error: string | null;
+  let error: "unknownSuggestion" | "alreadyHandled" | null;
   try {
     error = await withUserDb(viewer.claims, async (tx) => {
       const [suggestion] = await tx
         .select(claimColumns)
         .from(claims)
         .where(and(eq(claims.id, input.data.claimId), eq(claims.companyId, viewer.companyId)));
-      if (!suggestion) return "Unknown suggestion.";
+      if (!suggestion) return "unknownSuggestion";
       const active = await tx
         .select(claimColumns)
         .from(claims)
@@ -136,22 +140,23 @@ export async function reviewSuggestion(_prev: ProfileActionState, formData: Form
     });
   } catch (failure) {
     console.error("reviewSuggestion failed:", failure);
-    return SAVE_FAILED;
+    return { error: t("actions.saveFailed") };
   }
 
-  if (error) return { error };
+  if (error) return { error: t(`actions.${error}`) };
   // A rejected suggestion was never shown or ranked on, so only accepting changes the matching.
   if (input.data.decision === "accept") await profileChanged(viewer.companyId);
   refresh();
-  return { error: null, message: input.data.decision === "accept" ? "Suggestion accepted." : "Suggestion rejected." };
+  return { error: null, message: input.data.decision === "accept" ? t("actions.accepted") : t("actions.rejected") };
 }
 
 /** Switch one of the member's priorities on or off (company_private.user_priorities). */
 export async function setPriority(priority: string, on: boolean): Promise<ProfileActionState> {
+  const t = await texts();
   const viewer = await signedInMember();
-  if (!viewer) return NOT_A_MEMBER;
+  if (!viewer) return { error: t("actions.notMember") };
   const parsed = UserPriority.safeParse(priority);
-  if (!parsed.success || typeof on !== "boolean") return { error: "Unknown priority." };
+  if (!parsed.success || typeof on !== "boolean") return { error: t("actions.unknownPriority") };
 
   try {
     await withUserDb(viewer.claims, async (tx) => {
@@ -168,7 +173,7 @@ export async function setPriority(priority: string, on: boolean): Promise<Profil
     });
   } catch (error) {
     console.error("setPriority failed:", error);
-    return SAVE_FAILED;
+    return { error: t("actions.saveFailed") };
   }
 
   await profileChanged(viewer.companyId);

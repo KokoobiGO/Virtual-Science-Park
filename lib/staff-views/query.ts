@@ -26,7 +26,8 @@ export async function listMembers(claims: JwtClaims): Promise<Member[]> {
 
 export type CompareSide = { slug: string; name: string; top: CompareItem[] };
 export type Comparison = { a: CompareSide; b: CompareSide; shared: string[] };
-export type ComparisonResult = { ok: true; comparison: Comparison } | { ok: false; error: string };
+/** Not found: `slug` is the one that is no member; `error` is the English text, for the JSON route. */
+export type ComparisonResult = { ok: true; comparison: Comparison } | { ok: false; slug: string; error: string };
 
 /** Both members' top five from the public ranking. Not found: a slug that is no member. */
 export async function loadComparison(claims: JwtClaims, slugA: string, slugB: string): Promise<ComparisonResult> {
@@ -37,7 +38,10 @@ export async function loadComparison(claims: JwtClaims, slugA: string, slugB: st
       .where(inArray(companies.slug, [slugA, slugB]));
     const a = found.find((c) => c.slug === slugA);
     const b = found.find((c) => c.slug === slugB);
-    if (!a || !b) return { ok: false, error: `No member with the slug "${!a ? slugA : slugB}".` };
+    if (!a || !b) {
+      const slug = !a ? slugA : slugB;
+      return { ok: false, slug, error: `No member with the slug "${slug}".` };
+    }
 
     const publicTop = (companyId: string) =>
       tx

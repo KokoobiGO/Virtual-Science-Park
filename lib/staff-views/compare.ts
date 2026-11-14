@@ -3,6 +3,7 @@
  * public ranking, side by side, with the opportunities that are in both.
  * Pure, so the rules are unit-tested; the reads are in query.ts.
  */
+import en from "@/messages/en.json";
 import { FIXTURE_PREFIX } from "../matcher/score";
 import type { OpportunityKind, SourceState } from "../schemas";
 
@@ -88,14 +89,18 @@ export function markShared(
   };
 }
 
-export type SlugPair = { ok: true; a: string; b: string } | { ok: false; error: string };
+/**
+ * `code` is the key of the screen's text under `compare.errors` in
+ * messages/*.json (C19); `error` is the English text, for the JSON route.
+ */
+export type SlugPair = { ok: true; a: string; b: string } | { ok: false; code: "missing" | "invalid" | "same"; error: string };
 
 /** The two members to compare, from `?a=...&b=...`. */
 export function parseSlugPair(a: string | null | undefined, b: string | null | undefined): SlugPair {
   const slugA = (a ?? "").trim().toLowerCase();
   const slugB = (b ?? "").trim().toLowerCase();
-  if (!slugA || !slugB) return { ok: false, error: "Pick two members." };
-  if (!SLUG_PATTERN.test(slugA) || !SLUG_PATTERN.test(slugB)) return { ok: false, error: "That is not a member slug." };
-  if (slugA === slugB) return { ok: false, error: "Pick two different members." };
+  if (!slugA || !slugB) return { ok: false, code: "missing", error: en.compare.errors.missing };
+  if (!SLUG_PATTERN.test(slugA) || !SLUG_PATTERN.test(slugB)) return { ok: false, code: "invalid", error: en.compare.errors.invalid };
+  if (slugA === slugB) return { ok: false, code: "same", error: en.compare.errors.same };
   return { ok: true, a: slugA, b: slugB };
 }

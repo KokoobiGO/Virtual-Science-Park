@@ -2,11 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getT } from "@/lib/i18n/server";
 import { HOME } from "@/lib/navigation";
 import { AppMetadata } from "@/lib/schemas";
 import { createClient } from "@/lib/supabase/server";
 
-/** `email` is echoed back so the form keeps it after a failed attempt. */
+/** `email` is echoed back so the form keeps it after a failed attempt. `error` is in the reader's language (C19). */
 export type SignInState = { error: string | null; email?: string };
 
 const SignInInput = z.object({
@@ -22,20 +23,21 @@ const SignInInput = z.object({
 
 export async function signIn(_prev: SignInState, formData: FormData): Promise<SignInState> {
   const typedEmail = String(formData.get("email") ?? "");
+  const t = await getT("signIn");
   const input = SignInInput.safeParse(Object.fromEntries(formData));
-  if (!input.success) return { error: "Enter your email and password.", email: typedEmail };
+  if (!input.success) return { error: t("errors.missing"), email: typedEmail };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email: input.data.email,
     password: input.data.password,
   });
-  if (error || !data.user) return { error: "Wrong email or password.", email: typedEmail };
+  if (error || !data.user) return { error: t("errors.wrong"), email: typedEmail };
 
   const metadata = AppMetadata.safeParse(data.user.app_metadata);
   if (!metadata.success) {
     await supabase.auth.signOut({ scope: "local" });
-    return { error: "This account has no role yet. Ask BSP staff to set it up." };
+    return { error: t("errors.noRole") };
   }
 
   redirect(input.data.next ?? HOME[metadata.data.role]);
