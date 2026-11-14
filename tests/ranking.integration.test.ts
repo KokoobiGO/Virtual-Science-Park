@@ -167,6 +167,8 @@ describe.skipIf(!configured)("matcher ranking", () => {
         update companies set tags = other.tags, public_embedding = other.public_embedding
         from companies other
         where companies.id = ${embeddedart} and other.id = ${malvacom}`);
+      // The judge's rejections differ per company and leave the pool: clear them here so both rank the same pool.
+      await tx.update(matches).set({ rejected: false }).where(inArray(matches.companyId, [embeddedart, malvacom]));
       return { embeddedart: await rankCompany(tx, embeddedart, "public", { now: NOW }), malvacom: await rankCompany(tx, malvacom, "public", { now: NOW }) };
     });
 

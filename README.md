@@ -66,6 +66,9 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run gold:export` | Write one file per gold member to `data/gold-profiles/` for the team's hand-check (A7); keeps verdicts already filled in |
 | `npm run eval` | Profile accuracy from the hand-check files and the quote-check drop rate, stored for the Trust report (A21); `--dry` |
 | `npm run trends -- [area ...]` | Write this week's note per technology area from news and new calls (A27); `--dry` |
+| `npm run judge -- [slug ...]` | Judge the ranked matches: keep or reject, why, next step, what is unsure (A16); `--dry`, `--limit N`, `--force` |
+| `npm run cards -- [slug ...]` | Build this week's "Your week" cards from the judged matches (A17); `--dry` |
+| `npm run cost` | Tokens and model calls per full run and per member per month, from the real runs; $0 on NVIDIA's free API (A24) |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 
@@ -97,6 +100,8 @@ lib/matcher/        matcher (A15, A18): the ranking SQL, the score parts, storin
 lib/connections/    connection finder (A28): candidate pairs, the judge, the checks, storing
 lib/eval/           evals (A21): profile accuracy, quote-check drop rate; one entry per eval
 lib/trends/         trend analyst (A27): inputs per area, the note writer, the fact checks
+lib/judge/          judge (A16): the prompt, the checks on the answer, the rounds per company, storing
+lib/cards/          "Your week" cards (A17): which judged matches become cards, the week, storing
 lib/links/          link checker (A20)
 lib/sources/        source health verdicts (A19)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
@@ -382,6 +387,40 @@ Do the hand-check after the last time the gold members are profiled: a new
 profiling run gives every claim a new id, and the export then starts the
 verdicts over (it warns when that happens). `npm run eval -- <name>` runs one
 eval; a new eval is one more entry in `lib/eval/index.ts`.
+
+## Judge and "Your week" cards (A16, A17)
+
+```
+event: app/judge.requested           data: {}   or   { "slugs": ["embeddedart"] }   or   { "force": true }
+event: app/company.judge.requested   data: { "slug": "embeddedart" }
+event: app/cards.requested           data: {}   or   { "slugs": ["embeddedart"] }
+```
+
+The judge reads a company's profile and its ranked matches, five per model
+call, and writes on each match row a why, a next step for this week and one to
+three things the text leaves open, or rejects the match with a reason. It can
+only answer for the matches it was given, and `eligibility` stays
+`potential_match`.
+
+- Checks in code before anything is stored: no eligibility words ("eligible",
+  "qualifies", "guarantee" ...), no next step that says "apply", lengths, and a
+  reject that names a link to the company is asked again. An entry that fails
+  twice stays unjudged and the next run picks it up.
+- Public rows are judged from public claims only. Personal rows are a copy of
+  the public judgement unless the company has private data.
+- A rejected row leaves the company's pool. After the first round the ranking
+  is filled up once and the new rows are judged; rows rejected in that second
+  round keep their rank, so every reader must filter on `rejected`.
+- Many rejections are normal: the matcher always stores 20 rows per company,
+  and members such as a public agency or a bank have few real matches among
+  the stored opportunities. An event is kept for any member that could attend.
+- Cards: no model call. Up to 6 judged personal matches in rank order (at most
+  3 of one kind, 2 of one source, no news) plus one trend card when this week
+  has a trend note for one of the company's tags. Stored per company and week
+  in `week_cards`; building again replaces that week. Also Mondays at 06:00.
+- Nothing starts the judge after the nightly re-rank yet: rows that enter a
+  top 20 later stay unjudged (and out of the cards) until `npm run judge` or
+  `app/judge.requested` runs.
 
 ## Trend analyst (A27)
 

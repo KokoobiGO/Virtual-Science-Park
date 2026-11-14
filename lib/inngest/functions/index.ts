@@ -1,9 +1,12 @@
+import { buildWeekCardsJob } from "./build-week-cards";
 import { collectSourcesJob } from "./collect-sources";
 import { enrichJob } from "./enrich";
 import { fetchSnapshotJob } from "./fetch-snapshot";
 import { findConnectionsJob } from "./find-connections";
 import { heartbeat } from "./heartbeat";
 import { importMembersJob } from "./import-members";
+import { judgeAllJob } from "./judge-all";
+import { judgeCompanyJob } from "./judge-company";
 import { matchCompaniesJob } from "./match-companies";
 import { profileAllMembersJob } from "./profile-all-members";
 import { profileCompanyJob } from "./profile-company";
@@ -26,4 +29,7 @@ export const functions = [
   findConnectionsJob,
   trendNotesJob,
   refreshProfilesJob,
+  judgeCompanyJob,
+  judgeAllJob,
+  buildWeekCardsJob,
 ];
