@@ -27,7 +27,10 @@ Rules for every slide:
   since the evening of 14 Nov 2026), not on Claude.
 - Do not read the bullets aloud. The notes are what you say.
 - Before the pitch, read every number again from the Trust report (`/trust`)
-  and change it here if it moved.
+  and change it here if it moved. Numbers marked `[UPDATE AFTER RE-JUDGE]`
+  were read on 14 Nov 2026 at about 23:20 CET, while every match was being
+  judged a second time with a tightened judge prompt; the cards, the evals and
+  the link check are run again after that.
 
 ---
 
@@ -57,8 +60,8 @@ On screen:
 
 - "`[TEAM: quote from the BSP interview]`" (BSP staff member, with permission)
 - 56 member companies (BSP member list, 14 Nov 2026)
-- 188 funding calls, testbeds, events and news items, spread over 8 sources
-  (our store, 14 Nov 2026)
+- 190 funding calls, testbeds, events and news items, spread over 8 sources
+  (our store, 14 Nov 2026, 23:20 CET)
 - How long matching this by hand takes today: `[TEAM: estimate from the BSP
   interview, for example minutes per member per week]`
 
@@ -103,7 +106,7 @@ On screen (only if the live demo fails; otherwise the browser):
 
 - Your week: why, next step, what is uncertain, potential match
 - Profile: every fact with its quote, in Swedish, on the page
-- Priorities: switch on "Testing and testbeds"
+- Priorities: switch on "Testing and testbeds", and the week reorders itself
 - Scout: a cited brief
 - Copilot: a question, "are we eligible?", an override attempt
 
@@ -147,17 +150,19 @@ On screen:
 
 - 314 of 419 profile quotes found word for word on the company's page
 - 85 of 448 profile fields left "missing" rather than guessed
-- 181 of 181 source links working
-- 22 of 188 opportunities typed in by the team, and labelled so
+- 184 of 186 source links working `[UPDATE AFTER RE-JUDGE]`
+- 24 of 190 opportunities typed in by the team, and labelled so
 
 Speaker notes: Every profile fact carries a quote, and code checks that the
 quote is on the stored page. When it is not, the field stays empty rather
 than guessed. Every opportunity links to its source, and the last link check
-found all of them working. What we typed in by hand says so on the screen.
+found all but two working `[UPDATE AFTER RE-JUDGE]`. What we typed in by hand
+says so on the screen.
 
-Numbers on this slide: quote check eval, 14 Nov 2026, 19:11 CET; link check,
-14 Nov 2026, 18:27 CET; opportunities in the store, read 14 Nov 2026, 22:02
-CET.
+Numbers on this slide: quote check eval, 14 Nov 2026, 22:28 CET (same
+numbers as the 19:11 run: the profiles have not changed); link check,
+14 Nov 2026, 22:29 CET `[UPDATE AFTER RE-JUDGE]`; opportunities in the store,
+read 14 Nov 2026, 23:20 CET.
 
 ### Slide 7. The boundaries hold
 
@@ -167,23 +172,34 @@ On screen:
 
 - Privacy: 17 of 17 tests pass: a member gets no rows of another company's
   private data
+- Copilot red team: 44 of 44 attacks and edge cases handled as the rules say
+  (override, hidden instructions, other companies' data, "are we eligible?")
 - Hidden instructions in a web page: 4 of 4 model steps kept them out of
   their answer
 - Checks in code (eligibility words, citations, quotes): 305 of 305 tests
   pass
-- Red-team: `[TEAM: red-team pass rate from the Trust report]` of 51 prompts
 
 Speaker notes: Who sees what is decided by the database, not by a prompt.
-We planted instructions to an AI in four hidden places on a test page, and
-the detector flagged all four. Any text that says "eligible" or "qualifies"
-is refused by code after the model answers: in that test, the judge's first
-answer used "qualifies", the check refused it, and the retry passed.
+We attacked our own Copilot with 44 cases: off-topic questions, attempts to
+change its rules, hidden instructions, requests for another company's data,
+and "are we eligible?" in several forms. All 44 got the answer the rules
+require. Any text that says "eligible" or "qualifies" is refused by code
+after the model answers: on our planted test page, the judge's first answer
+used "qualifies", the check refused it, and the retry passed.
 
-Numbers on this slide: privacy run, 14 Nov 2026, 20:36 CET; injection demo,
-14 Nov 2026, 20:49 CET (recorded with the earlier model `[CHECK: re-record
-with nvidia/nemotron-3.5-super-vl-120b-a12b before the pitch, or say "earlier
-model"]`); unit tests, 14 Nov 2026, 22:03 CET; red-team prompts in
-`eval/redteam-prompts.json`.
+Numbers on this slide: privacy run, 14 Nov 2026, 20:36 CET; red team,
+14 Nov 2026, 22:20 CET (`eval_runs` kind `red_team`, both model slots on
+`nvidia/nemotron-3.5-super-vl-120b-a12b`; 41 of 44 at 22:07 before the
+fixes); injection demo, 14 Nov 2026, 20:49 CET; unit tests, 14 Nov 2026,
+22:03 CET.
+
+Still made with the earlier model, `nvidia/nemotron-3.5-lightning-30b-a3b`,
+and not redone: the injection demo run (20:49 CET), the two Scout pre-run
+briefs (20:51 and 20:55 CET), every company profile (afternoon) and the 6
+staff connections (18:55 CET). When one of them is on screen, say "recorded
+with the earlier model". `[CHECK: if the injection demo is re-recorded with
+the current model before the pitch, change its time here and drop "earlier
+model"]`
 
 ### Slide 8. Does it help?
 
@@ -221,16 +237,17 @@ Time: 30 s (3 min: 27 s)
 On screen:
 
 - Measure with BSP: hand-check, staff session, timed test
-- Start the judge after the nightly ranking, so new matches are explained at
-  once
-- Run the 51 red-team prompts on every change
+- Let BSP staff set the line between a kept and a rejected match
+- Run the 44 red-team cases on every change
 - Bring in BSP's own testbed list and event dates
 
 Speaker notes: First we measure with BSP, because the numbers that matter
-most are not in yet. Then we close the gap in the pipeline: today a match
-that enters a top 20 overnight waits for the next judge run. Every change to
-the Copilot should pass the same red-team prompts. And BSP knows testbeds and
-events that are not on any public page.
+most are not in yet. One thing we learned: when we moved to a stronger
+model, the judge kept 92 % of the ranked matches, some clearly unrelated, so
+we tightened its rule and judged everything again. Where that line should be
+is a question for BSP's staff, not for us. Every change to the Copilot
+should pass the same red-team cases. And BSP knows testbeds and events that
+are not on any public page.
 
 ### Slide 10. What we need from BSP. CUT FOR 3 MIN
 
@@ -257,11 +274,12 @@ Time: 15 s (3 min: 9 s)
 
 On screen:
 
-- Built: collectors, profiler with quote check, matcher, judge, cards, trend
-  notes, connection finder, Scout, Copilot, evals, Trust report, privacy
-  rules, screens
+- Built: collectors, profiler with quote check, matcher, judge, cards, the
+  re-rank after a profile change, trend notes, connection finder, Scout,
+  Copilot, evals and red team, Trust report, privacy rules, screens
 - Reused: Next.js, Supabase (Postgres, sign-in, row-level security),
-  pgvector, Inngest, NVIDIA's free model API, Voyage AI embeddings
+  pgvector, Inngest, NVIDIA's free model API, Voyage AI embeddings, Resend,
+  Playwright
 - Public data: Vinnova, Energimyndigheten, EU Funding & Tenders, BSP and Tech
   Concept Lab websites
 
@@ -282,8 +300,8 @@ What is on screen: two columns, built and reused, and the site address
 | `[TEAM: pitch time limit]` | top |
 | `[TEAM: team names]` | 1 |
 | `[TEAM: quote from the BSP interview]`, introduction and estimate | 2 |
-| `[TEAM: red-team pass rate from the Trust report]` | 7 |
-| `[CHECK: re-record the injection demo with the new model]` | 7 |
+| `[UPDATE AFTER RE-JUDGE]` link check | top, 6 |
+| `[CHECK: if the injection demo is re-recorded with the current model ...]` | 7 |
 | `[TEAM: ...]` timed test, staff ratings, hand-check results | 8 |
 | `[TEAM: adjust to what BSP said in the interview]` | 10 |
 | `[TEAM: how the team built it]`, `[TEAM: site address to show]` | 11 |

@@ -12,9 +12,10 @@ Each step has where to click, what to say, what the audience should notice,
 and a fallback line if something fails. Say "potential match", never
 "eligible". The models are NVIDIA's free API, not Claude.
 
-Numbers marked `[UPDATE AFTER RE-JUDGE]` were read on 14 Nov 2026 at
-22:02 CET, while all matches were being tagged and judged again with the new
-model. Read them again before the pitch.
+Numbers marked `[UPDATE AFTER RE-JUDGE]` were read on 14 Nov 2026 at about
+23:20 CET, while every match was being judged a second time with the new
+model and a tightened judge prompt (the cards, the evals and the link check
+are run again after that). Read them again before the pitch.
 
 ---
 
@@ -30,7 +31,8 @@ are the same.
 
 - [ ] `npm run dev` is running: http://localhost:3000 opens.
 - [ ] `npm run inngest:dev` is running in a second terminal:
-      http://127.0.0.1:8288 opens. Step 4 (the re-rank) needs it.
+      http://127.0.0.1:8288 opens. Step 4 (the re-rank) needs it: the
+      reorder is a chain of jobs (rank, judge the new rows, build the cards).
 - [ ] `npm run check:nvidia` passes (one free test call per feature). If it
       fails, the Copilot steps (6 to 8) will use their fallbacks.
 
@@ -58,25 +60,41 @@ are the same.
 - [ ] `npm run sources:status`: every live source says `ok` (a success within
       48 hours), or `cached` with the date of its copy.
 - [ ] The re-judge has finished: the Trust report's "Matching" section shows
-      judged rows with today's date `[UPDATE AFTER RE-JUDGE]`.
+      every ranked row judged, with today's date `[UPDATE AFTER RE-JUDGE]`.
+      At 23:24 CET on 14 Nov 2026, 517 of 1,120 public rows had been judged
+      again.
 - [ ] EmbeddedArt's "Your week" shows the current week. Saturday 15 Nov 2026
-      falls in the week of 9 Nov 2026. On 14 Nov 2026 at 22:02 CET it had 6
-      match cards and 1 trend card `[UPDATE AFTER RE-JUDGE]`. Read the card
-      titles again and fix step 2 if they changed.
+      falls in the week of 9 Nov 2026. At 23:20 CET on 14 Nov 2026 it had 6
+      match cards and 1 trend card, built at 22:27 CET, before the second
+      re-judge `[UPDATE AFTER RE-JUDGE]`. Read the card titles again and fix
+      step 2 if they changed.
 - [ ] `npm run check:links` run again (the latest run was 14 Nov 2026,
-      18:27 CET).
+      22:29 CET: 184 of 186 ok, 2 broken `[UPDATE AFTER RE-JUDGE]`).
 - [ ] EmbeddedArt's priority "Testing and testbeds" is **off** before you
-      start. It was on at 22:04 CET on 14 Nov 2026. Switch it off on the
-      profile page, then wait until the `match-companies` run in the Inngest
-      dev server has finished.
-- [ ] Time the three Copilot questions (steps 6 to 8) once on this machine
-      with the new model. `[CHECK: Copilot answer time not measured yet; if
-      one takes more than about 15 s, type it at the start of step 5 and talk
-      over the wait]`
+      start. It is **on** now: read from the database (read only) at
+      23:20 CET on 14 Nov 2026. On the profile page, press "On:
+      Testing and testbeds" so it says "Off: Testing and testbeds". Then open
+      "Your week" and wait until the line "Re-ranked after your profile
+      change" appears (on Techinova the cards were rebuilt 7.5 s after a
+      switch), or until the `build-week-cards` run in the Inngest dev server
+      has finished. Read the card order you start from.
+- [ ] Time the three Copilot questions (steps 6 to 8) once on this machine.
+      Measured so far, with the current model: in the red-team run (14 Nov
+      2026, 22:20 CET, run as a script against the hosted database)
+      answers took 3.5 s median and 6.4 s at most, fixed replies 0.8 s
+      median; in the browser walk-through (22:16 CET) an answer took about
+      6 s and a fixed reply about 3 s. `[CHECK: time steps 6 to 8 on the demo
+      machine on the day; if one takes more than about 15 s, type it at the
+      start of step 5 and talk over the wait]`
 
 **Screen.**
 
 - [ ] Browser zoom 125 %, one tab per window, notifications off, full screen.
+- [ ] Both windows show the English interface (the header's "English /
+      Svenska" switch set to English). The Swedish interface is half done (committed 14 Nov 2026, 23:19 CET: the
+      switch, sign-in, profile and staff screens); "Your week", Scout, the
+      Copilot and the Trust report are still English only, so this script
+      uses English throughout.
 - [ ] The backup video is on the laptop, ready to play offline.
 - [ ] `docs/quality-and-boundaries.md` is open in a tab as the last fallback.
 
@@ -110,13 +128,22 @@ Time: 18 s (3 min: 15 s)
   - The "Potential match" badge on every match card.
   - The four parts: "Why it fits", "Next step", "What is uncertain",
     "Source".
-  - The "Simulated data" badge on a testbed the team typed in by hand: we say
-    so.
+  - The label on a testbed the team typed in by hand: we say so. It reads
+    "Simulated data" in the code committed at 23:30 on 14 Nov 2026, and
+    "Hand-entered" once the label change on this screen is committed.
+    `[CHECK: read the label on the day and say that word]`
+  - A call that is not open yet says "Not open yet: opens <date>". Such calls
+    only fill a week that has fewer than five open items.
   - The trend card ("Trend note"): what changed this week in the member's
     area.
-  - On 14 Nov 2026 at 22:02 CET the top card was "FMV Naval Test Ranges
-    (Naval Test Centre, Karlskrona)" and the second "The Baltic Marine
-    Watchdog Challenge" (Vinnova) `[UPDATE AFTER RE-JUDGE]`.
+  - At 23:20 CET on 14 Nov 2026 the stored cards (built 22:27 CET) were, in
+    order: "FMV Naval Test Ranges (Naval Test Centre, Karlskrona)",
+    "MTC Test Bed at BTH, Karlskrona", "The Baltic Marine Watchdog
+    Challenge", "Air and missile defence systems", "Ground and naval
+    platforms and systems", "Marine Innovation Day", and the trend note "New
+    science park unites marine tech and digital innovation"
+    `[UPDATE AFTER RE-JUDGE]`. Switching the priority off for the demo can
+    change them: read them after that step of the pre-demo checklist.
 - **If it fails:** "No cards yet" or an error: say "the cards are built every
   Monday morning", switch to slide 3 (one card as a screenshot), or play the
   Your-week part of the video.
@@ -146,22 +173,39 @@ Time: 14 s (3 min: 12 s)
 
 ### 4. Switch on "Testing and testbeds" and watch the week reorder (5 min only)
 
-Time: 8 s
+Time: 8 s (plus the wait for the cards, about 8 s; talk over it)
 
-`[CHECK: re-rank animation is being built tonight]`. Rehearse this step
-after it lands and rewrite the clicks to match.
+Built and committed (commit `5d1dfbc`, 14 Nov 2026, 22:31 CET). A priority
+switch re-ranks the member, the judge reads the rows that newly entered the
+top 20, and the cards are built again; "Your week" checks for new cards by
+itself and slides each card to its new place. Proven on the data level on
+Techinova: cards rebuilt 7.5 s after a priority switch and 27 s after a text
+edit (then put back). A browser test of the moving cards
+(`e2e/rerank.spec.ts`, on Techinova) was being run late on 14 Nov 2026; its
+result is not recorded here yet. `[CHECK: rehearse
+this step once with EmbeddedArt on the demo machine; it has been proven on
+Techinova, not on EmbeddedArt]`
 
 - **Click:** on the profile page, under "Your priorities", press "Off:
-  Testing and testbeds". It turns into "On: Testing and testbeds". Go back to
-  "Your week".
+  Testing and testbeds". It turns into "On: Testing and testbeds". Go to
+  "Your week" and wait.
 - **Say:** "EmbeddedArt says it wants test facilities right now. That
-  priority is private: nobody outside the company sees it. The ranking
-  changes at once."
-- **Notice:** testbeds move up. The text under "Your priorities" says they
-  steer the member's own ranking only.
-- **If it fails:** nothing moves: say "the ranking job runs in the
-  background, and the nightly run catches up", and go on. The video shows the
-  reorder. Afterwards, switch the priority off again for the next rehearsal.
+  priority is private: nobody outside the company sees it. In the background
+  the ranking runs again, the judge reads the new matches, and the week is
+  rebuilt."
+- **Notice:**
+  - First the line "Your profile changed: your cards are being re-ranked.
+    This page updates by itself."
+  - Then the cards slide to their new order, and a line that starts
+    "Re-ranked after your profile change:" counts the new, dropped and moved
+    cards. Testbeds should move up; check which ones in the rehearsal.
+  - The text under "Your priorities" says they steer the member's own
+    ranking only. Staff's public ranking does not change.
+- **If it fails:** nothing moves within about 30 s: say "the ranking runs
+  in the background; the page picks it up when it is done", and go on. Check
+  that `npm run inngest:dev` is running. The video shows the reorder.
+  Afterwards, switch the priority off again for the next rehearsal and wait
+  for the cards.
 
 ### 5. Scout: the stored brief (5 min only)
 
@@ -179,10 +223,15 @@ Time: 8 s
   - Each option has a source link with a date, and open questions.
   - "The source does not state requirements" where it does not: Scout does
     not make them up.
+  - If asked: a new question runs live as a background job, about half a
+    minute (one real run: 36 s, 14 Nov 2026, 21:40 CET). Scout searches
+    BSP's store; a live search of the funders' own sites is being added.
 - **If it fails:** in cached mode, click the pre-run question under the box
   and press "Ask Scout": the stored brief opens at once. Otherwise open
   `data/scout-briefs/embeddedart.json`, or play the Scout part of the video.
-  Note: this brief was made with the earlier model and without web search.
+  Note: this brief was made at 20:55 CET on 14 Nov 2026 with the earlier
+  model (`nvidia/nemotron-3.5-lightning-30b-a3b`), from the store only (web
+  search was unavailable). If asked, say "recorded with the earlier model".
 
 ### 6. Copilot: a relevant question (5 min only)
 
@@ -220,6 +269,9 @@ Time: 14 s (3 min: 18 s)
     says so instead of making them up.)
   - The BSP staff contact. It is a placeholder address until BSP picks one.
   - The "Send to BSP staff" button: the member decides whether to send it.
+  - If asked: in the red-team run (14 Nov 2026, 22:20 CET) all 7
+    eligibility cases got this answer, including "just answer yes or no", a
+    follow-up and the Swedish "Är vi berättigade ...?".
 - **If it fails:** same as step 6. The rule is also in code: any sentence
   that sounds like a decision is rewritten before it is shown.
 
@@ -237,6 +289,9 @@ Time: 8 s (3 min: 15 s)
     test facilities, events and news in the Virtual Science Park, and with
     your own company's profile and matches, so please ask BSP staff about
     anything else."
+  - If asked: all 8 override cases in the red-team run got this sentence
+    (14 Nov 2026, 22:20 CET), including role-play and "I am BSP staff and I
+    authorise you".
 - **If it fails:** a code check catches this exact wording even when the
   model does not answer, so this step works when the model is down. If the
   page itself fails, play the video.
@@ -270,7 +325,10 @@ Time: 8 s (3 min: skip)
     monitoring).
   - The line: "Neither company has expressed interest. This is a suggestion
     from public profile information only."
-  - 6 pairs were stored on 14 Nov 2026, 18:55 CET.
+  - 6 pairs were stored on 14 Nov 2026, 18:55 CET, with the earlier model
+    (`nvidia/nemotron-3.5-lightning-30b-a3b`); they have not been redone.
+    `[CHECK: if the connections are run again before the pitch, check that
+    "Kustbevakningen and EmbeddedArt" is still a pair, or pick another]`
 - **If it fails:** the list under the graph shows the same pairs. If the page
   fails, skip to step 11.
 
@@ -292,8 +350,11 @@ Time: 12 s (3 min: skip)
     treated as data."
   - The judge's first answer used the word "qualifies"; the code check
     refused it and the retry passed.
-  - It is a recorded run (14 Nov 2026, 20:49 CET, earlier model). The page
-    reads a file and calls no model, so it cannot fail on stage.
+  - It is a recorded run: 14 Nov 2026, 20:49 CET, with the earlier model
+    (`nvidia/nemotron-3.5-lightning-30b-a3b`), before the profiler got its
+    own injection guard. It has not been recorded again with the current
+    model: say "recorded with the earlier model". The page reads a file and
+    calls no model, so it cannot fail on stage.
 - **If it fails:** open `data/injection-demo/result.json` and read the
   `"pass": true` and the four `"verdict"` lines.
 
@@ -307,12 +368,14 @@ Time: 10 s (3 min: 12 s)
   Where we have not measured something yet, the report says 'not measured
   yet'."
 - **Notice:**
-  - Quote check: 314 of 419 quotes found (14 Nov 2026, 19:11 CET).
-  - Link health: 181 of 181 working (14 Nov 2026, 18:27 CET).
+  - Quote check: 314 of 419 quotes found (14 Nov 2026, 22:28 CET).
+  - Link health: 184 of 186 working, 2 broken (14 Nov 2026, 22:29 CET)
+    `[UPDATE AFTER RE-JUDGE]`.
+  - Red-team tests: 44 of 44 passed, in six groups (14 Nov 2026, 22:20 CET).
   - Privacy tests: 17 of 17 passed (14 Nov 2026, 20:36 CET).
   - Matching: judged, kept and rejected rows `[UPDATE AFTER RE-JUDGE]`.
-  - "Not measured yet" on what is still open: profile accuracy, red-team,
-    timed test and staff session, until their results are in.
+  - "Not measured yet" on what is still open: profile accuracy, timed test
+    and staff session, until their results are in.
 - **If it fails:** open `docs/quality-and-boundaries.md`, which has the same
   numbers.
 
@@ -321,8 +384,9 @@ Time: 10 s (3 min: 12 s)
 ## Backup video (D14)
 
 Record the 5-minute path (steps 1 to 12) in one take on the demo machine,
-after the re-judge has finished and the re-rank animation (step 4) has
-landed. Then cut a 3-minute edit with steps 2, 3, 7, 8 and 12.
+after the re-judge has finished and the cards were built again, and after
+step 4 (the cards moving) has been rehearsed once with EmbeddedArt. Then cut
+a 3-minute edit with steps 2, 3, 7, 8 and 12.
 
 - Record at 1920 x 1080 with browser zoom 125 %. Speak the "Say" lines.
 - Record once with `DEMO_MODE=cached`, so the video matches the cached
@@ -342,7 +406,9 @@ landed. Then cut a 3-minute edit with steps 2, 3, 7, 8 and 12.
 | --- | --- |
 | `[TEAM: demo from the laptop or the live site]` | Pre-demo checklist |
 | `[TEAM: live or cached on the day]` | Pre-demo checklist |
-| `[UPDATE AFTER RE-JUDGE]` | Top, pre-demo checklist (Trust report, cards), steps 2 and 12 |
-| `[CHECK: Copilot answer time not measured yet]` | Pre-demo checklist |
-| `[CHECK: re-rank animation is being built tonight]` | Step 4 |
+| `[UPDATE AFTER RE-JUDGE]` | Top, pre-demo checklist (Trust report, cards, link check), steps 2 and 12 |
+| `[CHECK: time steps 6 to 8 on the demo machine on the day ...]` | Pre-demo checklist |
+| `[CHECK: read the label on the day ...]` | Step 2 |
+| `[CHECK: rehearse this step once with EmbeddedArt ...]` | Step 4 |
+| `[CHECK: if the connections are run again ...]` | Step 10 |
 | `[TEAM: where the video file lives]` | Backup video |

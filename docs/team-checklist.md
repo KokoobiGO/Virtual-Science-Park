@@ -38,7 +38,10 @@ sessions.
 - [ ] **Events:** the real dates of BSP's and MTC's recurring events.
 - [ ] **Handoffs:** which staff role takes the questions members send from the
       Copilot, and at which address?
-- [ ] **Language:** should members see the app in Swedish or English?
+- [ ] **Language:** should members see the app in Swedish or English by
+      default? (An "English / Svenska" switch is in since 14 Nov 2026,
+      23:19 CET; English is the default and several screens are still
+      English only.)
 
 Result, per answer:
 
@@ -87,7 +90,10 @@ Bring: the answer key and a browser. Result: the edited
 - [ ] Run `npm run eval`.
 
 Do this after the last time the gold members are profiled: a new profiling
-run gives every claim a new id and starts the verdicts over.
+run gives every claim a new id and starts the verdicts over. The stored
+profiles were made on 14 Nov 2026 in the afternoon with the earlier model and
+have not been redone with the current one. Ask the orchestrator first whether
+the gold members will be profiled again before the pitch.
 
 Bring: the three files and the companies' websites. Result: the files,
 committed; `npm run eval` stores the accuracy for the Trust report. It
@@ -169,7 +175,9 @@ markers in `docs/pitch-deck.md` (slide 8) and
 ### 11. Record the backup video
 
 - [ ] Follow "Backup video" in `docs/demo-script.md`: record after the
-      re-judge has finished and the re-rank animation has landed.
+      re-judge has finished and the cards were built again, and after you
+      have rehearsed step 4 (the cards moving after a priority switch) once
+      with EmbeddedArt.
 - [ ] Keep it on the pitch laptop, playable offline.
 
 Bring: the demo laptop, a quiet room. Result: the video file, at the place
@@ -177,15 +185,16 @@ written in `docs/demo-script.md` (`[TEAM: where the video file lives]`).
 
 ### 12. Fill the last markers
 
-- [ ] Search the four docs for `[TEAM:`, `[CHECK:` and
+- [ ] Search the five docs below for `[TEAM:`, `[CHECK:` and
       `[UPDATE AFTER RE-JUDGE]`, and replace each one with the real value or
       "not measured yet".
 - [ ] Read every number on the proof slides again from the Trust report,
-      including the red-team pass rate once that run is in.
+      including the red-team pass rate (44 of 44 on 14 Nov 2026, 22:20 CET;
+      change it if the red team was run again).
 
 Result: `docs/pitch-deck.md`, `docs/demo-script.md`,
-`docs/quality-and-boundaries.md` and this file, with no open markers that
-the pitch depends on.
+`docs/quality-and-boundaries.md`, `docs/prepared-answers.md` and this file,
+with no open markers that the pitch depends on.
 
 ### 13. Rehearse three times
 
@@ -194,7 +203,8 @@ the pitch depends on.
       FOR 3 MIN" if needed.
 - [ ] Do the pre-demo checklist in `docs/demo-script.md` before each run,
       and switch EmbeddedArt's "Testing and testbeds" priority off again
-      after each one.
+      after each one. It was on at 23:20 CET on 14 Nov 2026, so switch it off
+      before the first rehearsal too.
 - [ ] Practise one fallback: stop the live demo at the Copilot and play that
       part of the video.
 
