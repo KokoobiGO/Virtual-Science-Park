@@ -65,6 +65,7 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run connections` | Find pairs of members with a stated reason to talk, for staff (A28); `--dry`, `--limit N` (a stored `--limit` run replaces the whole table) |
 | `npm run gold:export` | Write one file per gold member to `data/gold-profiles/` for the team's hand-check (A7); keeps verdicts already filled in |
 | `npm run eval` | Profile accuracy from the hand-check files and the quote-check drop rate, stored for the Trust report (A21); `--dry` |
+| `npm run trends -- [area ...]` | Write this week's note per technology area from news and new calls (A27); `--dry` |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 
@@ -95,6 +96,7 @@ lib/embeddings/     embedding texts and the enrich functions (A14)
 lib/matcher/        matcher (A15, A18): the ranking SQL, the score parts, storing the top 20
 lib/connections/    connection finder (A28): candidate pairs, the judge, the checks, storing
 lib/eval/           evals (A21): profile accuracy, quote-check drop rate; one entry per eval
+lib/trends/         trend analyst (A27): inputs per area, the note writer, the fact checks
 lib/links/          link checker (A20)
 lib/sources/        source health verdicts (A19)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
@@ -380,6 +382,23 @@ Do the hand-check after the last time the gold members are profiled: a new
 profiling run gives every claim a new id, and the export then starts the
 verdicts over (it warns when that happens). `npm run eval -- <name>` runs one
 eval; a new eval is one more entry in `lib/eval/index.ts`.
+
+## Trend analyst (A27)
+
+```
+event: app/trends.requested   data: {}   or   { "areas": ["marine"] }
+```
+
+One note per technology area per week in `trend_notes`, written from that
+week's news and new calls; also every Monday at 05:00. A note needs at least
+two inputs and cites at most four.
+
+- Checks in code before a note is stored: every date, year, amount and funder
+  in it appears in a cited input, a deadline is not written as an opening
+  date, and there are no promise words. A note that fails twice is not stored,
+  so an area can be without a note in a given week.
+- With the small test model the notes read as "what closes when in your area"
+  more than as market analysis, and about one area in six fails the checks.
 
 ## Source status, cached mode and schedules (A19, A23)
 

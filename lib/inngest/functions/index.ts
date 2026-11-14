@@ -8,6 +8,7 @@ import { matchCompaniesJob } from "./match-companies";
 import { profileAllMembersJob } from "./profile-all-members";
 import { profileCompanyJob } from "./profile-company";
 import { refreshProfilesJob } from "./refresh-profiles";
+import { trendNotesJob } from "./trend-notes";
 
 /**
  * Every Inngest function the app serves. Add new jobs here, and sync the app
@@ -23,5 +24,6 @@ export const functions = [
   enrichJob,
   matchCompaniesJob,
   findConnectionsJob,
+  trendNotesJob,
   refreshProfilesJob,
 ];
