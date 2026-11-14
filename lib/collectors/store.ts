@@ -55,7 +55,15 @@ export async function storeCollected(collector: Collector, result: CollectResult
       const [saved] = await tx
         .insert(opportunities)
         .values(row)
-        .onConflictDoUpdate({ target: [opportunities.source, opportunities.externalId], set: { ...row, updatedAt: now } })
+        .onConflictDoUpdate({
+          target: [opportunities.source, opportunities.externalId],
+          set: {
+            ...row,
+            // New text makes the old embedding wrong: clear it, and the enrich job (A14) builds it again.
+            embedding: sql`case when ${opportunities.title} is distinct from excluded.title or ${opportunities.description} is distinct from excluded.description then null else ${opportunities.embedding} end`,
+            updatedAt: now,
+          },
+        })
         // xmax is 0 only for a row this statement inserted.
         .returning({ inserted: sql<boolean>`xmax = 0` });
       if (saved.inserted) inserted++;
