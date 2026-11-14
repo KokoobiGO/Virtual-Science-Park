@@ -58,6 +58,7 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run check:nvidia` | One test call per NVIDIA API feature (S3); free developer key |
 | `npm run fetch:page -- <url>` | Print the clean text of one web page (A1); add `--save` to store it as a snapshot |
 | `npm run profile:status` | Count of profiled, thin, failed and not yet profiled members, with the reason for each thin or failed one (A8) |
+| `npm run collect -- <source\|all>` | Run one collector or all of them and store the opportunities (A9 to A13, A25, A26); add `--dry` to only print |
 
 `npm test` runs unit tests always. The privacy tests in `tests/` also run when
 `.env.local` points at a database with `db:setup` done, and skip otherwise.
@@ -80,6 +81,7 @@ lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clea
 lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/members/         member list import (A2): BSP's member list and pages into companies
 lib/profiler/        profiler (A5, A6, A8): page text in, claims out; quote check with one retry; thin rule; storage
+lib/collectors/     collectors (A9 to A13, A25, A26): one folder per outside source, one shared store
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
 lib/quote-check.ts   quote verifier (A4): is a claim's quote in the stored page text, word for word?
 lib/inngest/         Inngest client and functions (S10)
@@ -234,6 +236,38 @@ Without `force` only members never profiled or `failed` last time are sent, so
 running it again picks up the rest. `"force": true` profiles everyone again;
 `"limit": 3` sends the first three by slug, for a test. Check progress with
 `npm run profile:status`.
+
+## Collectors (A9 to A13, A25, A26)
+
+A collector reads one outside source and returns opportunities; it never
+touches the database. `storeCollected()` upserts them on (source, external id)
+and updates the source's row in `source_status`.
+
+```
+event: app/sources.collect.requested   data: {}   or   { "sources": ["vinnova"] }
+```
+
+| Key | Source | How |
+| --- | --- | --- |
+| `vinnova` | Vinnova's open data API, open public rounds | live, recorded fallback |
+| `energimyndigheten` | The calls list behind energimyndigheten.se/utlysningar | live, recorded fallback |
+| `eu_funding` | EU Funding & Tenders search API (unofficial), six text searches plus four programmes | live, recorded fallback |
+| `regional` | `data/regional-funding.json`: Region Blekinge, Almi, Interreg South Baltic | hand-entered |
+| `testbeds` | `data/testbeds.seed.json`: the curated list plus Vinnova's testbed list | hand-entered |
+| `tcl_events` | Tech Concept Lab's WordPress API, event date parsed from the text | live, recorded fallback |
+| `bsp_events` | `data/series-events.json`: recurring BSP and MTC series | hand-entered |
+| `bsp_news` | BSP's WordPress posts, last 45 days | live, recorded fallback |
+
+- Every live collector keeps a real `recorded.json` next to its code. When the
+  source fails, or with `DEMO_MODE=cached`, that copy is used and the source's
+  state is "cached" with the date of the copy.
+- Hand-entered sources are stored with `simulated = true`, the plan's label
+  for anything the team wrote by hand. Testbeds whose link is dead or could not
+  be checked stay in the JSON with `linkOk: false` and are not stored.
+- New collector: a folder in `lib/collectors/` that exports a `Collector`
+  (see `types.ts`), added to the list in `lib/collectors/index.ts`.
+- Import `cheerio/slim`, never `cheerio`: the main entry loads its own undici,
+  which takes over Node's built-in fetch and can crash the process.
 
 ## Member import (A2)
 

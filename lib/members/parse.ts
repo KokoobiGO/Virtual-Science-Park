@@ -8,7 +8,7 @@
  * may be empty. Values are matched to labels by position, then read by label
  * name, so a changed order still works.
  */
-import * as cheerio from "cheerio";
+import * as cheerio from "cheerio/slim";
 
 export type MemberFacts = {
   name: string | null;

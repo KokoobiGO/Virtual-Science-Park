@@ -6,7 +6,7 @@
  * facts from each member's page. Rows are matched on the slug, so a second run
  * updates instead of duplicating, and the three gold members keep `is_gold`.
  */
-import * as cheerio from "cheerio";
+import * as cheerio from "cheerio/slim";
 import { getDb } from "../db";
 import { companies } from "../db/schema";
 import { fetchPage, USER_AGENT } from "../fetcher/fetch-page";

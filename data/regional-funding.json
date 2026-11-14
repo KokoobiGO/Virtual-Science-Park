@@ -1,0 +1,83 @@
+[
+  {
+    "externalId": "region-blekinge-consultancy-grant",
+    "organisation": "Region Blekinge",
+    "title": "Grant for consultancy services (Stöd till konsulttjänster)",
+    "url": "https://regionblekinge.se/regional-utveckling/finansiering-foretagsstod-och-projekt/foretagsstod.html",
+    "description": "A grant towards hiring an external, independent consultant for a clearly defined project, for example product development and innovation, new markets, business development, certification or patents, organisational development, digitalisation or energy efficiency (marketing only for newly started companies). It covers up to 50% of approved costs, at most SEK 150,000, and Region Blekinge does not grant less than SEK 10,000; the project cost must be between SEK 20,000 and SEK 300,000. Companies anywhere in Blekinge can apply.",
+    "eligibilityText": "Companies (counted as a group) with at most 249 employees and a turnover of at most EUR 50 million and/or a balance sheet total of at most EUR 43 million. The company must be run for profit (not as a hobby or side business), plan a step that develops the business and offer lasting employment. The application must reach Region Blekinge before the investment starts, all costs must be external and independent of the company, and running costs, vehicles and mobile phones are not supported. Support is not given if it would harm competition, which for example limits support to companies in towns that serve a local market. The consultant must be external and independent and bring expertise the company lacks.",
+    "contact": "Region Blekinge, Regional tillväxt: Ulrica Svensson (Rådgivare - företagsstöd), ulrica.svensson@regionblekinge.se, 0455-737104, or Jannie Faming (Handläggare - företagsstöd), jannie.faming@regionblekinge.se, 0455-737117. Apply in Tillväxtverket's portal Min ansökan (minansokan.se).",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "region-blekinge-micro-grant",
+    "organisation": "Region Blekinge",
+    "title": "Micro grant for new companies (Mikrobidrag)",
+    "url": "https://regionblekinge.se/regional-utveckling/finansiering-foretagsstod-och-projekt/foretagsstod.html",
+    "description": "A grant for newly started companies, at most 3 years old, with an investment need of SEK 20,000 to SEK 60,000. It covers 50% of approved investment costs, for example machines, equipment or marketing. A company can get it once, and companies anywhere in Blekinge can apply.",
+    "eligibilityText": "Companies at most 3 years old; the grant is given once per company. General rules for Region Blekinge's business support: at most 249 employees and a turnover of at most EUR 50 million and/or a balance sheet total of at most EUR 43 million; run for profit, not as a hobby or side business; the application must reach Region Blekinge before the investment starts; all costs must be external and independent of the company.",
+    "contact": "Region Blekinge, Regional tillväxt: Ulrica Svensson (Rådgivare - företagsstöd), ulrica.svensson@regionblekinge.se, 0455-737104, or Jannie Faming (Handläggare - företagsstöd), jannie.faming@regionblekinge.se, 0455-737117. Apply in Tillväxtverket's portal Min ansökan (minansokan.se).",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "region-blekinge-trade-fair-grant",
+    "organisation": "Region Blekinge",
+    "title": "Grant for a first trade fair (Deltagande på mässor)",
+    "url": "https://regionblekinge.se/regional-utveckling/finansiering-foretagsstod-och-projekt/foretagsstod.html#h-Deltagandepamassor",
+    "description": "A grant towards a company's costs for a first participation at a trade fair: renting the stand and renting equipment for it. It covers at most 50% of approved costs, up to SEK 150,000, and Region Blekinge does not grant less than SEK 10,000; the cost must be between SEK 20,000 and SEK 300,000. Companies anywhere in Blekinge can apply.",
+    "eligibilityText": "Covers a company's costs for a first participation at a trade fair; approved costs are stand rental and equipment rental for the stand. General rules for Region Blekinge's business support: at most 249 employees and a turnover of at most EUR 50 million and/or a balance sheet total of at most EUR 43 million; run for profit, not as a hobby or side business; the application must reach Region Blekinge before the investment starts; all costs must be external and independent of the company.",
+    "contact": "Region Blekinge, Regional tillväxt: Ulrica Svensson (Rådgivare - företagsstöd), ulrica.svensson@regionblekinge.se, 0455-737104, or Jannie Faming (Handläggare - företagsstöd), jannie.faming@regionblekinge.se, 0455-737117. Apply in Tillväxtverket's portal Min ansökan (minansokan.se).",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "region-blekinge-skills-voucher",
+    "organisation": "Region Blekinge",
+    "title": "Skills voucher (Kompetenscheck)",
+    "url": "https://regionblekinge.se/regional-utveckling/finansiering-foretagsstod-och-projekt/foretagsstod/kompetenscheck.html",
+    "description": "A voucher for hiring a consultant to raise the skills in a company, for development beyond normal operations such as social and environmental sustainability, digital marketing, project management, reaching an international market, or business management and finance. It covers at most 50% of approved costs, up to SEK 150,000. The first step is a free needs mapping with the Mind the Gap tool, done with advisers from Techtank or Almi, which the voucher application then builds on.",
+    "eligibilityText": "Viable companies in Blekinge with 5 to 249 employees and a turnover of at least SEK 3 million from customer revenue, that have done a Mind the Gap needs mapping with Almi or Techtank.",
+    "contact": "Needs mapping: Techtank for industry and technology companies (https://techtank.se/kompetensbehovsanalys/), Almi Blekinge for other sectors. Region Blekinge: region@regionblekinge.se.",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "almi-innovation-loan",
+    "organisation": "Almi Blekinge",
+    "title": "Innovation loan (Innovationslån)",
+    "url": "https://www.almi.se/lan-finansiering/innovationslan/",
+    "description": "A loan for companies developing a new product, service, process or business model where the risk is higher than for ordinary investments, to pay for prototypes, tests, verification of technology or business model, and production preparation. Loans range from SEK 50,000 to SEK 500,000, often around SEK 300,000, and Almi finances at most 50% of the project cost, so co-financing is needed. Repayment is usually 3 to 5 years and at most 8 years.",
+    "eligibilityText": "Companies registered in Sweden with up to 249 employees, new or established, with an innovative idea that can create growth and competitiveness. Co-financing is required; for loans above SEK 300,000 at least half of the co-financing must be capital, such as own equity, bank financing or another external financier.",
+    "contact": "Almi Blekinge: book a free meeting with an adviser at https://www.almi.se/regioner/blekinge/ (advisers listed at https://www.almi.se/regioner/blekinge/medarbetare-i-blekinge/). Applications are handled by the regional Almi company.",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "almi-verification-funding",
+    "organisation": "Almi Blekinge",
+    "title": "Verification funding (Verifieringsmedel)",
+    "url": "https://www.almi.se/lan-finansiering/verifieringsmedel/",
+    "description": "A grant for testing and verifying an innovative business idea early, by buying external services such as verification of customer needs and market potential, market and competitor analyses, novelty or freedom-to-operate searches, a simple MVP, or legal and regulatory studies. Companies can often get up to SEK 100,000 (private persons up to SEK 25,000); the amount varies by region and is set with the adviser. Normally no co-financing is needed, and it is given as de minimis aid.",
+    "eligibilityText": "Swedish small and medium-sized companies in an early phase, and established companies developing an innovative business idea; in some cases private persons with a Swedish personal identity number, a Swedish bank account and a clear intention to start a company in Sweden. It cannot be used for travel, representation, marketing, training, patent applications, prototypes or investments that create lasting value. De minimis aid: total de minimis aid may not exceed EUR 300,000 over a rolling three-year period.",
+    "contact": "Talk to an Almi adviser first; they then give access to the application e-service. Almi Blekinge: https://www.almi.se/regioner/blekinge/ (advisers listed at https://www.almi.se/regioner/blekinge/medarbetare-i-blekinge/).",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "almi-growth-loan",
+    "organisation": "Almi Blekinge",
+    "title": "Growth loan (Tillväxtlån)",
+    "url": "https://www.almi.se/lan-finansiering/tillvaxtlan/",
+    "description": "A loan for innovative small and medium-sized limited companies that are growing, or about to grow, faster than their own finances or ordinary bank financing allow. It can fund innovation, investments, new markets, recruitment, digitalisation, working capital or acquisitions, up to SEK 10 million, and Almi normally finances 30 to 50% of the capital need. A guarantee from the European Investment Fund under InvestEU gives a longer term, an initial period without repayments and a lower interest rate than Almi's other loans.",
+    "eligibilityText": "Established, innovative small and medium-sized limited companies (aktiebolag) in or facing growth, with a clear plan for expansion. Co-financing is normally required, for example from owners, a bank or other external financiers.",
+    "contact": "Almi Blekinge: book a free meeting with an adviser at https://www.almi.se/regioner/blekinge/ (advisers listed at https://www.almi.se/regioner/blekinge/medarbetare-i-blekinge/). Applications are handled by the regional Almi company.",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "interreg-south-baltic-project-calls",
+    "organisation": "Interreg South Baltic",
+    "title": "Cross-border project funding (regular and small-scale project calls)",
+    "url": "https://southbaltic.eu/for-applicants/calls-for-proposals/",
+    "description": "The Interreg South Baltic Programme 2021-2027 co-finances cross-border cooperation projects between partners in the coastal regions of Sweden, Denmark, Germany, Lithuania and Poland, and the programme provides 80% co-financing from the European Regional Development Fund while partners contribute 20%. Funding comes through calls; the latest, the 6th regular call (Measure 1.1 Digitalising the region and Measure 4.1 cooperation capacity) and the 4th small-scale projects call, ran from 16 September to 4 November 2026 and are now closed. Selected projects will be announced after the Monitoring Committee decides on 8 April 2027, and the calls page shows no newer call.",
+    "eligibilityText": "Partners can be public administrations and agencies, public or private organisations, chambers of commerce, R&D and education institutions, NGOs, SME associations and clusters, and small and medium-sized enterprises. The eligibility of SME partners must be checked with the Contact Point of the region where the partner is located. In Sweden the programme area is the counties of Kalmar, Blekinge, Skåne and Kronoberg.",
+    "contact": "Contact Point Region Blekinge: Josephine Kroneberg, josephine.kroneberg@regionblekinge.se, +46 72 880 47 94 (https://southbaltic.eu/contact-us/).",
+    "deadline": "2026-11-04",
+    "checkedAt": "2026-11-14"
+  }
+]

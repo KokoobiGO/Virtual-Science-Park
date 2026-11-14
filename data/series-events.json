@@ -1,0 +1,46 @@
+[
+  {
+    "externalId": "bsp-wednesday-lunches",
+    "organiser": "Blue Science Park",
+    "title": "Onsdagsluncher med Blue Science Park (Wednesday lunches)",
+    "url": "https://www.bluesciencepark.se/onsdagslunch-med-blue-science-park/",
+    "description": "Blue Science Park's Wednesday lunches bring companies, the public sector and academia together over lunch for a short talk by an expert or practitioner, followed by questions and networking. Each lunch has its own theme; the autumn 2026 lunches covered AI in software development, BTH's virtual studio and simulation lab VPSLx, and the Marine Technology Center on Saltö. You sign up for each lunch separately and places are limited.",
+    "recurrence": "every spring and autumn, on Wednesdays at lunchtime",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "tcl-and-friends",
+    "organiser": "Tech Concept Lab (Blue Science Park)",
+    "title": "TCL & Friends",
+    "url": "https://www.bluesciencepark.se/event/",
+    "description": "A series of meetups from Tech Concept Lab, Blue Science Park's platform for digital innovation, where companies share experiences, raise the challenges they face right now and look for new opportunities together. Blue Science Park's event page links to Tech Concept Lab for sign-up.",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "mtc-marine-innovation-day",
+    "organiser": "Marine Technology Center of Sweden (MTC)",
+    "title": "Marine Innovation Day",
+    "url": "https://www.mtcos.se/marine-innovation-day/",
+    "description": "Marine Innovation Day is MTC's yearly conference in Karlskrona on marine technology, defence innovation, offshore energy and sustainable seas, for companies, researchers, students and decision makers. The day mixes talks by national and international speakers, panel discussions, pitches from students and start-ups, and an exhibition, with time for networking. The 2026 edition was held on 27 August on Saltö.",
+    "recurrence": "yearly (in May in 2024 and 2025, late August in 2026)",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "mtc-marine-innovation-bar",
+    "organiser": "Marine Technology Center of Sweden (MTC)",
+    "title": "Marine Innovation Bar",
+    "url": "https://www.mtcos.se/nyheter-event/",
+    "description": "A recurring after-work run by MTC with local partners, open to companies, researchers, students and anyone curious about marine technology. The evenings are for mingling and networking and often include live music, short talks and news from the region. MTC announces each date separately.",
+    "recurrence": "recurring after-work in the evening",
+    "checkedAt": "2026-11-14"
+  },
+  {
+    "externalId": "mtc-marina-onsdagar",
+    "organiser": "Marine Technology Center of Sweden (MTC)",
+    "title": "Marina Onsdagar (Marine Wednesdays)",
+    "url": "https://www.mtcos.se/nyheter-event/",
+    "description": "MTC's recurring informal meetup at the Naval Museum (Marinmuseum) in Karlskrona for people who work in, study or are curious about marine technology. An evening usually has mingling, food and drinks, and a short slot from the evening's host, a company or organisation in the marine technology ecosystem. It is run together with regional partners.",
+    "recurrence": "recurring, on Wednesday evenings",
+    "checkedAt": "2026-11-14"
+  }
+]

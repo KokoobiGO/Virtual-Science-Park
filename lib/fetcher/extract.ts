@@ -8,7 +8,9 @@
  * body instead (menus, footers and cookie banners removed).
  */
 import { Readability } from "@mozilla/readability";
-import * as cheerio from "cheerio";
+// "cheerio/slim", not "cheerio": the main entry loads its own undici, which takes over Node's
+// built-in fetch and now and then crashes the process (an assert in undici's client-h1).
+import * as cheerio from "cheerio/slim";
 import { parseHTML } from "linkedom";
 import type { QuoteLang } from "../schemas";
 
@@ -33,8 +35,10 @@ function htmlToText(html: string): string {
   $(BLOCKS).each((_, el) => {
     $(el).before("\n\n").after("\n\n");
   });
-  return $("body")
-    .text()
+  // The slim parser adds no <body> around a fragment (Readability's output is one): use everything then.
+  $("head").remove();
+  const body = $("body");
+  return (body.length ? body.text() : $.root().text())
     .normalize("NFC")
     .replace(/[^\S\n]+/g, " ")
     .replace(/ ?\n ?/g, "\n")
