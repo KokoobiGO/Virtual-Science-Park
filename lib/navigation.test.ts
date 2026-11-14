@@ -8,7 +8,7 @@ const allowed = (path: string, role: AppRole) => !ROLE_ONLY.some((r) => startsWi
 
 describe("menus by role", () => {
   it("gives members and staff their own menus", () => {
-    expect(NAV.member.map((i) => i.href)).toEqual(["/week", "/profile", "/explore", "/scout", "/trust"]);
+    expect(NAV.member.map((i) => i.href)).toEqual(["/week", "/profile", "/explore", "/scout", "/copilot", "/trust"]);
     expect(NAV.staff.map((i) => i.href)).toEqual([
       "/staff/compare",
       "/staff/ecosystem",

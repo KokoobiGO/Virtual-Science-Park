@@ -20,6 +20,7 @@ export const NAV: Record<AppRole, NavItem[]> = {
     { href: "/profile", label: "Company profile", backlog: "C5", description: "What the public pages say about you. Correct it here." },
     { href: "/explore", label: "Explore", backlog: "C14", description: "Search every funding call, testbed and event." },
     { href: "/scout", label: "Scout", backlog: "C10", description: "Ask for a short brief on a market, partner or call." },
+    { href: "/copilot", label: "Copilot", backlog: "C11", description: "Ask about funding, test facilities, events and your matches, with sources." },
     { href: "/trust", label: "Trust report", backlog: "C12", description: "How well the profiles and matches hold up." },
   ],
   staff: [
@@ -50,10 +51,11 @@ export const ROLE_ONLY: { prefix: string; role: AppRole }[] = [
   { prefix: "/staff", role: "staff" },
   { prefix: "/week", role: "member" },
   { prefix: "/scout", role: "member" },
+  { prefix: "/copilot", role: "member" },
 ];
 
 /** Paths that need a signed-in user. */
-export const SIGNED_IN_ONLY = ["/week", "/profile", "/explore", "/scout", "/staff", "/trust", "/sources"];
+export const SIGNED_IN_ONLY = ["/week", "/profile", "/explore", "/scout", "/copilot", "/staff", "/trust", "/sources"];
 
 /** True when `pathname` is `href` or a page below it, for marking the current menu item. */
 export function isCurrentPath(pathname: string, href: string): boolean {
