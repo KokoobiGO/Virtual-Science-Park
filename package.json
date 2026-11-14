@@ -34,6 +34,7 @@
     "digest": "tsx --env-file-if-exists=.env.local scripts/digest.ts",
     "session:sheets": "tsx --env-file-if-exists=.env.local scripts/session-sheets.ts",
     "injection:demo": "tsx --env-file-if-exists=.env.local scripts/injection-demo.ts",
+    "scout": "tsx --env-file-if-exists=.env.local scripts/scout.ts",
     "cost": "tsx --env-file-if-exists=.env.local scripts/cost.ts",
     "eval": "tsx --env-file-if-exists=.env.local scripts/eval.ts",
     "gold:export": "tsx --env-file-if-exists=.env.local scripts/gold-export.ts",

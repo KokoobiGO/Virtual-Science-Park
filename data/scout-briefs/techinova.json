@@ -1,0 +1,254 @@
+{
+  "slug": "techinova",
+  "companyName": "Techinova",
+  "question": "Funding for safer electricity grid technology",
+  "createdAt": "2026-11-14T19:51:19.689Z",
+  "completedAt": "2026-11-14T19:51:48.482Z",
+  "searchCount": 7,
+  "brief": {
+    "progress": [
+      {
+        "at": "2026-11-14T19:51:20.823Z",
+        "kind": "start",
+        "text": "Started. Read Techinova's profile (961 characters)."
+      },
+      {
+        "at": "2026-11-14T19:51:20.823Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"Funding for safer electricity grid technology\": 8 results."
+      },
+      {
+        "at": "2026-11-14T19:51:20.823Z",
+        "kind": "web",
+        "text": "Web search was not available (DuckDuckGo answered with a bot check (HTTP 202).). Going on with stored sources only."
+      },
+      {
+        "at": "2026-11-14T19:51:22.153Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"safer electricity grid technology funding\" (funding calls only): 8 results."
+      },
+      {
+        "at": "2026-11-14T19:51:23.099Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"energy storage grid technology funding\" (funding calls only): 8 results."
+      },
+      {
+        "at": "2026-11-14T19:51:24.370Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"grid resilience funding Sweden\" (funding calls only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:51:26.190Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"safer electricity grid technology Vinnova\" (funding calls only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:51:27.690Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"electricity grid safety funding Energimyndigheten\" (funding calls only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:51:28.841Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"testbed electricity grid technology\" (test facilities only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:51:29.628Z",
+        "kind": "read",
+        "text": "Read the page of \"Sweden Secure Tech Hub (European Digital Innovation Hub for cyber security)\" (2,351 characters)."
+      },
+      {
+        "at": "2026-11-14T19:51:48.386Z",
+        "kind": "plan",
+        "text": "Research ended (turns)."
+      },
+      {
+        "at": "2026-11-14T19:51:48.386Z",
+        "kind": "write",
+        "text": "Writing the brief from 10 sources."
+      },
+      {
+        "at": "2026-11-14T19:51:48.386Z",
+        "kind": "check",
+        "text": "Checked the brief: 6 of 6 options passed."
+      },
+      {
+        "at": "2026-11-14T19:51:48.482Z",
+        "kind": "done",
+        "text": "Done in 28 s: 6 options, 8 model calls, 7 searches, 1 page read."
+      }
+    ],
+    "result": {
+      "question": "Funding for safer electricity grid technology",
+      "summary": "6 options: 1 test facility and 5 funding calls, from Curated testbed list and EU Funding & Tenders.",
+      "options": [
+        {
+          "title": "Sweden Secure Tech Hub - a national cybersecurity innovation hub",
+          "kind": "testbed",
+          "whyProfile": "Techinova develops and manufactures products with electronics and software for communication and automation adapted for the energy sector's needs.",
+          "whySource": "Sweden Secure Tech Hub helps small and medium-sized tech companies to create safer digital products and solutions starting in the design and development phase, offering consulting support, testing opportunities and help finding funding, much of it free for companies.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "Blue Science Park contact for the hub: Anna Sanderson, anna.sanderson@bluesciencepark.se, +46 (0)70 820 79 10",
+          "openQuestions": [
+            "Whether the testing and consulting services cover communication and automation technology for electricity grids",
+            "Whether the free services extend to product development stages beyond early concept",
+            "Whether the hub can support companies based in Karlskrona specifically for energy sector digitalisation projects"
+          ],
+          "citation": {
+            "url": "https://www.swedenict.se/sweden_secure_tech_hub/",
+            "title": "Sweden Secure Tech Hub (European Digital Innovation Hub for cyber security)",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "Curated testbed list",
+            "pageRead": true
+          },
+          "opportunityId": "10c63bc4-5ae2-4222-b912-c8a5549f0b0b",
+          "deadline": null
+        },
+        {
+          "title": "Advanced Distribution Management Systems (ADSM) for more efficient and flexible distribution grids",
+          "kind": "funding",
+          "whyProfile": "Techinova offers Smart and stable energy solutions and TechiNode products for remote control and automation of medium-voltage networks.",
+          "whySource": "Projects are expected to design and test innovative solutions, architectures, technologies and processes for advancing the way ADSM are designed and operated, providing software platforms that improve grid performance and help integrating distributed energy resources while reducing congestion.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "The source does not give a contact; use the cited page.",
+          "openQuestions": [
+            "Whether the call covers remote control and automation technology for medium-voltage networks",
+            "Whether the project scope includes distribution system operators' needs for grid flexibility",
+            "Whether the funding programme allows participation from product-developing companies like Techinova"
+          ],
+          "citation": {
+            "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-26",
+            "title": "Advanced Distribution Management Systems (ADSM) for more efficient and flexible distribution grids",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "EU Funding & Tenders",
+            "pageRead": false
+          },
+          "opportunityId": "ed4d18ca-1012-4b1f-9590-66e4d79f3926",
+          "deadline": "2027-12-01T22:59:00.000Z"
+        },
+        {
+          "title": "Large-Scale piloting of next-generation AI-driven digital platforms for a more affordable, secure and sustainable European energy system",
+          "kind": "funding",
+          "whyProfile": "Techinova develops innovative system solutions integrating various technologies for a smarter and more dynamic power grid.",
+          "whySource": "Projects are expected to successfully integrate applied research results in real-world pilot programmes involving energy operators, technology providers and end users, with quantifiable improvements in grid operation and renewable energy integration.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "The source does not give a contact; use the cited page.",
+          "openQuestions": [
+            "Whether the call covers AI-driven digital platforms for communication and automation in electricity grids",
+            "Whether the pilot programmes accept external technology providers as partners",
+            "Whether the funding scope includes grid stabilisation through remote control and fault location"
+          ],
+          "citation": {
+            "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-BRIDGING-2027-01-12",
+            "title": "Large-Scale piloting of next-generation AI-driven digital platforms for a more affordable, secure and sustainable European energy system (IA) - Apply AI",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "EU Funding & Tenders",
+            "pageRead": false
+          },
+          "opportunityId": "d126bd65-41d7-4b12-ba32-2f6e6e927ec8",
+          "deadline": "2027-02-16T22:59:00.000Z"
+        },
+        {
+          "title": "Advanced TSO control rooms to enhance grid observability, stability and resilience",
+          "kind": "funding",
+          "whyProfile": "Techinova offers Innovative system solutions integrating various technologies for a smarter and more dynamic power grid.",
+          "whySource": "Projects are expected to design and test innovative solutions, technologies and processes for advancing the way TSO control rooms are designed and operated, increasing observability and providing enhanced support for operators with faster response times.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "The source does not give a contact; use the cited page.",
+          "openQuestions": [
+            "Whether the call covers technologies for remote control and automation in overhead line networks",
+            "Whether the project scope includes software aspects for grid observability and decision support",
+            "Whether the funding programme allows participation from companies developing grid automation products"
+          ],
+          "citation": {
+            "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-25",
+            "title": "Advanced TSO control rooms to enhance grid observability, stability and resilience",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "EU Funding & Tenders",
+            "pageRead": false
+          },
+          "opportunityId": "5b8b04a3-ca6b-455a-81e8-c26944dc18ad",
+          "deadline": "2027-12-01T22:59:00.000Z"
+        },
+        {
+          "title": "Demonstration of industrial excess/waste heat conversion to mechanical or electrical power",
+          "kind": "funding",
+          "whyProfile": "Techinova develops and manufactures products with electronics and software for communication and automation adapted for the energy sector's needs.",
+          "whySource": "Projects must develop and demonstrate conversion of process excess heat back to electricity, which could improve energy efficiency and offer flexible electricity generation to stabilise the grid if combined with energy storage.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "The source does not give a contact; use the cited page.",
+          "openQuestions": [
+            "Whether the call covers conversion technologies that could integrate with communication and automation systems for electricity grids",
+            "Whether the project scope includes cyber security aspects for grid stabilisation",
+            "Whether the funding programme allows participation from companies developing grid automation products"
+          ],
+          "citation": {
+            "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-05-D4-09",
+            "title": "Demonstration of industrial excess/waste heat conversion to mechanical or electrical power",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "EU Funding & Tenders",
+            "pageRead": false
+          },
+          "opportunityId": "b25c0104-cc25-4f0a-831b-3bf3a1f444c0",
+          "deadline": "2027-09-15T22:59:00.000Z"
+        },
+        {
+          "title": "Demonstration for Long-duration Battery Energy Storage Systems (BATT4EU Partnership)",
+          "kind": "funding",
+          "whyProfile": "Techinova offers Smart and stable energy solutions for the energy sector.",
+          "whySource": "Projects are expected to demonstrate system-level long-duration energy storage solutions aimed at enhancing grid stability, resilience and flexibility in Europe.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "The source does not give a contact; use the cited page.",
+          "openQuestions": [
+            "Whether the call covers battery storage concepts that could integrate with communication and automation systems for electricity grids",
+            "Whether the demonstration scope includes long-duration storage for grid stabilisation in overhead line networks",
+            "Whether the funding programme allows participation from companies developing grid automation products rather than battery chemistry"
+          ],
+          "citation": {
+            "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-05-D2-08",
+            "title": "Demonstration for Long-duration Battery Energy Storage Systems (BATT4EU Partnership)",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "EU Funding & Tenders",
+            "pageRead": false
+          },
+          "opportunityId": "15c310e0-8832-4ed8-95f6-34f4bc336e6e",
+          "deadline": "2027-09-15T22:59:00.000Z"
+        }
+      ],
+      "notes": [
+        "Web search was not available; built from stored sources."
+      ],
+      "onlyFound": null,
+      "webSearch": "unavailable",
+      "stats": {
+        "seconds": 28,
+        "modelCalls": 8,
+        "inputTokens": 32561,
+        "outputTokens": 1645,
+        "searches": 7,
+        "pagesRead": 1,
+        "dropped": 0,
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b"
+      },
+      "createdAt": "2026-11-14T19:51:19.689Z"
+    }
+  }
+}

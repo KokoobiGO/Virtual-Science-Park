@@ -11,6 +11,7 @@ import { matchCompaniesJob } from "./match-companies";
 import { profileAllMembersJob } from "./profile-all-members";
 import { profileCompanyJob } from "./profile-company";
 import { refreshProfilesJob } from "./refresh-profiles";
+import { scoutBriefJob } from "./scout-brief";
 import { sendDigestJob } from "./send-digest";
 import { trendNotesJob } from "./trend-notes";
 
@@ -34,4 +35,5 @@ export const functions = [
   judgeAllJob,
   buildWeekCardsJob,
   sendDigestJob,
+  scoutBriefJob,
 ];

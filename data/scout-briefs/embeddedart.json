@@ -1,0 +1,214 @@
+{
+  "slug": "embeddedart",
+  "companyName": "EmbeddedArt",
+  "question": "Which test facilities and funding could fit an underwater sensor we want to trial next year?",
+  "createdAt": "2026-11-14T19:55:17.803Z",
+  "completedAt": "2026-11-14T19:55:41.637Z",
+  "searchCount": 7,
+  "brief": {
+    "progress": [
+      {
+        "at": "2026-11-14T19:55:19.048Z",
+        "kind": "start",
+        "text": "Started. Read EmbeddedArt's profile (794 characters)."
+      },
+      {
+        "at": "2026-11-14T19:55:19.048Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"Which test facilities and funding could fit an underwater sensor we want to trial next year?\": 8 results."
+      },
+      {
+        "at": "2026-11-14T19:55:19.048Z",
+        "kind": "web",
+        "text": "Web search was not available (DuckDuckGo answered with a bot check (HTTP 202).). Going on with stored sources only."
+      },
+      {
+        "at": "2026-11-14T19:55:20.657Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"underwater sensor test facility maritime Karlskrona 2027\" (test facilities only): 8 results."
+      },
+      {
+        "at": "2026-11-14T19:55:22.171Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"defence innovation funding underwater sensor trial 2027\" (funding calls only): 8 results."
+      },
+      {
+        "at": "2026-11-14T19:55:26.049Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"underwater sensor trial funding defence maritime\" (funding calls only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:55:27.906Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"Marine Technology Center Saltö test facility underwater sensor\" (test facilities only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:55:29.180Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"underwater sensor test facility defence funding 2027 spring\": 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:55:30.333Z",
+        "kind": "search",
+        "text": "Searched stored opportunities for \"defence innovation funding underwater sensor trial\" (funding calls only): 8 results by keywords, because the embedding service did not answer."
+      },
+      {
+        "at": "2026-11-14T19:55:41.541Z",
+        "kind": "plan",
+        "text": "Picked 8 candidates out of 25 results."
+      },
+      {
+        "at": "2026-11-14T19:55:41.541Z",
+        "kind": "write",
+        "text": "Writing the brief from 10 sources."
+      },
+      {
+        "at": "2026-11-14T19:55:41.541Z",
+        "kind": "check",
+        "text": "Checked the brief: 5 of 7 options passed; left out 2 (\"16 February 2027\" is not in R15 or the company profile. Write only what the source states, copied as it writes it, or leave it out. / \"€3.5 million\" is not in R5 or the company profile. Write only what the source states, copied as it writes it, or leave it out.)."
+      },
+      {
+        "at": "2026-11-14T19:55:41.637Z",
+        "kind": "done",
+        "text": "Done in 23 s: 5 options, 8 model calls, 7 searches, 0 pages read."
+      }
+    ],
+    "result": {
+      "question": "Which test facilities and funding could fit an underwater sensor we want to trial next year?",
+      "summary": "5 options: 3 test facilities and 2 funding calls, from Curated testbed list, Vinnova and EU Funding & Tenders.",
+      "options": [
+        {
+          "title": "FMV Naval Test Ranges in Karlskrona",
+          "kind": "testbed",
+          "whyProfile": "EmbeddedArt offers UV-sensors and technical systems for maritime surveillance and marine measurement stations.",
+          "whySource": "FMV runs naval test ranges for test and evaluation of naval weapon, electronic warfare and sensor systems at the Naval Test Centre in Karlskrona and the Sea Range in the Stockholm archipelago.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "FMV T&E contact form: https://testandevaluation.fmv.se/about/contact/",
+          "openQuestions": [
+            "Whether the ranges accept outside companies for sensor trials, and whether the product is covered by FMV's test services."
+          ],
+          "citation": {
+            "url": "https://testandevaluation.fmv.se/about/test-ranges/fmv-naval-test-ranges/",
+            "title": "FMV Naval Test Ranges (Naval Test Centre, Karlskrona)",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "Curated testbed list",
+            "pageRead": false
+          },
+          "opportunityId": "c8c27eba-ddb2-45ea-bf42-b46cd1ad3ae1",
+          "deadline": null
+        },
+        {
+          "title": "MTC Test Bed at BTH, Karlskrona",
+          "kind": "testbed",
+          "whyProfile": "EmbeddedArt offers IoT expertise with low-power sensor platforms and efficient communication solutions.",
+          "whySource": "Blekinge Institute of Technology is building a test bed within Region Blekinge's and BTH's marine technology initiative; it will be part of Innovation Labs BTH and is equipped with software and hardware communication systems and a park of vehicles and sensors for the ocean domain.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "Project manager Oskar Frånberg, Professor, BTH (contact via the project page; also listed at https://www.mtcos.se/kontakt/)",
+          "openQuestions": [
+            "Whether the test bed accepts outside companies, and whether the product's underwater sensor technology is covered by the facility's scope."
+          ],
+          "citation": {
+            "url": "https://www.bth.se/english/research/research-projects/mtc-test-bed-at-bth",
+            "title": "MTC Test Bed at BTH, Karlskrona",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "Curated testbed list",
+            "pageRead": false
+          },
+          "opportunityId": "2d5ace9b-7349-4b52-8f58-ee0124b2606d",
+          "deadline": null
+        },
+        {
+          "title": "MTC Saltö marine technology environment, Karlskrona",
+          "kind": "testbed",
+          "whyProfile": "EmbeddedArt offers product development as a reliable partner for many organisations and IoT expertise with low-power sensor platforms.",
+          "whySource": "Marine Technology Center of Sweden is building an environment on Saltö in Karlskrona where companies can take marine technology from concept to tests in a relevant sea environment; it has a shared work and innovation space and a workshop for building and developing prototypes.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "MTC contact form: https://www.mtcos.se/kontakt/ (Utövägen 3A, Karlskrona)",
+          "openQuestions": [
+            "Whether the environment will accept outside companies for sensor trials, and whether the product is covered while the environment is being built."
+          ],
+          "citation": {
+            "url": "https://www.mtcos.se/news/har-vaxer-en-ny-miljo-fram-i-karlskrona-dar-framtidens-marinteknik-testas-i-verkligheten/",
+            "title": "MTC Saltö marine technology environment, Karlskrona",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "Curated testbed list",
+            "pageRead": false
+          },
+          "opportunityId": "bda7615f-82b0-48b5-96e1-3bbfea08056c",
+          "deadline": null
+        },
+        {
+          "title": "The Baltic Marine Watchdog Challenge",
+          "kind": "funding",
+          "whyProfile": "EmbeddedArt offers UV-sensors and technical systems for maritime surveillance and monitoring.",
+          "whySource": "Vinnova seeks teams to accelerate breakthrough innovations in developing, demonstrating and validating autonomous systems for sea surveillance, tracking, documentation and monitoring.",
+          "requirements": [
+            "Team with ambition, technical expertise and business drive; only legal entities may apply; individual persons or sole traders may participate in a team where a legal entity submits the application."
+          ],
+          "contactRoute": "Team Språng Challenge, challenge@vinnova.se",
+          "openQuestions": [
+            "Whether the funding covers underwater sensor trials, the funding rate, and the 10-month project period."
+          ],
+          "citation": {
+            "url": "https://www.vinnova.se/e/radikal-innovation/the-baltic-marine-watchdog-challenge/",
+            "title": "The Baltic Marine Watchdog Challenge",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "Vinnova",
+            "pageRead": false
+          },
+          "opportunityId": "1d93e14c-54cc-4212-8636-4a199f9c7c9d",
+          "deadline": "2026-12-02T13:00:00.000Z"
+        },
+        {
+          "title": "Unmanned systems and counter-unmanned systems",
+          "kind": "funding",
+          "whyProfile": "EmbeddedArt offers UV-sensors and technical systems for maritime surveillance and monitoring.",
+          "whySource": "This topic aims to support projects that deliver results on unmanned systems, including measurable reduction of production lead time and improved timely availability of defence products.",
+          "requirements": [
+            "The source does not state requirements."
+          ],
+          "contactRoute": "The cited page itself",
+          "openQuestions": [
+            "Whether the call covers underwater sensor trials, the 16 February 2027 deadline, and the KPIs required."
+          ],
+          "citation": {
+            "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/EDF-EDIP-P-2027-FNLC-CPA-GNPS",
+            "title": "Ground and naval platforms and systems",
+            "retrievedAt": "2026-11-14",
+            "origin": "store",
+            "sourceName": "EU Funding & Tenders",
+            "pageRead": false
+          },
+          "opportunityId": "1e8146a6-deab-4e98-9e17-689e2e8978f1",
+          "deadline": "2027-02-16T22:59:00.000Z"
+        }
+      ],
+      "notes": [
+        "Web search was not available; built from stored sources."
+      ],
+      "onlyFound": null,
+      "webSearch": "unavailable",
+      "stats": {
+        "seconds": 23,
+        "modelCalls": 8,
+        "inputTokens": 35359,
+        "outputTokens": 1726,
+        "searches": 7,
+        "pagesRead": 0,
+        "dropped": 2,
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b"
+      },
+      "createdAt": "2026-11-14T19:55:17.803Z"
+    }
+  }
+}
