@@ -4,6 +4,7 @@ import { INNGEST_CHECKS } from "@/lib/inngest-checks";
 import { NVIDIA_CHECKS } from "@/lib/nvidia-checks";
 import { RESEND_CHECKS } from "@/lib/resend-checks";
 import { VOYAGE_CHECKS } from "@/lib/voyage-checks";
+import { FetchPageForm } from "./fetch-page-form";
 import { ServiceChecks } from "./service-checks";
 
 export const metadata = { title: "Service checks" };
@@ -47,6 +48,14 @@ export default function Page() {
           Sends one email to Resend&apos;s test inbox, so nobody receives it. For the weekly digest (C18).
         </p>
         <ServiceChecks endpoint="/api/checks/resend" button="Run Resend check" checks={list(RESEND_CHECKS)} />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Page fetcher</h2>
+        <p className="text-sm text-muted-foreground">
+          Fetches one web page in a background job and stores its clean text as a snapshot (backlog A1).
+        </p>
+        <FetchPageForm />
       </div>
 
       <Suspense>

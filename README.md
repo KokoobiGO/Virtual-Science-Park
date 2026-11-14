@@ -56,6 +56,7 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run check:services` | One test call per hosted service (S2) |
 | `npm run check:claude` | One test call per Claude feature (S3); costs a few cents |
 | `npm run check:nvidia` | One test call per NVIDIA API feature (S3); free developer key |
+| `npm run fetch:page -- <url>` | Print the clean text of one web page (A1); add `--save` to store it as a snapshot |
 
 `npm test` runs unit tests always. The privacy tests in `tests/` also run when
 `.env.local` points at a database with `db:setup` done, and skip otherwise.
@@ -74,6 +75,8 @@ lib/llm.ts           Claude model IDs and tool versions (S3)
 lib/nvidia.ts        NVIDIA API model IDs and a fetch client (S3), for testing
 lib/voyage.ts        Voyage AI embeddings client (voyage-4, 1024 dimensions)
 lib/resend.ts        Resend email client, for the weekly digest (C18)
+lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clean text
+lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/inngest/         Inngest client and functions (S10)
 data/fixtures/       hand-written sample data (S9), all SIMULATED
 scripts/             migrate, seed, demo users, service checks
@@ -167,6 +170,21 @@ not that the key may call it.
    "Run Voyage check" at `/staff/checks` embeds one text with the deployed key;
    "Run Resend check" sends one email to Resend's test inbox (nobody gets it).
 5. Run `npm run check:services` until every row says PASS.
+
+## Page fetcher (A1)
+
+`fetchSnapshot({ url, source, companyId })` in `lib/snapshots.ts` downloads a
+page, turns it into clean text and stores it in `snapshots` with its URL, date,
+language and a hash of the text. Quotes are checked against that stored text.
+
+- Readability picks the main content of article-like pages. When it keeps less
+  than half of the page's text (typical for a company home page), the whole
+  body is used instead, without menus, footers and cookie banners.
+- A page whose text has not changed gives the existing snapshot back.
+- Only public http(s) addresses, 15 s and 5 MB at most. Pages drawn by
+  JavaScript come out empty and are refused with a clear message.
+- Jobs call `fetchSnapshot()` in a step, or send `app/snapshot.requested`.
+  Staff can try a URL under "Page fetcher" at `/staff/checks`.
 
 ## Data status
 
