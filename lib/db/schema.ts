@@ -16,6 +16,7 @@ import {
   type AnyPgColumn,
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -122,6 +123,8 @@ export const companies = pgTable("companies", {
   /** Built from public claims only, for the public ranking. */
   publicEmbedding: vector({ dimensions: EMBEDDING_DIMENSIONS }),
   lastProfiledAt: timestamptz(),
+  /** Tags from the public profile (A14), from the same list as opportunity tags. Matching uses the overlap. */
+  tags: textArray(),
   /** How the last profiling run went (A8). Null: never profiled. */
   profileStatus: profileStatus(),
   /** One sentence on why the profile is thin or the run failed, or that the website could not be read. */
@@ -281,6 +284,78 @@ export const matches = pgTable(
     unique("matches_company_opportunity_mode_key").on(t.companyId, t.opportunityId, t.mode),
     index("matches_company_mode_rank_idx").on(t.companyId, t.mode, t.rank),
     inUnitRange("matches_score_range", t.score),
+  ],
+);
+
+/** The "Your week" cards (A17): the digest writer's pick from the personal matches. Private to the company. */
+export const weekCards = pgTable(
+  "week_cards",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    companyId: uuid()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    /** Monday of the week the cards are for. */
+    weekOf: date().notNull(),
+    /** 1 is the top card. */
+    position: integer().notNull(),
+    /** "match": built on one opportunity. "trend": a market-change note (A27). */
+    kind: text().notNull().default("match"),
+    opportunityId: uuid().references(() => opportunities.id, { onDelete: "cascade" }),
+    trendNoteId: uuid().references(() => trendNotes.id, { onDelete: "cascade" }),
+    title: text().notNull(),
+    why: text().notNull(),
+    nextStep: text().notNull(),
+    uncertainties: textArray(),
+    sources: jsonb().$type<{ url: string; title?: string }[]>().notNull().default([]),
+    createdAt: createdAt(),
+  },
+  (t) => [unique("week_cards_company_week_position_key").on(t.companyId, t.weekOf, t.position)],
+);
+
+/** Weekly "what changed and why it matters" note per technology area (A27). Public data. */
+export const trendNotes = pgTable(
+  "trend_notes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** One of the opportunity tags, e.g. "marine". */
+    area: text().notNull(),
+    weekOf: date().notNull(),
+    title: text().notNull(),
+    body: text().notNull(),
+    sources: jsonb().$type<{ url: string; title?: string }[]>().notNull().default([]),
+    createdAt: createdAt(),
+  },
+  (t) => [unique("trend_notes_area_week_key").on(t.area, t.weekOf)],
+);
+
+/**
+ * Possible collaborations between two members (A28), from public profile
+ * fields only. Staff only: neither company has expressed interest.
+ */
+export const connections = pgTable(
+  "connections",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    /** The pair is stored once, with the smaller id as A. */
+    companyAId: uuid()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    companyBId: uuid()
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    /** One or two sentences on what the pair shares, built on the claims in `evidence`. */
+    basis: text().notNull(),
+    /** Short labels, e.g. ["underwater sensors", "defence"]. */
+    sharedOn: textArray(),
+    score: real().notNull(),
+    /** The public claims the basis rests on. */
+    evidence: jsonb().$type<{ companyId: string; claimId: string; field: string; value: string }[]>().notNull().default([]),
+    computedAt: timestamptz().notNull().defaultNow(),
+  },
+  (t) => [
+    unique("connections_pair_key").on(t.companyAId, t.companyBId),
+    check("connections_pair_order", sql`${t.companyAId} < ${t.companyBId}`),
   ],
 );
 
