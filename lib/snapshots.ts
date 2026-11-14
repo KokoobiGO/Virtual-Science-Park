@@ -12,8 +12,9 @@
 import { createHash } from "node:crypto";
 import { and, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { isCachedMode } from "./collectors/cache";
-import { getDb } from "./db";
+import { getDb, type Db } from "./db";
 import { snapshots } from "./db/schema";
+import type { UserTx } from "./db/user";
 import { extractPage } from "./fetcher/extract";
 import { fetchPage, FetchPageError } from "./fetcher/fetch-page";
 
@@ -53,8 +54,10 @@ async function storedSnapshot(input: SnapshotRequest): Promise<Snapshot> {
   return stored;
 }
 
+/** `db` is there so a test can pass a transaction; jobs leave it out and get the service client. */
 export async function fetchSnapshot(
   input: SnapshotRequest,
+  options: { db?: Db | UserTx } = {},
 ): Promise<{ snapshot: Snapshot; unchanged: boolean; method: "readability" | "body" | "stored" }> {
   if (isCachedMode()) return { snapshot: await storedSnapshot(input), unchanged: true, method: "stored" };
 
@@ -65,7 +68,7 @@ export async function fetchSnapshot(
   }
   const contentHash = createHash("sha256").update(text).digest("hex");
 
-  const db = getDb();
+  const db = options.db ?? getDb();
   const [latest] = await db
     .select()
     .from(snapshots)

@@ -20,6 +20,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb, type Db } from "../db";
 import { claims, companies, companyPrivate, evidence, snapshots } from "../db/schema";
+import type { UserTx } from "../db/user";
 import type { ProfileField } from "../schemas";
 import type { ProfileAssessment } from "./assess";
 import type { DraftClaim } from "./output";
@@ -30,6 +31,8 @@ export type StoredProfile = { active: number; suggested: number; superseded: num
 export type StoreOptions = {
   /** Store only changed claims, as suggestions (A23). Leaves the company's status, note and embeddings alone. */
   refresh?: boolean;
+  /** The service client (default), or a transaction, so a test can roll everything back. */
+  db?: Db | UserTx;
 };
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -43,7 +46,7 @@ export async function storeProfile(
   const now = new Date();
   const snapshotIds = [...new Set(profile.flatMap((claim) => claim.evidence.map((e) => e.snapshotId)))];
 
-  return getDb().transaction(async (tx) => {
+  return (options.db ?? getDb()).transaction(async (tx) => {
     const retrievedAt = new Map(
       snapshotIds.length
         ? (await tx.select({ id: snapshots.id, retrievedAt: snapshots.retrievedAt }).from(snapshots).where(inArray(snapshots.id, snapshotIds))).map(
