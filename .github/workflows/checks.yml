@@ -1,0 +1,44 @@
+# Checks that need no secrets: lint, typecheck and unit tests.
+# No database, no model calls, no Playwright, no deploy.
+name: Checks
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Unit tests only: *.integration.test.ts need the hosted database and
+      # *.live.test.ts call a model, so test:unit leaves both out.
+      - name: Unit tests
+        run: npm run test:unit
