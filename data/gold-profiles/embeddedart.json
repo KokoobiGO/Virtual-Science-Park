@@ -1,0 +1,143 @@
+{
+  "slug": "embeddedart",
+  "company": "EmbeddedArt",
+  "exportedAt": "2026-11-14T18:09:48.094Z",
+  "checkedBy": "",
+  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\" or \"wrong\" (for a missing claim, \"right\" means the pages really do not say it); write why in note, and your name in checkedBy.",
+  "claims": [
+    {
+      "claimId": "0e8b10ae-4614-49a7-a8c8-48bb23ab5ca9",
+      "field": "summary",
+      "status": "stated",
+      "value": "EmbeddedArt is active in the defence sector. The company is a supplier of products, services and associated technical solutions for military defence.",
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "EmbeddedArt är verksamt inom försvarsområdet. Bolaget är en leverantör av produkter, tjänster och tillhörande tekniska lösningar inom militärt försvar.",
+          "url": "https://www.embeddedart.se/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "937dda6e-c58a-41d4-9860-a42b39335d1e",
+      "field": "offerings",
+      "status": "stated",
+      "value": [
+        "UV-sensors and technical systems for maritime surveillance, monitoring and marine measurement stations",
+        "Product development as a reliable partner for many organisations",
+        "IoT expertise with low-power sensor platforms and efficient communication solutions"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "EmbeddedArt erbjuder expertkunskap inom IoT och har djup kunskap av att ta fram strömsnåla sensorplattformar samt effektiva kommunikationslösningar.",
+          "url": "https://www.embeddedart.se/"
+        },
+        {
+          "quote": "Produktportföljen består av UV-sensorer och tekniska system för sjöbevakning, spaning och marina mätstationer.",
+          "url": "https://www.embeddedart.se/"
+        },
+        {
+          "quote": "Vi är en pålitlig utvecklingspartner åt många organisationer som anförtrott oss ansvaret för deras produktutveckling.",
+          "url": "https://www.embeddedart.se/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "e34e6b2c-94b4-4042-8080-1523c5798ff2",
+      "field": "technologies",
+      "status": "stated",
+      "value": [
+        "product development",
+        "hydroacoustics",
+        "sensor systems"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Vi har lång och bred erfarenhet inom produktutveckling, hydroakustik och sensorsystem.",
+          "url": "https://www.embeddedart.se/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "8a9b48d5-d374-4cde-940a-779832be8446",
+      "field": "applicationAreas",
+      "status": "stated",
+      "value": [
+        "maritime surveillance",
+        "monitoring",
+        "marine measurement stations"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Produktportföljen består av UV-sensorer och tekniska system för sjöbevakning, spaning och marina mätstationer.",
+          "url": "https://www.embeddedart.se/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "a0e0e878-72cb-408e-817f-af98e91b21ca",
+      "field": "markets",
+      "status": "stated",
+      "value": [
+        "military defence"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "EmbeddedArt är verksamt inom försvarsområdet. Bolaget är en leverantör av produkter, tjänster och tillhörande tekniska lösningar inom militärt försvar.",
+          "url": "https://www.embeddedart.se/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "23c3cde4-686a-4efe-80bb-4760d425b10b",
+      "field": "geography",
+      "status": "stated",
+      "value": [
+        "Stockholm",
+        "Karlskrona",
+        "Östersund"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "EmbeddedArt AB Hantverkargatan 25 112 21 Stockholm",
+          "url": "https://www.embeddedart.se/"
+        },
+        {
+          "quote": "EmbeddedArt Granit AB Kyrkgatan 53 831 34 Östersund",
+          "url": "https://www.embeddedart.se/"
+        },
+        {
+          "quote": "EmbeddedArt Karlskrona AB Vallgatan 20 371 30 Karlskrona",
+          "url": "https://www.embeddedart.se/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "5c14dc9f-90f4-4eae-9e01-f79549e5cf36",
+      "field": "statedPriorities",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    }
+  ]
+}

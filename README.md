@@ -63,6 +63,8 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run similar -- <slug>` | The nearest opportunities and companies to one member, by embedding (A14) |
 | `npm run match -- [slug ...]` | Rank and store the top 20 opportunities per company in both modes (A15); `--dry` prints the ranking with its five parts |
 | `npm run connections` | Find pairs of members with a stated reason to talk, for staff (A28); `--dry`, `--limit N` (a stored `--limit` run replaces the whole table) |
+| `npm run gold:export` | Write one file per gold member to `data/gold-profiles/` for the team's hand-check (A7); keeps verdicts already filled in |
+| `npm run eval` | Profile accuracy from the hand-check files and the quote-check drop rate, stored for the Trust report (A21); `--dry` |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 
@@ -92,6 +94,7 @@ lib/tagger/         tagger (A14): which of the six tags a text is about
 lib/embeddings/     embedding texts and the enrich functions (A14)
 lib/matcher/        matcher (A15, A18): the ranking SQL, the score parts, storing the top 20
 lib/connections/    connection finder (A28): candidate pairs, the judge, the checks, storing
+lib/eval/           evals (A21): profile accuracy, quote-check drop rate; one entry per eval
 lib/links/          link checker (A20)
 lib/sources/        source health verdicts (A19)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
@@ -355,6 +358,28 @@ staff can read.
   neither company has expressed interest.
 - The table always holds the latest run. Borderline pairs can come and go
   between runs, because the model is not fully stable on them.
+
+## Hand-check and eval (A7, A21)
+
+1. `npm run gold:export` writes `data/gold-profiles/<slug>.json` for the three
+   gold members: every active, public claim the profiler wrote, with its
+   quotes and two fields to fill in.
+2. The team opens each file and sets `"verdict"` to `"right"` or `"wrong"` on
+   every claim (and `"note"` when it helps), checking against the company's
+   own pages. For a `missing` claim, "right" means the pages really do not say
+   it. Put your names in `checkedBy`. Commit the files.
+3. `npm run eval` stores two `eval_runs` rows:
+   - `profile_accuracy`: right / checked for stated, inferred and missing
+     claims, per company and in total. Unchecked claims are counted as
+     unchecked, never as right.
+   - `quote_check`: per company's latest profiling run, how many quotes were
+     found in the page text and how many fields were dropped because their
+     quotes failed.
+
+Do the hand-check after the last time the gold members are profiled: a new
+profiling run gives every claim a new id, and the export then starts the
+verdicts over (it warns when that happens). `npm run eval -- <name>` runs one
+eval; a new eval is one more entry in `lib/eval/index.ts`.
 
 ## Source status, cached mode and schedules (A19, A23)
 

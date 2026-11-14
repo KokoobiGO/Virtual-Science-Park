@@ -1,0 +1,160 @@
+{
+  "slug": "techinova",
+  "company": "Techinova",
+  "exportedAt": "2026-11-14T18:09:48.094Z",
+  "checkedBy": "",
+  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\" or \"wrong\" (for a missing claim, \"right\" means the pages really do not say it); write why in note, and your name in checkedBy.",
+  "claims": [
+    {
+      "claimId": "e6e9b428-d914-4dfc-b89c-ebfc5a4d4331",
+      "field": "summary",
+      "status": "stated",
+      "value": "Develops and manufactures products with electronics and software for communication (radio networks) and automation, adapted for the energy sector's needs",
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Techinova utvecklar och tillverkar produkter med elektronik och programvara för kommunikation (radionätverk) och automation, anpassade för energisektorns behov.",
+          "url": "https://www.bluesciencepark.se/medlem/techinova/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "b8f66d87-ce5f-42f9-9289-9ae9d9fdac13",
+      "field": "offerings",
+      "status": "stated",
+      "value": [
+        "Smart and stable energy solutions",
+        "Innovative system solutions integrating various technologies for a smarter and more dynamic power grid",
+        "TechiNode products for remote control and automation of medium-voltage networks"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Vi utvecklar innovativa systemlösningar som integrerar olika tekniker för att skapa ett smartare och mer dynamiskt elnät.",
+          "url": "https://techinova.com/sv"
+        },
+        {
+          "quote": "Vi utvecklar och driftsätter smarta och stabila energilösningar.",
+          "url": "https://techinova.com/sv"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "606307f4-b5ba-4317-a254-7dcb58ee3fc9",
+      "field": "technologies",
+      "status": "stated",
+      "value": [
+        "Smart energy solutions",
+        "Remote control and automation",
+        "Fault location and switching in overhead line networks"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "TechiGrid erbjuder produkter för fellokalisering och omkoppling i luftlinjenät",
+          "url": "https://techinova.com/sv"
+        },
+        {
+          "quote": "Vi utvecklar och driftsätter smarta och stabila energilösningar.",
+          "url": "https://techinova.com/sv"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "e07f5dd8-77ed-488e-8e51-7533574200de",
+      "field": "applicationAreas",
+      "status": "stated",
+      "value": [
+        "Monitoring and control of power grids",
+        "Measurement and automated analysis in substations and distribution stations"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Med våra lösningar kan du enkelt övervaka och styra ditt elnät, vilket ökar effektiviteten och ger dig bättre kontroll.",
+          "url": "https://techinova.com/sv"
+        },
+        {
+          "quote": "TechiInsight erbjuder innovativa produkter för mätning, styrning och automatiserad analys i mottagningsstationer, fördelningsstationer och nätstationer",
+          "url": "https://techinova.com/sv"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "62d0ca0c-5f5c-433a-83be-2c05348e9bd1",
+      "field": "markets",
+      "status": "stated",
+      "value": [
+        "Energy sector"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Techinova utvecklar och tillverkar produkter med elektronik och programvara för kommunikation (radionätverk) och automation, anpassade för energisektorns behov.",
+          "url": "https://www.bluesciencepark.se/medlem/techinova/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "39493a20-b6c7-4c54-8d85-91432cfc3792",
+      "field": "geography",
+      "status": "stated",
+      "value": [
+        "Based in Karlskrona",
+        "Operates in Sweden (implied by Made in Karlskrona award)"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "2026-06-16 Techinova får \"Made in Karlskrona\"-pris",
+          "url": "https://techinova.com/sv"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "b26732b7-c453-4229-85e1-ebd42943b831",
+      "field": "statedPriorities",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "f604393f-791d-4acd-a1cc-e0b5ca46e48a",
+      "field": "inferredInterests",
+      "status": "inferred",
+      "value": [
+        "Partnerships with technology companies",
+        "Acquisition or collaboration opportunities in digital solutions",
+        "Talent recruitment"
+      ],
+      "confidence": 0.7,
+      "evidence": [
+        {
+          "quote": "Vi letar alltid efter nya talanger, så tveka inte att höra av dig även om vi för tillfället inte annonserar någon tjänst.",
+          "url": "https://techinova.com/sv"
+        },
+        {
+          "quote": "dLaboratory ingår avtal om förvärv av Techinova AB",
+          "url": "https://techinova.com/sv"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    }
+  ]
+}

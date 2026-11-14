@@ -1,0 +1,120 @@
+{
+  "slug": "malvacom",
+  "company": "Malvacom",
+  "exportedAt": "2026-11-14T18:09:48.094Z",
+  "checkedBy": "",
+  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\" or \"wrong\" (for a missing claim, \"right\" means the pages really do not say it); write why in note, and your name in checkedBy.",
+  "claims": [
+    {
+      "claimId": "39c24376-323c-48f4-89b6-00d393d120f7",
+      "field": "summary",
+      "status": "stated",
+      "value": "IT consulting company founded in Karlskrona, Sweden delivering software development, system integration, cloud services, AI automation and embedded programming to Swedish authorities and companies",
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Malvacom AB är ett IT-konsultbolag grundat i Karlskrona, Blekinge, Sverige. Bolaget levererar mjukvaruutveckling, systemintegration, molntjänster, AI-automation och embedded-programmering till svenska myndigheter och företag.",
+          "url": "https://malvacom.com/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "cbecefa6-4fa8-4dfa-a3cd-2b14dc3b6259",
+      "field": "offerings",
+      "status": "stated",
+      "value": [
+        "Software development",
+        "System integration",
+        "AI automation",
+        "Operations and maintenance",
+        "Long-term management"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Malvacom erbjuder sex specialisttjänster — från nyutveckling och AI-automation till systemintegration, drift och långsiktig förvaltning.",
+          "url": "https://malvacom.com/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "cba7c0fa-b785-4d2a-a45b-ab3899c00d9d",
+      "field": "technologies",
+      "status": "stated",
+      "value": [
+        "Python",
+        "Django",
+        "JavaScript",
+        ".NET",
+        "PostgreSQL",
+        "MSSQL",
+        "PHP",
+        "Jira",
+        "Git"
+      ],
+      "confidence": 1,
+      "evidence": [
+        {
+          "quote": "Teknik: Python, Django, Javascript, .NET, PostgreSQL, MSSQL, PHP, Jira, Git",
+          "url": "https://malvacom.com/"
+        }
+      ],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "a9a31966-db0b-45e0-b789-eb17e474fbd0",
+      "field": "applicationAreas",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "2b44b073-1c9c-4b16-a126-3176e59a7e51",
+      "field": "markets",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "c82874a3-7b9d-47fd-be55-79f2b5e49b7a",
+      "field": "geography",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "57f6c39f-602c-4948-923c-a51236eb07de",
+      "field": "statedPriorities",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    },
+    {
+      "claimId": "41b8d66b-5f07-4923-9a52-e92ed85ce3ac",
+      "field": "inferredInterests",
+      "status": "missing",
+      "value": null,
+      "confidence": 0,
+      "evidence": [],
+      "verdict": null,
+      "note": ""
+    }
+  ]
+}

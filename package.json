@@ -28,6 +28,8 @@
     "similar": "tsx --env-file-if-exists=.env.local scripts/similar.ts",
     "match": "tsx --env-file-if-exists=.env.local scripts/match.ts",
     "connections": "tsx --env-file-if-exists=.env.local scripts/connections.ts",
+    "eval": "tsx --env-file-if-exists=.env.local scripts/eval.ts",
+    "gold:export": "tsx --env-file-if-exists=.env.local scripts/gold-export.ts",
     "check:links": "tsx --env-file-if-exists=.env.local scripts/check-links.ts",
     "sources:status": "tsx --env-file-if-exists=.env.local scripts/sources-status.ts"
   },
