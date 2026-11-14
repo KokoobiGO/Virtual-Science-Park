@@ -19,7 +19,8 @@
     "supabase:stop": "supabase stop",
     "inngest:dev": "inngest-cli dev -u http://localhost:3000/api/inngest --no-discovery",
     "check:services": "tsx --env-file-if-exists=.env.local scripts/check-services.ts",
-    "check:claude": "tsx --env-file-if-exists=.env.local scripts/check-claude.ts"
+    "check:claude": "tsx --env-file-if-exists=.env.local scripts/check-claude.ts",
+    "check:nvidia": "tsx --env-file-if-exists=.env.local scripts/check-nvidia.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",

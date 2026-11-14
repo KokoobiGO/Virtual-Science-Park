@@ -18,6 +18,7 @@ export const NAV: Record<AppRole, NavItem[]> = {
     { href: "/staff/ecosystem", label: "Ecosystem map", backlog: "C17" },
     { href: "/explore", label: "Explore", backlog: "C14" },
     { href: "/trust", label: "Trust report", backlog: "C12" },
+    { href: "/staff/checks", label: "Service checks", backlog: "S3" },
   ],
 };
 
