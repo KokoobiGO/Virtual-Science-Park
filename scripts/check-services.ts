@@ -12,6 +12,7 @@ import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "../lib/db";
 import { inngest } from "../lib/inngest/client";
 import { getAnthropic } from "../lib/llm";
+import { VOYAGE_MODEL, voyageBaseUrl, voyageEmbed } from "../lib/voyage";
 
 type Status = "PASS" | "FAIL" | "SKIPPED";
 type Result = { service: string; status: Status; detail: string };
@@ -40,18 +41,8 @@ async function main() {
 
   results.push(
     await check("Voyage AI", ["VOYAGE_API_KEY"], async () => {
-      // Keys created in MongoDB Atlas need VOYAGE_BASE_URL=https://ai.mongodb.com/v1.
-      const base = env("VOYAGE_BASE_URL") ?? "https://api.voyageai.com/v1";
-      const res = await fetch(`${base}/embeddings`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${env("VOYAGE_API_KEY")}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "voyage-4", input: ["Undervattenssensorer för sjöbevakning"], output_dimension: 1024 }),
-      });
-      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      const body = (await res.json()) as { data: { embedding: number[] }[] };
-      const dims = body.data[0]?.embedding.length;
-      if (dims !== 1024) throw new Error(`expected 1024 dimensions, got ${dims}`);
-      return `voyage-4 returned a ${dims}-dimension vector from ${new URL(base).host}`;
+      const [vector] = await voyageEmbed(["Undervattenssensorer för sjöbevakning"]);
+      return `${VOYAGE_MODEL} returned a ${vector.length}-dimension vector from ${new URL(voyageBaseUrl()).host}`;
     }),
   );
 
