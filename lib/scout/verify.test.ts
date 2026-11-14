@@ -113,6 +113,49 @@ describe("checkOption", () => {
   });
 });
 
+describe("checkOption on a live result", () => {
+  // A topic from the EU portal's live search that the store does not have: the same checks as a stored source.
+  const live = source("R1", {
+    title: "Maritime surveillance sensor networks",
+    url: "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL3-2027-01-BM-04",
+    snippet: "Sensor networks for maritime surveillance.",
+    description: "Projects develop sensor networks for maritime surveillance at sea. Indicative budget EUR 4 million per project.",
+    origin: "live",
+    retrievedAt: "2026-11-14T09:00:05.000Z",
+    sourceName: "EU Funding & Tenders",
+    liveSource: "EU Funding & Tenders portal",
+    externalId: "HORIZON-CL3-2027-01-BM-04",
+    opensAt: "2027-01-12T23:00:00.000Z",
+    deadline: "2027-03-31T21:59:00.000Z",
+  });
+  const ctx = context([live]);
+  const liveOption = (extra: Partial<WriterOption> = {}) =>
+    option({
+      title: "EU call for maritime surveillance sensor networks",
+      whySource: "The EU funds sensor networks for maritime surveillance at sea, up to EUR 4 million per project; it opens on 13 January 2027 and closes on 31 March 2027.",
+      contactRoute: "No contact is given; use the cited page.",
+      ...extra,
+    });
+
+  it("passes an option that states only what the live result says, its dates included", () => {
+    expect(checkOption(liveOption(), ctx)).toEqual([]);
+  });
+
+  it("refuses it when no search in this run returned its address", () => {
+    expect(checkOption(liveOption(), { ...ctx, returnedUrls: new Set(["https://www.vinnova.se/e/r1/"]) })[0]).toContain("was not returned by a search");
+  });
+
+  it("refuses an amount, a date or a link the live result does not give", () => {
+    const problems = checkOption(
+      liveOption({ whySource: "The EU funds sensor networks for maritime surveillance with EUR 9 million; it closes on 15 April 2027.", contactRoute: "Ask at https://ec.europa.eu/other/" }),
+      ctx,
+    ).join(" ");
+    expect(problems).toContain('"EUR 9 million"');
+    expect(problems).toContain('"15 April 2027"');
+    expect(problems).toContain("https://ec.europa.eu/other/");
+  });
+});
+
 describe("checkWriterReply", () => {
   const sources = [1, 2, 3, 4, 5, 6].map((n) => source(`R${n}`));
   const ctx = context(sources);

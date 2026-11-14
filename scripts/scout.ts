@@ -24,8 +24,9 @@ import { briefs, companies } from "../lib/db/schema";
 import { loadCompanies } from "../lib/embeddings/enrich";
 import { isRateLimit, RUN_BUDGET_MS, runScout, type ScoutResult, type StepRunner } from "../lib/scout/agent";
 import { readPage } from "../lib/scout/read-page";
-import { runScoutBrief } from "../lib/scout/run";
-import { maxSearches, searchStore, searchWeb } from "../lib/scout/search";
+import { realSearch, runScoutBrief } from "../lib/scout/run";
+import { maxSearches } from "../lib/scout/search";
+import { webProviderFromEnv } from "../lib/scout/web-search";
 import { createBrief, recordRun } from "../lib/scout/store";
 import type { PrerunFile } from "../lib/scout/prerun";
 import { StoredBriefJson, type ProgressStep, type ScoutBrief } from "../lib/scout/types";
@@ -78,7 +79,9 @@ function printBrief(brief: ScoutBrief) {
   for (const note of brief.notes) console.log(`Note: ${note}`);
   brief.options.forEach((o, i) => {
     console.log(`\n${i + 1}. ${o.title}  [${o.kind}${o.deadline ? `, ${o.deadline.slice(0, 10)}` : ""}]`);
-    console.log(`   source:   ${o.citation.url}  (retrieved ${o.citation.retrievedAt}, ${o.citation.origin}${o.citation.pageRead ? ", page read" : ""}; ${o.citation.sourceName ?? ""})`);
+    const live = o.citation.liveRetrievedAt ? `, ${o.citation.liveSource} at ${o.citation.liveRetrievedAt}` : "";
+    console.log(`   source:   ${o.citation.url}  (retrieved ${o.citation.retrievedAt}, ${o.citation.origin}${live}${o.citation.pageRead ? ", page read" : ""}; ${o.citation.sourceName ?? ""})`);
+    if (o.citation.injection) console.log(`   label:    ${o.citation.injection}`);
     console.log(`   from you: ${o.whyProfile}`);
     console.log(`   offers:   ${o.whySource}`);
     console.log(`   requires: ${o.requirements.join(" | ")}`);
@@ -89,8 +92,13 @@ function printBrief(brief: ScoutBrief) {
 
 function printRun(result: ScoutResult) {
   console.log(
-    `\nloop ended: ${result.loopEnd}; ${result.searches} searches, ${result.pagesRead} pages read; web: ${result.webSearch}${result.webProblem ? ` (${result.webProblem})` : ""}`,
+    `\nloop ended: ${result.loopEnd}; ${result.searches} searches, ${result.pagesRead} pages read; live/web: ${result.webSearch}${result.webProblem ? ` (${result.webProblem})` : ""}`,
   );
+  console.log(`answered live: ${result.liveAnswered.map((a) => `${a.name} at ${a.at}`).join("; ") || "nothing"}`);
+  if (result.brief) {
+    const byOrigin = (origin: string) => result.brief!.options.filter((o) => o.citation.origin === origin).length;
+    console.log(`options by origin: store ${byOrigin("store")}, live (not in the store) ${byOrigin("live")}, web ${byOrigin("web")}`);
+  }
   for (const w of result.writes) {
     console.log(`writer attempt ${w.attempt}: ${w.accepted}/${w.given} options passed${w.problems.length ? `\n   ${w.problems.join("\n   ")}` : ""}`);
   }
@@ -107,7 +115,9 @@ async function main() {
   const db = getDb();
   const [company] = await db.select({ id: companies.id, slug: companies.slug, name: companies.name }).from(companies).where(eq(companies.slug, slug));
   if (!company) throw new Error(`No company with slug "${slug}".`);
-  console.log(`${company.name}: "${question}"${dry ? " (dry run: nothing is stored)" : ""}${prerun ? " (pre-run)" : ""}; up to ${maxSearches()} searches; cached mode ${isCachedMode() ? "on" : "off"}`);
+  console.log(
+    `${company.name}: "${question}"${dry ? " (dry run: nothing is stored)" : ""}${prerun ? " (pre-run)" : ""}; up to ${maxSearches()} searches; cached mode ${isCachedMode() ? "on" : "off"}; web provider ${webProviderFromEnv()?.name ?? "none (no key)"}`,
+  );
 
   if (dry) {
     const [texts] = await loadCompanies([company.id]);
@@ -120,8 +130,7 @@ async function main() {
       { question, company, profileText: texts?.personalText ?? company.name, startedAt: Date.now() },
       {
         run: runWithBackoff,
-        searchStore: (q, kind) => searchStore(q, { kind, companyId: company.id }),
-        searchWeb: isCachedMode() ? null : (q) => searchWeb(q),
+        ...realSearch(company.id),
         readPage: (url) => readPage(url),
         saveProgress: async (progress) => printNew(progress),
         saveDone: async (_brief, progress) => printNew(progress),
@@ -169,6 +178,8 @@ async function main() {
       writes: outcome.writes.map((w) => ({ attempt: w.attempt, given: w.given, accepted: w.accepted })),
       webSearch: outcome.webSearch,
       webProblem: outcome.webProblem,
+      liveAnswered: outcome.liveAnswered.map((a) => a.name),
+      liveOptions: outcome.brief?.options.filter((o) => o.citation.origin === "live").length ?? 0,
       rateLimitWaits,
     },
     error: outcome.error,

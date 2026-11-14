@@ -6,11 +6,28 @@
  */
 import { isCachedMode } from "../collectors/cache";
 import type { OpportunityKind } from "../schemas";
-import { runDirectly, runScout, type ScoutLimits, type ScoutResult, type StepRunner } from "./agent";
+import { runDirectly, runScout, type ScoutDeps, type ScoutLimits, type ScoutResult, type StepRunner } from "./agent";
+import { searchLive } from "./live-sources";
 import { readPage } from "./read-page";
-import { searchStore, searchWeb } from "./search";
+import { searchStore } from "./search";
 import { loadBriefWork, saveDone, saveFailed, saveProgress, type BriefWork } from "./store";
 import type { ProgressStep } from "./types";
+import { searchWeb, webProviderFromEnv } from "./web-search";
+
+/**
+ * The real search sources for one run: the store (personal ranking for the
+ * company), the live sources and the keyed web provider. Cached mode reads
+ * nothing live, so both outside sources are off.
+ */
+export function realSearch(companyId: string): Pick<ScoutDeps, "searchStore" | "searchLive" | "searchWeb"> {
+  const cached = isCachedMode();
+  const provider = webProviderFromEnv();
+  return {
+    searchStore: (query: string, kind?: OpportunityKind) => searchStore(query, { kind, companyId }),
+    searchLive: cached ? null : (query: string, kind?: OpportunityKind) => searchLive(query, { kind }),
+    searchWeb: cached ? null : (query: string) => searchWeb(query, { provider }),
+  };
+}
 
 export type ScoutBriefOptions = {
   run?: StepRunner;
@@ -41,9 +58,7 @@ export async function runScoutBrief(briefId: string, options: ScoutBriefOptions 
       run,
       model: options.model,
       limits: options.limits,
-      searchStore: (query: string, kind?: OpportunityKind) => searchStore(query, { kind, companyId: work.company.id }),
-      // Cached mode reads nothing live: no web search.
-      searchWeb: isCachedMode() ? null : (query: string) => searchWeb(query),
+      ...realSearch(work.company.id),
       readPage: (url: string) => readPage(url),
       saveProgress: async (progress) => {
         await saveProgress(briefId, progress);

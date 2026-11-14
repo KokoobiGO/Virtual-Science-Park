@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasSpecific, keywordPlan, keywordScore, keywordTerms, normalizeText, rankByKeywords, searchableText, stemWord, textHas } from "./keywords";
+import { hasSpecific, keywordPlan, keywordScore, keywordTerms, normalizeText, queryWords, rankByKeywords, searchableText, stemWord, textHas } from "./keywords";
 
 const stem = (word: string) => stemWord(normalizeText(word));
 
@@ -144,5 +144,13 @@ describe("rankByKeywords", () => {
   it("ranks a query with only generic words by them and closeness, and returns nothing without a company", () => {
     expect(rank("funding calls", 2)).toEqual(["vinnova-startups", "vinnova-cyber"]);
     expect(rank("funding calls", 2, false)).toEqual([]);
+  });
+});
+
+describe("queryWords", () => {
+  it("keeps the words a search engine without stop words should get", () => {
+    expect(queryWords("Which new EU funding calls could fund our smart grid work in 2027?")).toEqual(["eu", "smart", "grid", "work"]);
+    expect(queryWords("AI and 5G for sea surveillance")).toEqual(["ai", "5g", "sea", "surveillance"]);
+    expect(queryWords("funding calls, grants and utlysningar 2027")).toEqual([]);
   });
 });

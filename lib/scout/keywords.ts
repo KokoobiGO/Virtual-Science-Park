@@ -226,6 +226,26 @@ export function keywordPlan(query: string): KeywordPlan {
   return { concepts: kept, tags };
 }
 
+/** Single words of the generic concepts ("funding", "call", "utlysning"): nearly every call has them. */
+const GENERIC_QUERY_WORDS = new Set(
+  DOMAIN_CONCEPTS.filter((c) => c.generic)
+    .flatMap((c) => c.words.map(normalizeText))
+    .filter((w) => !w.includes(" ")),
+);
+
+/**
+ * The words of a query as a search engine without stemming or stop words
+ * should get them (the EU portal's search ORs every word): no function words,
+ * no generic words such as "funding" or "call", no bare numbers. Two-letter
+ * words such as "ai" and "5g" stay.
+ */
+export function queryWords(query: string): string[] {
+  const words = normalizeText(query)
+    .split(" ")
+    .filter((w) => w.length >= 2 && !STOP_WORDS.has(w) && !GENERIC_QUERY_WORDS.has(w) && !GENERIC_QUERY_WORDS.has(stemWord(w)) && !/^\p{N}+$/u.test(w));
+  return [...new Set(words)];
+}
+
 /** The words a query is searched by, for the progress line and tests. */
 export function keywordTerms(query: string): string[] {
   return keywordPlan(query).concepts.map((c) => c.key);

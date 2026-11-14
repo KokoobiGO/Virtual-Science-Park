@@ -59,11 +59,17 @@ export const KIND_PLURALS: Record<OpportunityKind, string> = {
 };
 
 function originLine(source: SourceRecord): string {
-  return source.origin === "store" ? "Found in: Blue Science Park's opportunity store" : `Found in: web search (${source.sourceName ?? "web"})`;
+  if (source.origin === "store") return "Found in: Blue Science Park's opportunity store";
+  if (source.origin === "live") return `Found in: live search of the ${source.liveSource ?? source.sourceName ?? "funder's site"}`;
+  return `Found in: web search (${source.sourceName ?? "web"})`;
 }
 
 function dateLines(source: SourceRecord): string[] {
-  return [source.deadline ? `Deadline: ${longDay(source.deadline)}` : "", source.eventDate ? `Event date: ${longDay(source.eventDate)}` : ""].filter(Boolean);
+  return [
+    source.opensAt ? `Opens: ${longDay(source.opensAt)}` : "",
+    source.deadline ? `Deadline: ${longDay(source.deadline)}` : "",
+    source.eventDate ? `Event date: ${longDay(source.eventDate)}` : "",
+  ].filter(Boolean);
 }
 
 /** One search hit as the research loop sees it: short. */
@@ -166,7 +172,7 @@ export const SCOUT_TOOLS: ToolDefinition[] = [
 export const RESEARCH_SYSTEM_PROMPT = `You are Scout, a research assistant for member companies of Blue Science Park, a science park in Karlskrona, Sweden. A member asks a question; you find 5 to 10 concrete options that could answer it for that company: funding calls, test facilities, events or programmes, each with a page we can cite.
 
 TOOLS
-- search(query, kind): searches Blue Science Park's store of current funding calls, test facilities and events, and the open web on a few trusted sites when web search is available. Write short searches, 2 to 6 words, each about one part of the question, and set kind to look for one kind at a time: kind "testbed" for test facilities, "funding" for calls, "event" for events. Every search must differ from the earlier ones in topic, not only in word order: the application (for example sea surveillance), the technology (for example hydroacoustics), the place or the funder. Swedish words can help for Swedish funders.
+- search(query, kind): searches Blue Science Park's store of current funding calls, test facilities and events; for funding it also asks the funders' own searches live (the EU Funding & Tenders portal, Vinnova, Energimyndigheten), which can find newer calls; and the web on a few trusted sites when web search is set up. Write short searches, 2 to 6 words, each about one part of the question, and set kind to look for one kind at a time: kind "testbed" for test facilities, "funding" for calls, "event" for events. Every search must differ from the earlier ones in topic, not only in word order: the application (for example sea surveillance), the technology (for example hydroacoustics), the place or the funder. Swedish words can help for Swedish funders.
 - read_page(id): reads the page of one result when its snippet is too short to say what it offers, who may take part or how to get in touch.
 - finish(candidates): call it as soon as you have about 8 results that fit, or when no searches are left. Give the ids of the 5 to 10 results that best answer the question for this company, best first. Only ids you have seen.
 

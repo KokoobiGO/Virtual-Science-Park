@@ -12,19 +12,30 @@ import { OpportunityKind, SourceState } from "../schemas";
 /** The adapter interface every search source answers with (B1). */
 export type SearchHit = { title: string; url: string; snippet: string };
 
-/** Where a hit came from: BSP's own opportunity store, or a web search. */
-export const SourceOrigin = z.enum(["store", "web"]);
+/**
+ * Where a hit came from: BSP's own opportunity store, a funder's own search
+ * asked live during the run (live-sources.ts), or a keyed web search
+ * (web-search.ts). Briefs stored before "live" existed only hold the first two.
+ */
+export const SourceOrigin = z.enum(["store", "web", "live"]);
 export type SourceOrigin = z.infer<typeof SourceOrigin>;
 
 /** A hit with what the source knows about it. Dates are ISO strings: job steps pass JSON. */
 export type ScoutHit = SearchHit & {
   origin: SourceOrigin;
-  /** When the text was retrieved: the collector's fetch for store rows, the search for web hits. */
+  /** When the text was retrieved: the collector's fetch for store rows, the search for live and web hits. */
   retrievedAt: string;
   opportunityId?: string | null;
   kind?: OpportunityKind | null;
-  /** Display name of the source, e.g. "Vinnova". */
+  /** Display name of the source, e.g. "Vinnova". For live hits the collector's label, so they compare with store rows. */
   sourceName?: string | null;
+  /** Live and web hits: the search that answered, e.g. "EU Funding & Tenders portal" or "Tavily web search". */
+  liveSource?: string | null;
+  /** Live hits: the source's own id (EU topic identifier, Vinnova diarienummer, page path), to match store rows. */
+  externalId?: string | null;
+  /** Live and web hits: INJECTION_LABEL when the text looks like instructions to an AI (lib/injection/detect.ts). */
+  injection?: string | null;
+  opensAt?: string | null;
   deadline?: string | null;
   eventDate?: string | null;
   contact?: string | null;
@@ -75,6 +86,13 @@ export const Citation = z.object({
   sourceCachedAt: z.string().nullable().optional(),
   /** True when the page Scout read was a stored copy (DEMO_MODE=cached); `retrievedAt` is then the copy's date. */
   pageStored: z.boolean().optional(),
+  // Live and web results (B1). Optional, so briefs stored before these fields still parse.
+  /** The search that returned it, e.g. "EU Funding & Tenders portal": the page shows "live result, retrieved <time>". */
+  liveSource: z.string().nullable().optional(),
+  /** When that search answered (ISO date-time). */
+  liveRetrievedAt: z.string().nullable().optional(),
+  /** INJECTION_LABEL when the result's text looks like instructions to an AI; it was treated as data. */
+  injection: z.string().nullable().optional(),
 });
 export type Citation = z.infer<typeof Citation>;
 
@@ -174,5 +192,5 @@ export const SCOUT_EVENT = "app/scout.requested";
 /** A member's question: long enough to search for, short enough for one prompt. */
 export const QUESTION_LIMITS = { min: 10, max: 500 } as const;
 
-/** The note every brief built without the web carries (B1). */
+/** The note a brief carries when no live source and no web search answered during its run (B1). */
 export const NO_WEB_NOTE = "Web search was not available; built from stored sources.";

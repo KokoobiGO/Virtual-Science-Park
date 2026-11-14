@@ -1,58 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { FetchedPage } from "../fetcher/fetch-page";
-import { isAllowedUrl, isBotChallenge, maxSearches, parseDuckDuckGo, resultTarget, searchWeb, storeHit, WebSearchUnavailable } from "./search";
+import { isAllowedUrl, maxSearches, mergeWithStore, storeHit } from "./search";
+import type { ScoutHit } from "./types";
 
-const RESULTS_PAGE = `<html><body><div class="results">
-  <div class="result results_links results_links_deep web-result result--ad">
-    <a class="result__a" href="//duckduckgo.com/y.js?ad_domain=ads.example">Buy sensors now</a>
-  </div>
-  <div class="result results_links results_links_deep web-result">
-    <h2 class="result__title"><a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.vinnova.se%2Fe%2Fradikal-innovation%2Fthe-baltic-marine-watchdog-challenge%2F&amp;rut=abc">The Baltic Marine Watchdog Challenge | Vinnova</a></h2>
-    <a class="result__snippet" href="#">Funding for autonomous systems for <b>sea surveillance</b>.</a>
-  </div>
-  <div class="result results_links results_links_deep web-result">
-    <h2 class="result__title"><a class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.example.com%2Fsensors&amp;rut=def">Sensor shop</a></h2>
-    <a class="result__snippet" href="#">Not an allowed site.</a>
-  </div>
-  <div class="result results_links web-result">
-    <h2 class="result__title"><a class="result__a" href="https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/X">EU topic X</a></h2>
-    <a class="result__snippet" href="#">Ocean observation call.</a>
-  </div>
-</div></body></html>`;
-
-const CHALLENGE = `<html><body><div class="anomaly-modal__title">Unfortunately, bots use DuckDuckGo too.</div><form id="challenge-form"></form></body></html>`;
-
-const page = (status: number, html: string): FetchedPage => ({ url: "https://html.duckduckgo.com/html/?q=x", status, html });
-
-describe("web search (DuckDuckGo)", () => {
-  it("parses organic results, decodes the redirect links and skips ads", () => {
-    expect(parseDuckDuckGo(RESULTS_PAGE)).toEqual([
-      {
-        title: "The Baltic Marine Watchdog Challenge | Vinnova",
-        url: "https://www.vinnova.se/e/radikal-innovation/the-baltic-marine-watchdog-challenge/",
-        snippet: "Funding for autonomous systems for sea surveillance.",
-      },
-      { title: "Sensor shop", url: "https://www.example.com/sensors", snippet: "Not an allowed site." },
-      { title: "EU topic X", url: "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/X", snippet: "Ocean observation call." },
-    ]);
-  });
-
-  it("keeps only hits on allowed sites", async () => {
-    const hits = await searchWeb("sea surveillance", { fetch: async () => page(200, RESULTS_PAGE), now: new Date("2026-11-14T10:00:00Z") });
-    expect(hits.map((h) => h.url)).toEqual([
-      "https://www.vinnova.se/e/radikal-innovation/the-baltic-marine-watchdog-challenge/",
-      "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/X",
-    ]);
-    expect(hits[0]).toMatchObject({ origin: "web", retrievedAt: "2026-11-14T10:00:00.000Z", sourceName: "vinnova.se" });
-  });
-
-  it("reports the bot challenge as unavailable instead of trying to get around it", async () => {
-    expect(isBotChallenge(page(202, CHALLENGE))).toBe(true);
-    expect(isBotChallenge(page(200, RESULTS_PAGE))).toBe(false);
-    await expect(searchWeb("x", { fetch: async () => page(202, CHALLENGE) })).rejects.toBeInstanceOf(WebSearchUnavailable);
-    await expect(searchWeb("x", { fetch: async () => Promise.reject(new Error("no answer in 15 s")) })).rejects.toThrow("could not be reached");
-  });
-
+describe("domain allow-list", () => {
   it("matches allowed domains and their subdomains only", () => {
     expect(isAllowedUrl("https://www.vinnova.se/x")).toBe(true);
     expect(isAllowedUrl("https://ec.europa.eu/info")).toBe(true);
@@ -62,11 +12,50 @@ describe("web search (DuckDuckGo)", () => {
     expect(isAllowedUrl("ftp://vinnova.se/x")).toBe(false);
     expect(isAllowedUrl("not a url")).toBe(false);
   });
+});
 
-  it("reads result links in both forms", () => {
-    expect(resultTarget("//duckduckgo.com/l/?uddg=https%3A%2F%2Fri.se%2Fen&rut=1")).toBe("https://ri.se/en");
-    expect(resultTarget("https://www.bth.se/x")).toBe("https://www.bth.se/x");
-    expect(resultTarget("//duckduckgo.com/l/?rut=1")).toBeNull();
+describe("mergeWithStore", () => {
+  const stored = (url: string, extra: Partial<ScoutHit> = {}): ScoutHit => ({
+    title: "Stored call",
+    url,
+    snippet: "From the store.",
+    origin: "store",
+    retrievedAt: "2026-11-10T03:00:00.000Z",
+    opportunityId: "00000000-0000-4000-8000-000000000009",
+    sourceName: "Vinnova",
+    externalId: "2026-02458",
+    ...extra,
+  });
+  const live = (url: string, extra: Partial<ScoutHit> = {}): ScoutHit => ({
+    title: "Live call",
+    url,
+    snippet: "From the live search.",
+    origin: "live",
+    retrievedAt: "2026-11-14T10:00:00.000Z",
+    sourceName: "Vinnova",
+    liveSource: "Vinnova funding search",
+    externalId: "2026-09999",
+    ...extra,
+  });
+
+  it("replaces a live hit the store has by the stored hit, on the URL or on source and external id", () => {
+    const sameUrl = live("https://www.vinnova.se/e/a/");
+    const sameId = live("https://www.vinnova.se/e/b/", { externalId: "2026-02458" });
+    const fresh = live("https://www.vinnova.se/e/c/");
+    const storedA = stored("https://www.vinnova.se/e/a/", { externalId: "2026-00001" });
+    // A row stored while the page list was down links to the find-funding page but keeps its diarienummer.
+    const storedB = stored("https://www.vinnova.se/sok-finansiering/hitta-finansiering/");
+    const merged = mergeWithStore([sameUrl, sameId, fresh], [storedA, storedB]);
+    expect(merged.hits).toEqual([storedA, storedB, fresh]);
+    expect(merged.inStore).toBe(2);
+  });
+
+  it("does not match an external id of another source, and lists a stored hit once", () => {
+    const other = live("https://ec.europa.eu/x", { sourceName: "EU Funding & Tenders", externalId: "2026-02458" });
+    expect(mergeWithStore([other], [stored("https://www.vinnova.se/e/a/")])).toEqual({ hits: [other], inStore: 0 });
+    const storedA = stored("https://www.vinnova.se/e/a/");
+    const twice = mergeWithStore([live("https://www.vinnova.se/e/a/"), live("https://www.vinnova.se/e/a2/", { externalId: "2026-02458" })], [storedA]);
+    expect(twice).toEqual({ hits: [storedA], inStore: 2 });
   });
 });
 
@@ -100,6 +89,8 @@ describe("store hits", () => {
     });
     // A source without a status row (no left-joined row).
     expect(storeHit({ ...row, simulated: false, sourceState: null, sourceCachedAt: null }).sourceState).toBeNull();
+    // The external id, so a live hit of the same call can be matched to it.
+    expect(storeHit({ ...row, externalId: "2026-02458", simulated: false, sourceState: null, sourceCachedAt: null }).externalId).toBe("2026-02458");
   });
 });
 

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { INJECTION_LABEL } from "../injection/detect";
 import { NvidiaApiError, type ChatRequest, type ChatResponse } from "../nvidia";
 import { runScout, type ScoutDeps } from "./agent";
+import type { LiveSearch, LiveSourceReport } from "./live-sources";
 import type { StoreSearch } from "./search";
 import { NO_WEB_NOTE, type ProgressStep, type ScoutHit } from "./types";
 
@@ -31,6 +33,49 @@ function hit(n: number, extra: Partial<ScoutHit> = {}): ScoutHit {
     ...extra,
   };
 }
+
+const EU_URL = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL3-2027-01-BM-04";
+
+/** A live EU topic the store does not have. */
+function euHit(extra: Partial<ScoutHit> = {}): ScoutHit {
+  return {
+    title: "Maritime surveillance sensor networks",
+    url: EU_URL,
+    snippet: "Research on sensor networks for maritime surveillance.",
+    description: "Projects develop sensor networks and hydroacoustic sensors for maritime surveillance of critical infrastructure at sea.",
+    origin: "live",
+    retrievedAt: "2026-11-14T09:00:05.000Z",
+    opportunityId: null,
+    kind: "funding",
+    sourceName: "EU Funding & Tenders",
+    liveSource: "EU Funding & Tenders portal",
+    externalId: "HORIZON-CL3-2027-01-BM-04",
+    // 31 March 2027, 23:59 Swedish summer time.
+    deadline: "2027-03-31T21:59:00.000Z",
+    injection: null,
+    ...extra,
+  };
+}
+
+const liveAnswer = (hits: ScoutHit[]): LiveSearch => ({
+  hits,
+  sources: [{ name: "EU Funding & Tenders portal", status: "answered", results: hits.length, at: "2026-11-14T09:00:05.000Z" }],
+  inStore: 0,
+  flagged: 0,
+});
+
+const failed = (name: string, error: string): LiveSourceReport => ({ name, status: "failed", results: 0, at: "2026-11-14T09:00:08.000Z", error });
+
+const liveOption = (source: string, extra: Record<string, unknown> = {}) => ({
+  source,
+  title: "EU call for maritime surveillance sensor networks",
+  whySource: "The EU funds sensor networks and hydroacoustic sensors for maritime surveillance at sea.",
+  whyProfile: "EmbeddedArt's hydroacoustics and maritime surveillance systems could be part of such a network.",
+  requirements: ["The source does not state requirements."],
+  contactRoute: "No contact is given; use the cited page.",
+  openQuestions: ["Whether a single company may apply without partners."],
+  ...extra,
+});
 
 const toolCall = (id: string, name: string, args: Record<string, unknown>) => ({ id, type: "function" as const, function: { name, arguments: JSON.stringify(args) } });
 
@@ -81,6 +126,7 @@ function deps(overrides: Partial<ScoutDeps> & { hits?: ScoutHit[][] } = {}): Sco
       queries.push(query);
       return { hits: batches.shift() ?? [], method: "embedding" };
     },
+    searchLive: null,
     searchWeb: null,
     readPage: async (url) => ({ url, title: "Page", text: "Sea trials at 40 m depth. Contact: lab@example.se.", retrievedAt: "2026-11-14T09:01:00Z", chars: 52 }),
     saveProgress: async (progress) => {
@@ -230,26 +276,150 @@ describe("runScout", () => {
     expect(result.brief?.options).toHaveLength(5);
   });
 
-  it("goes on with the store when web search is blocked, and says so", async () => {
+  it("goes on with the store when no live source answers, says which did not, and says it was built from stored sources", async () => {
     const brief = JSON.stringify({ options: [1, 2, 3, 4, 5].map((n) => option(`R${n}`, n)), summary: "Five test facilities offer sea trials for underwater sensors." });
     const { chat } = fakeChat([reply({ tool_calls: [toolCall("c1", "search", { query: "sea trial sensors" })] }), reply({ tool_calls: [toolCall("c2", "finish", { candidates: [] })] })], [brief]);
-    let webCalls = 0;
+    let liveCalls = 0;
     const result = await runScout(
       input,
       deps({
         chat,
         hits: [[1, 2, 3].map((n) => hit(n)), [4, 5].map((n) => hit(n))],
-        searchWeb: async () => {
-          webCalls++;
-          throw new Error("DuckDuckGo answered with a bot check (HTTP 202).");
+        searchLive: async () => {
+          liveCalls++;
+          return { hits: [], sources: [failed("EU Funding & Tenders portal", "no answer in 8 s"), failed("Vinnova funding search", "www.vinnova.se answered 503")], inStore: 0, flagged: 0 };
         },
       }),
     );
-    expect(webCalls).toBe(1);
+    expect(liveCalls).toBe(2);
     expect(result.webSearch).toBe("unavailable");
-    expect(result.webProblem).toContain("bot check");
+    expect(result.liveAnswered).toEqual([]);
+    expect(result.webProblem).toContain("no answer in 8 s");
     expect(result.brief?.notes).toContain(NO_WEB_NOTE);
-    expect(result.progress.some((p) => p.kind === "web" && p.text.includes("not available"))).toBe(true);
+    expect(result.brief?.notes).toContain("EU Funding & Tenders portal and Vinnova funding search did not answer during this run.");
+    expect(result.progress.some((p) => p.kind === "web" && p.text.includes("EU Funding & Tenders portal did not answer (no answer in 8 s)"))).toBe(true);
+  });
+
+  it("cites a live result with its origin and retrieval time, and says which live sources answered and when", async () => {
+    const brief = JSON.stringify({
+      options: [option("R1", 1), option("R2", 2), option("R3", 3), option("R4", 4), liveOption("R6")],
+      summary: "Four test facilities and one EU call for sea surveillance sensors.",
+    });
+    const { chat } = fakeChat([reply({ tool_calls: [toolCall("c1", "finish", { candidates: ["R6", "R1"] })] })], [brief]);
+    const result = await runScout(
+      input,
+      deps({ chat, hits: [[1, 2, 3, 4, 5].map((n) => hit(n))], searchLive: async () => liveAnswer([euHit()]) }),
+    );
+    const live = result.brief!.options.find((o) => o.citation.origin === "live")!;
+    expect(live.citation).toMatchObject({
+      url: EU_URL,
+      origin: "live",
+      sourceName: "EU Funding & Tenders",
+      liveSource: "EU Funding & Tenders portal",
+      liveRetrievedAt: "2026-11-14T09:00:05.000Z",
+      retrievedAt: "2026-11-14",
+      injection: null,
+    });
+    expect(live.opportunityId).toBeNull();
+    expect(live.deadline).toBe("2027-03-31T21:59:00.000Z");
+    // A store citation says nothing about live search.
+    expect(result.brief!.options[0].citation).toMatchObject({ origin: "store", liveSource: null, liveRetrievedAt: null });
+    expect(result.webSearch).toBe("used");
+    expect(result.liveAnswered).toEqual([{ name: "EU Funding & Tenders portal", at: "2026-11-14T09:00:05.000Z" }]);
+    expect(result.brief!.notes).toContain("Searched live during this run: EU Funding & Tenders portal (answered 14 November 2026, 10:00).");
+    expect(result.brief!.notes).not.toContain(NO_WEB_NOTE);
+    expect(result.progress.some((p) => p.text.startsWith(`Live search for "${input.question}": EU Funding & Tenders portal 1 result`))).toBe(true);
+  });
+
+  it("puts live results through the same checks: a fact not in the live source is left out", async () => {
+    const brief = JSON.stringify({
+      options: [
+        option("R1", 1),
+        option("R2", 2),
+        option("R3", 3),
+        option("R4", 4),
+        option("R5", 5),
+        // The live call text says 31 March 2027; 15 April 2027 is in no source.
+        liveOption("R6", { whySource: "The EU funds maritime surveillance sensor networks; the call closes on 15 April 2027." }),
+      ],
+      summary: "Five test facilities offer sea trials for underwater sensors.",
+    });
+    const { chat } = fakeChat([reply({ tool_calls: [toolCall("c1", "finish", { candidates: [] })] })], [brief]);
+    const result = await runScout(input, deps({ chat, hits: [[1, 2, 3, 4, 5].map((n) => hit(n))], searchLive: async () => liveAnswer([euHit()]) }));
+    expect(result.brief!.options.map((o) => o.citation.origin)).toEqual(["store", "store", "store", "store", "store"]);
+    expect(result.writes[0].problems.join(" ")).toContain('"15 April 2027" is not in R6');
+  });
+
+  it("carries the injection label of a flagged live result to its citation and says so in the progress", async () => {
+    const brief = JSON.stringify({ options: [option("R1", 1), option("R2", 2), option("R3", 3), option("R4", 4), liveOption("R6")], summary: "Four test facilities and one EU call." });
+    const { chat } = fakeChat([reply({ tool_calls: [toolCall("c1", "finish", { candidates: [] })] })], [brief]);
+    const flagged = euHit({ injection: INJECTION_LABEL });
+    const result = await runScout(input, deps({ chat, hits: [[1, 2, 3, 4, 5].map((n) => hit(n))], searchLive: async () => ({ ...liveAnswer([flagged]), flagged: 1 }) }));
+    expect(result.brief!.options.find((o) => o.citation.origin === "live")!.citation.injection).toBe(INJECTION_LABEL);
+    expect(result.progress.some((p) => p.text === "1 result contains text that looks like instructions to an AI; it was treated as data.")).toBe(true);
+  });
+
+  it("does not ask the live funders for test facilities", async () => {
+    const brief = JSON.stringify({ options: [1, 2, 3, 4, 5].map((n) => option(`R${n}`, n)), summary: "Five test facilities offer sea trials for underwater sensors." });
+    const { chat } = fakeChat([reply({ tool_calls: [toolCall("c1", "search", { query: "hydroacoustic test range", kind: "testbed" })] }), reply({ tool_calls: [toolCall("c2", "finish", { candidates: [] })] })], [brief]);
+    const kinds: (string | undefined)[] = [];
+    const result = await runScout(
+      input,
+      deps({
+        chat,
+        hits: [[1, 2, 3].map((n) => hit(n)), [4, 5].map((n) => hit(n))],
+        searchLive: async (_query, kind) => {
+          kinds.push(kind);
+          return kind === "testbed" ? { hits: [], sources: [], inStore: 0, flagged: 0, skipped: "the funders' searches only list funding calls" } : liveAnswer([]);
+        },
+      }),
+    );
+    expect(kinds).toEqual([undefined, "testbed"]);
+    expect(result.progress.some((p) => p.text === `Live search not used for "hydroacoustic test range": the funders' searches only list funding calls.`)).toBe(true);
+  });
+
+  it("says once that no web search key is configured, and keeps the web provider within its cap", async () => {
+    const brief = JSON.stringify({ options: [1, 2, 3, 4, 5].map((n) => option(`R${n}`, n)), summary: "Five test facilities offer sea trials for underwater sensors." });
+    const research = () => [
+      reply({ tool_calls: [toolCall("c1", "search", { query: "sea trial sensors" })] }),
+      reply({ tool_calls: [toolCall("c2", "search", { query: "hydroacoustics" })] }),
+      reply({ tool_calls: [toolCall("c3", "finish", { candidates: [] })] }),
+    ];
+    const batches = () => [[1, 2, 3].map((n) => hit(n)), [4].map((n) => hit(n)), [5].map((n) => hit(n))];
+
+    let noKeyCalls = 0;
+    const noKey = await runScout(
+      input,
+      deps({
+        chat: fakeChat(research(), [brief]).chat,
+        hits: batches(),
+        searchWeb: async () => {
+          noKeyCalls++;
+          return { status: "no-key" };
+        },
+      }),
+    );
+    expect(noKeyCalls).toBe(1);
+    expect(noKey.progress.filter((p) => p.text.includes("no web search key configured"))).toHaveLength(1);
+    expect(noKey.brief).not.toBeNull();
+    expect(noKey.webProblem).toBe("no web search key configured");
+
+    const queries: string[] = [];
+    const capped = await runScout(
+      input,
+      deps({
+        chat: fakeChat(research(), [brief]).chat,
+        hits: batches(),
+        limits: { maxWebSearches: 2 },
+        searchWeb: async (query) => {
+          queries.push(query);
+          return { status: "answered", provider: "Tavily web search", hits: [], at: "2026-11-14T09:00:02.000Z", inStore: 0, flagged: 0 };
+        },
+      }),
+    );
+    expect(queries).toEqual([input.question, "sea trial sensors"]);
+    expect(capped.progress.filter((p) => p.text.includes("web searches of this brief are used"))).toHaveLength(1);
+    expect(capped.brief!.notes[0]).toBe("Searched live during this run: Tavily web search (answered 14 November 2026, 10:00).");
   });
 
   it("respects the search cap and rejects reading an unknown id", async () => {

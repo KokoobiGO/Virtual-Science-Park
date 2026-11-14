@@ -2,8 +2,11 @@
  * Scout's agent (B3): our own tool loop on NVIDIA's chat API, then one
  * structured call that writes the brief, then the checks in verify.ts.
  *
- * 1. The question itself is searched first (store, and the web when it is
- *    available), so the model starts from real results.
+ * 1. The question itself is searched first, so the model starts from real
+ *    results. Every search asks the store, the live sources (the funders' own
+ *    search APIs, funding only) and, when a key is set, the web provider, in
+ *    parallel, and lists the results in that order (search.ts). The web
+ *    provider has its own cap (WEB_SEARCHES_PER_RUN) inside the search cap.
  * 2. The loop: the model calls search, read_page or finish, one model call per
  *    unit of work, up to RESEARCH limits (searches from SCOUT_MAX_SEARCHES,
  *    page reads, turns) and a time budget. read_page takes a result id, so
@@ -33,6 +36,7 @@ import {
   buildWriterUserMessage,
   isoDay,
   KIND_PLURALS,
+  longDay,
   loopPageBlock,
   RESEARCH_SYSTEM_PROMPT,
   SCOUT_TOOLS,
@@ -42,7 +46,9 @@ import {
   writerJsonSchema,
   type WriterOption,
 } from "./prompt";
+import type { LiveSearch } from "./live-sources";
 import { maxSearches, type StoreSearch } from "./search";
+import { NO_WEB_KEY, WEB_SEARCHES_PER_RUN, type WebSearchOutcome } from "./web-search";
 import {
   MAX_OPTIONS,
   MIN_OPTIONS,
@@ -72,6 +78,8 @@ export const RUN_BUDGET_MS = 300_000;
 
 export type ScoutLimits = {
   maxSearches: number;
+  /** Searches that also ask the keyed web provider. */
+  maxWebSearches: number;
   maxPages: number;
   /** Model calls in the research loop. */
   maxTurns: number;
@@ -86,7 +94,7 @@ export type ScoutLimits = {
 };
 
 export function defaultLimits(): ScoutLimits {
-  return { maxSearches: maxSearches(), maxPages: 3, maxTurns: 7, loopBudgetMs: 165_000, writeBudgetMs: 225_000, retryBudgetMs: 255_000, maxWriterSources: 12 };
+  return { maxSearches: maxSearches(), maxWebSearches: WEB_SEARCHES_PER_RUN, maxPages: 3, maxTurns: 7, loopBudgetMs: 165_000, writeBudgetMs: 225_000, retryBudgetMs: 255_000, maxWriterSources: 12 };
 }
 
 /** The writer reads at least this many sources when the run found them, so it can leave weak ones out. */
@@ -126,7 +134,8 @@ export type ScoutInput = {
 
 type ProgressDraft = { kind: ProgressKind; text: string };
 
-type WebState = "untried" | "used" | "unavailable";
+/** The keyed web provider: not asked yet, answered, failed (not asked again), or no key / off. */
+type WebState = "untried" | "used" | "unavailable" | "no-key" | "off";
 
 /** What one research model call gave: a reply, no time left, or an API error (a 429 is thrown instead). */
 type ModelStep =
@@ -143,8 +152,10 @@ export type ScoutDeps = {
   run?: StepRunner;
   chat?: (request: ChatRequest, options: { timeoutMs?: number }) => Promise<ChatResponse>;
   searchStore: (query: string, kind?: OpportunityKind) => Promise<StoreSearch>;
-  /** Null when the web is off (cached mode). */
-  searchWeb: ((query: string) => Promise<ScoutHit[]>) | null;
+  /** The funders' own searches, asked live (live-sources.ts searchLive). Null when off (cached mode). */
+  searchLive: ((query: string, kind?: OpportunityKind) => Promise<LiveSearch>) | null;
+  /** The keyed web provider (web-search.ts searchWeb). Null when off (cached mode). */
+  searchWeb: ((query: string) => Promise<WebSearchOutcome>) | null;
   readPage: (url: string) => Promise<PageRead>;
   /** Called inside a unit of work with the whole progress list so far. */
   saveProgress?: (progress: ProgressStep[]) => Promise<void>;
@@ -167,8 +178,12 @@ export type ScoutResult = {
   loopEnd: "finish" | "turns" | "time" | "model error" | "no tool call";
   /** Writer calls and how many options each gave and kept. */
   writes: { attempt: number; given: number; accepted: number; problems: string[] }[];
+  /** "used" when a live source or the web provider answered at least once. */
   webSearch: "used" | "unavailable";
+  /** Why live or web search did not answer, when one did not. */
   webProblem: string | null;
+  /** Each live source and web provider that answered, with when it first answered (ISO). */
+  liveAnswered: { name: string; at: string }[];
 };
 
 const errorText = (error: unknown) => (error instanceof Error ? `${error.name === "Error" ? "" : `${error.name}: `}${error.message}` : String(error)).slice(0, 240);
@@ -190,6 +205,32 @@ const kindArg = (value: unknown): OpportunityKind | undefined => {
 };
 
 const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+
+const listed = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items.at(-1)}` : (items[0] ?? ""));
+
+const clockFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+
+/** "14 November 2026, 10:02", in Swedish time. */
+export const dayAndTime = (iso: string) => `${longDay(iso)}, ${clockFormat.format(new Date(iso))}`;
+
+/** The brief's note on what answered live, or null when nothing did (then NO_WEB_NOTE). */
+export function liveNote(answered: { name: string; at: string }[]): string | null {
+  if (!answered.length) return null;
+  return `Searched live during this run: ${listed(answered.map((a) => `${a.name} (answered ${dayAndTime(a.at)})`))}.`;
+}
+
+/** The progress line for one live search. */
+export function liveLine(query: string, live: LiveSearch): string {
+  if (live.skipped) return `Live search not used for "${query}": ${live.skipped}.`;
+  const answered = live.sources.filter((s) => s.status === "answered");
+  const parts = [`Live search for "${query}": ${answered.length ? answered.map((s) => `${s.name} ${plural(s.results, "result")}`).join(", ") : "no source answered"}`];
+  if (live.inStore) parts.push(`${live.inStore} already in the store`);
+  for (const s of live.sources) {
+    if (s.status === "failed") parts.push(`${s.name} did not answer (${s.error ?? "no reason given"})`);
+    if (s.status === "skipped") parts.push(`${s.name} not asked (no specific words to search for)`);
+  }
+  return `${parts.join("; ")}.`;
+}
 
 /** Passed options of the writer's answers in order, one per source, at most MAX_OPTIONS. */
 export function mergeAccepted(answers: CheckedBrief[]): CheckedBrief["accepted"] {
@@ -225,6 +266,10 @@ export function toScoutOption(option: WriterOption, source: SourceRecord): Scout
       sourceState: source.sourceState ?? null,
       sourceCachedAt: source.sourceCachedAt ?? null,
       pageStored: source.page?.stored === true,
+      // A live or web result: which search returned it and when, so the page can say "live result, retrieved <time>".
+      liveSource: source.origin === "store" ? null : (source.liveSource ?? null),
+      liveRetrievedAt: source.origin === "store" ? null : source.retrievedAt,
+      injection: source.injection ?? null,
     },
     opportunityId: source.opportunityId ?? null,
     deadline: source.deadline ?? source.eventDate ?? null,
@@ -249,11 +294,28 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
   const returnedUrls = new Set<string>();
   let searches = 0;
   let pagesRead = 0;
-  /** In an object: TypeScript would otherwise keep the narrowed first value of a variable that only closures change. */
-  const state: { web: WebState; webProblem: string | null } = {
-    web: deps.searchWeb ? "untried" : "unavailable",
-    webProblem: deps.searchWeb ? null : "Web search is off (DEMO_MODE=cached).",
+  /**
+   * What live and web search did so far, changed only from units' outputs, so a replay of the job sees the same.
+   * In an object: TypeScript would otherwise keep the narrowed first value of a variable that only closures change.
+   */
+  const state: {
+    web: WebState;
+    webSearches: number;
+    webProblem: string | null;
+    /** Live source or web provider name -> when it first answered. */
+    answered: Map<string, string>;
+    /** Live source name -> its last failure, while it has never answered. */
+    liveFailed: Map<string, string>;
+    capSaid: boolean;
+  } = {
+    web: deps.searchWeb ? "untried" : "off",
+    webSearches: 0,
+    webProblem: null,
+    answered: new Map(),
+    liveFailed: new Map(),
+    capSaid: false,
   };
+  const liveOff = !deps.searchLive && !deps.searchWeb;
   /** Lines to save with the next unit of work, from decisions made outside one. */
   let pending: ProgressDraft[] = [];
 
@@ -305,45 +367,79 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
     return { fresh, repeated };
   };
 
-  /** One search: the store, and the web while it works. Returns the tool message text. */
+  /**
+   * One search: the store, the live sources and the keyed web provider in parallel, listed in that order.
+   * A live or web failure is a progress line; the search goes on with what answered. Returns the tool message text.
+   */
   const search = async (query: string, kind: OpportunityKind | undefined): Promise<string> => {
     searches++;
-    const tryWeb = state.web !== "unavailable" && deps.searchWeb !== null;
+    const tryLive = deps.searchLive !== null;
+    const webOpen = state.web === "untried" || state.web === "used";
+    const tryWeb = deps.searchWeb !== null && webOpen && state.webSearches < limits.maxWebSearches;
+    const sayCap = deps.searchWeb !== null && webOpen && !tryWeb && !state.capSaid;
     const out = await unit(`search ${searches}`, async () => {
-      const store = await deps.searchStore(query, kind);
-      let webHits: ScoutHit[] = [];
-      let webError: string | null = null;
-      if (tryWeb) {
-        try {
-          webHits = await deps.searchWeb!(query);
-        } catch (error) {
-          webError = errorText(error);
-        }
-      }
+      const [store, live, web] = await Promise.all([
+        deps.searchStore(query, kind),
+        tryLive ? deps.searchLive!(query, kind).catch((error): LiveSearch => ({ hits: [], sources: [{ name: "Live search", status: "failed", results: 0, at: new Date(now()).toISOString(), error: errorText(error) }], inStore: 0, flagged: 0 })) : null,
+        tryWeb ? deps.searchWeb!(query).catch((error): WebSearchOutcome => ({ status: "failed", provider: "Web search", error: errorText(error) })) : null,
+      ]);
       const lines: ProgressDraft[] = [
         {
           kind: "search",
           text: `Searched stored opportunities for "${query}"${kind ? ` (${KIND_PLURALS[kind]} only)` : ""}: ${plural(store.hits.length, "result")}${store.method === "keywords" ? " by keywords, because the embedding service did not answer" : ""}.`,
         },
       ];
-      if (tryWeb) {
-        lines.push({
-          kind: "web",
-          text: webError ? `Web search was not available (${webError}). Going on with stored sources only.` : `Web search on trusted sites for "${query}": ${plural(webHits.length, "result")}.`,
-        });
+      if (live) lines.push({ kind: "web", text: liveLine(query, live) });
+      if (web?.status === "no-key") lines.push({ kind: "web", text: `General web search is off: ${NO_WEB_KEY} (TAVILY_API_KEY or BRAVE_SEARCH_API_KEY).` });
+      if (web?.status === "answered") {
+        lines.push({ kind: "web", text: `${web.provider} on trusted sites for "${query}": ${plural(web.hits.length, "result")}${web.inStore ? ` (${web.inStore} already in the store)` : ""}.` });
       }
-      return { value: { store: store.hits, web: webHits, webError }, progress: lines };
+      if (web?.status === "failed") lines.push({ kind: "web", text: `${web.provider} did not answer (${web.error}); going on without it.` });
+      if (sayCap) lines.push({ kind: "web", text: `The ${limits.maxWebSearches} web searches of this brief are used; going on with stored and live sources.` });
+      const flagged = (live?.flagged ?? 0) + (web?.status === "answered" ? web.flagged : 0);
+      if (flagged) lines.push({ kind: "web", text: `${plural(flagged, "result")} ${flagged === 1 ? "contains" : "contain"} text that looks like instructions to an AI; it was treated as data.` });
+      return { value: { store: store.hits, live, web }, progress: lines };
     });
-    if (tryWeb) {
-      if (out.webError) {
-        state.web = "unavailable";
-        state.webProblem = out.webError;
-      } else state.web = "used";
+
+    if (sayCap) state.capSaid = true;
+    for (const source of out.live?.sources ?? []) {
+      if (source.status === "answered") {
+        if (!state.answered.has(source.name)) state.answered.set(source.name, source.at);
+        state.liveFailed.delete(source.name);
+      } else if (source.status === "failed" && !state.answered.has(source.name)) state.liveFailed.set(source.name, source.error ?? "no answer");
     }
-    const { fresh, repeated } = register([...out.store, ...out.web]);
-    const webNote = tryWeb && out.webError ? "Web search is not available; these results are from the store only." : null;
+    if (out.web) {
+      if (out.web.status === "no-key") {
+        state.web = "no-key";
+        state.webProblem = NO_WEB_KEY;
+      } else {
+        state.webSearches++;
+        if (out.web.status === "answered") {
+          state.web = "used";
+          if (!state.answered.has(out.web.provider)) state.answered.set(out.web.provider, out.web.at);
+        } else {
+          state.web = "unavailable";
+          state.webProblem = `${out.web.provider}: ${out.web.error}`;
+        }
+      }
+    }
+
+    const liveHits = out.live?.hits ?? [];
+    const webHits = out.web?.status === "answered" ? out.web.hits : [];
+    const { fresh, repeated } = register([...out.store, ...liveHits, ...webHits]);
+    const outsideTried = (out.live && !out.live.skipped) || (out.web && out.web.status !== "no-key");
+    const outsideAnswered = out.live?.sources.some((s) => s.status === "answered") || out.web?.status === "answered";
+    const webNote = outsideTried && !outsideAnswered ? "The live sources did not answer this search; these results are from the store only." : null;
     return searchResultText({ query, fresh, repeated, webNote });
   };
+
+  /** Why nothing live answered, for ScoutResult.webProblem; null when something did. */
+  const outsideProblem = (): string | null => {
+    const problems = [...[...state.liveFailed].map(([name, error]) => `${name}: ${error}`), ...(state.webProblem ? [state.webProblem] : [])];
+    if (liveOff) return "Live and web search are off (DEMO_MODE=cached).";
+    return problems.length ? problems.join("; ").slice(0, 400) : null;
+  };
+  const liveAnswered = () => [...state.answered].map(([name, at]) => ({ name, at }));
 
   /** One page read, by result id. Returns the tool message text. */
   const readPage = async (source: SourceRecord): Promise<string> => {
@@ -375,7 +471,19 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
       return entries;
     });
     progress.push(...lines);
-    return { brief: null, error, progress, searches, pagesRead, usage, loopEnd, writes, webSearch: state.web === "used" ? "used" : "unavailable", webProblem: state.webProblem };
+    return {
+      brief: null,
+      error,
+      progress,
+      searches,
+      pagesRead,
+      usage,
+      loopEnd,
+      writes,
+      webSearch: state.answered.size ? "used" : "unavailable",
+      webProblem: outsideProblem(),
+      liveAnswered: liveAnswered(),
+    };
   };
 
   // 1. The question itself.
@@ -570,7 +678,10 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
   // The writer's summary only when its answer is used whole; otherwise a plain one from the kept options.
   const summary = (kept.length === best.accepted.length ? best.summary : null) ?? codeSummary(options.map((o) => ({ kind: o.kind, sourceName: o.citation.sourceName })));
   const notes: string[] = [];
-  if (state.web !== "used") notes.push(NO_WEB_NOTE);
+  // Which live sources answered and when; "built from stored sources" only when none did.
+  notes.push(liveNote(liveAnswered()) ?? NO_WEB_NOTE);
+  const neverAnswered = [...state.liveFailed.keys()];
+  if (neverAnswered.length) notes.push(`${listed(neverAnswered)} did not answer during this run.`);
   const onlyFound = options.length < MIN_OPTIONS ? options.length : null;
   if (onlyFound !== null) notes.push(`Only ${plural(onlyFound, "option")} found that fit the question and passed the checks.`);
   const dropped = best.failed.length;
@@ -583,7 +694,7 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
       options,
       notes,
       onlyFound,
-      webSearch: state.web === "used" ? "used" : "unavailable",
+      webSearch: state.answered.size ? "used" : "unavailable",
       stats: {
         seconds: Math.round((finishedAt - input.startedAt) / 1000),
         modelCalls: usage.calls,
@@ -605,5 +716,17 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
     return { value: { result, at, done }, progress: [] };
   });
   progress.push({ ...brief.done, at: brief.at });
-  return { brief: brief.result, error: null, progress, searches, pagesRead, usage, loopEnd, writes, webSearch: brief.result.webSearch, webProblem: state.webProblem };
+  return {
+    brief: brief.result,
+    error: null,
+    progress,
+    searches,
+    pagesRead,
+    usage,
+    loopEnd,
+    writes,
+    webSearch: brief.result.webSearch,
+    webProblem: outsideProblem(),
+    liveAnswered: liveAnswered(),
+  };
 }

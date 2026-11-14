@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { writerPool } from "./agent";
-import { buildWriterUserMessage, defuse, writerJsonSchema, writerSourceText } from "./prompt";
+import { buildWriterUserMessage, defuse, loopSourceBlock, writerJsonSchema, writerSourceText } from "./prompt";
 import type { SourceRecord } from "./types";
 
 const record = (id: string, extra: Partial<SourceRecord> = {}): SourceRecord => ({
@@ -50,6 +50,22 @@ describe("prompt blocks", () => {
     expect(text).toContain("Contact: MTC contact form: https://www.mtcos.se/kontakt/");
     expect(text).toContain("Who may apply (from the source): Small companies");
     expect(text).toContain("Address: https://example.se/R2");
+  });
+
+  it("says where a live result was found, in an untrusted block, with its opening day", () => {
+    const live = record("R3", {
+      origin: "live",
+      kind: "funding",
+      sourceName: "EU Funding & Tenders",
+      liveSource: "EU Funding & Tenders portal",
+      opensAt: "2027-01-12T23:00:00.000Z",
+      deadline: "2027-03-31T21:59:00.000Z",
+    });
+    const block = loopSourceBlock(live);
+    expect(block).toMatch(/^<untrusted_source id="R3">/);
+    expect(block).toContain("Found in: live search of the EU Funding & Tenders portal");
+    expect(block).toContain("Opens: 13 January 2027\nDeadline: 31 March 2027");
+    expect(writerSourceText(live)).toContain("Opens: 13 January 2027");
   });
 
   it("lets the writer name only the ids it was shown", () => {

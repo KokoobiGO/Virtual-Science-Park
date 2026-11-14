@@ -2,34 +2,34 @@
  * Scout's search (B1). NVIDIA's API has no web search, so Scout brings its
  * own, behind one small adapter interface: `search(query)` answers with
  * `{ title, url, snippet }` hits (plus what the source knows about them).
+ * The model asks `search(query, kind)` once; the code asks, in this order:
  *
- * Two sources sit behind it:
+ * - store (this file): BSP's own opportunity store, by embedding similarity
+ *   of the query (Voyage, the same vectors as the matcher) and, when the
+ *   embedding call fails or is rate limited, by bilingual keywords
+ *   (keywords.ts). Fixtures (external id "fixture-...") never come back, nor
+ *   closed calls, past events or news.
+ * - live sources (live-sources.ts): the funders' own public search APIs,
+ *   asked at question time, so calls newer than the last collect are found.
+ *   A live hit the store already has is replaced by the stored hit
+ *   (findStoredHits, mergeWithStore), so it is never listed twice.
+ * - web (web-search.ts): Tavily or Brave Search when their key is set.
  *
- * - store: BSP's own opportunity store, by embedding similarity of the query
- *   (Voyage, the same vectors as the matcher) and, when the embedding call
- *   fails or is rate limited, by bilingual keywords (keywords.ts). Fixtures
- *   (external id "fixture-...") never come back, nor closed calls, past
- *   events or news.
- * - web: DuckDuckGo's HTML endpoint, fetched through the repo's page fetcher,
- *   keeping only hits on ALLOWED_WEB_DOMAINS. Measured from a developer
- *   machine on 2026-11-14: DuckDuckGo answers the fetcher with HTTP 202 and a
- *   "bots use DuckDuckGo too" challenge page, so this source is unavailable
- *   there; it throws WebSearchUnavailable and the run continues on the store.
- *   We never try to get around the challenge.
+ * Every live and web hit must be on ALLOWED_WEB_DOMAINS. DuckDuckGo's HTML
+ * page, the web source before, answered every request with a bot check
+ * (HTTP 202, measured 2026-11-14), so it was removed.
  *
  * Jobs and scripts only: the store search reads with getDb().
  */
-import * as cheerio from "cheerio/slim";
-import { and, asc, cosineDistance, eq, gte, isNotNull, isNull, ne, notLike, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, cosineDistance, eq, gte, inArray, isNotNull, isNull, ne, notLike, or, sql, type SQL } from "drizzle-orm";
 import { getDb, type Db } from "../db";
 import { opportunities, sourceStatus } from "../db/schema";
 import { cutText } from "../embeddings/text";
-import { fetchPage, type FetchedPage } from "../fetcher/fetch-page";
 import { FIXTURE_PREFIX } from "../matcher/score";
 import type { OpportunityKind, SourceState } from "../schemas";
 import { voyageEmbed } from "../voyage";
 import { hasSpecific, keywordPlan, rankByKeywords } from "./keywords";
-import type { ScoutHit, SearchHit, SourceOrigin } from "./types";
+import type { ScoutHit, SourceOrigin } from "./types";
 
 /** The adapter interface (B1). */
 export interface SearchSource {
@@ -39,7 +39,7 @@ export interface SearchSource {
 
 /** Hits per search and source. */
 export const STORE_LIMIT = 8;
-export const WEB_LIMIT = 6;
+export const WEB_LIMIT = 5;
 
 /** Shown in the loop's search results; the writer reads up to STORE_DESCRIPTION_CHARS. */
 export const SNIPPET_CHARS = 350;
@@ -70,6 +70,8 @@ type StoreRow = {
   id: string;
   kind: OpportunityKind;
   source: string;
+  /** Optional: rows read before live search matched on it carry none. */
+  externalId?: string;
   title: string;
   url: string;
   description: string | null;
@@ -91,6 +93,7 @@ const storeColumns = {
   id: opportunities.id,
   kind: opportunities.kind,
   source: opportunities.source,
+  externalId: opportunities.externalId,
   title: opportunities.title,
   url: opportunities.url,
   description: opportunities.description,
@@ -126,6 +129,7 @@ export function storeHit(row: StoreRow): ScoutHit {
     opportunityId: row.id,
     kind: row.kind,
     sourceName: row.source,
+    externalId: row.externalId ?? null,
     deadline: row.deadline?.toISOString() ?? null,
     eventDate: row.eventDate?.toISOString() ?? null,
     contact: row.contact ? collapse(row.contact) : null,
@@ -250,65 +254,47 @@ export function isAllowedUrl(url: string, domains: readonly string[] = ALLOWED_W
   return domains.some((domain) => host === domain || host.endsWith(`.${domain}`));
 }
 
-/** Web search could not be used; the run goes on with the store alone. */
-export class WebSearchUnavailable extends Error {}
-
-export const DUCKDUCKGO_HTML = "https://html.duckduckgo.com/html/";
-
-/** DuckDuckGo's answer to a client it takes for a bot: HTTP 202 and a picture challenge. */
-export function isBotChallenge(page: Pick<FetchedPage, "status" | "html">): boolean {
-  return page.status === 202 || /bots use DuckDuckGo too|anomaly-modal|challenge-form/i.test(page.html);
-}
-
-/** The target of a DuckDuckGo result link: "//duckduckgo.com/l/?uddg=<encoded>&rut=..." or a direct URL. */
-export function resultTarget(href: string): string | null {
-  try {
-    const url = new URL(href, "https://duckduckgo.com");
-    const target = url.hostname.endsWith("duckduckgo.com") ? url.searchParams.get("uddg") : url.href;
-    return target ? new URL(target).href : null;
-  } catch {
-    return null;
+/**
+ * The current store rows behind live or web hits: the same URL, or the same
+ * source label and external id (a Vinnova row stored while vinnova.se's page
+ * list was down links to the find-funding page, but keeps its diarienummer).
+ * Only rows of the open pool count; for a row the store has as closed, the
+ * live hit is newer and stays.
+ */
+export async function findStoredHits(
+  hits: Pick<ScoutHit, "url" | "sourceName" | "externalId">[],
+  options: { db?: Db; now?: Date } = {},
+): Promise<ScoutHit[]> {
+  if (!hits.length) return [];
+  const { db = getDb(), now = new Date() } = options;
+  const ids = new Map<string, Set<string>>();
+  for (const hit of hits) {
+    if (!hit.sourceName || !hit.externalId) continue;
+    if (!ids.has(hit.sourceName)) ids.set(hit.sourceName, new Set());
+    ids.get(hit.sourceName)!.add(hit.externalId);
   }
+  const match = or(
+    inArray(opportunities.url, [...new Set(hits.map((h) => h.url))]),
+    ...[...ids].map(([source, set]) => and(eq(opportunities.source, source), inArray(opportunities.externalId, [...set]))),
+  );
+  const rows = await db.select(storeColumns).from(opportunities).leftJoin(sourceStatus, statusJoin).where(and(openPool(now), match));
+  return rows.map(storeHit);
 }
 
-/** The organic hits on a DuckDuckGo HTML results page, ads left out. */
-export function parseDuckDuckGo(html: string): SearchHit[] {
-  const $ = cheerio.load(html);
-  const hits: SearchHit[] = [];
-  $(".result").each((_, element) => {
-    const result = $(element);
-    if (result.hasClass("result--ad")) return;
-    const link = result.find("a.result__a").first();
-    const url = resultTarget(link.attr("href") ?? "");
-    const title = collapse(link.text());
-    if (!url || !title) return;
-    hits.push({ title, url, snippet: collapse(result.find(".result__snippet").first().text()) });
-  });
-  return hits;
-}
-
-export type WebSearchOptions = { limit?: number; fetch?: (url: string) => Promise<FetchedPage>; now?: Date; domains?: readonly string[] };
-
-/** Hits on allowed sites for the query. Throws WebSearchUnavailable when DuckDuckGo cannot be used. */
-export async function searchWeb(query: string, options: WebSearchOptions = {}): Promise<ScoutHit[]> {
-  const { limit = WEB_LIMIT, fetch = fetchPage, now = new Date(), domains = ALLOWED_WEB_DOMAINS } = options;
-  let page: FetchedPage;
-  try {
-    page = await fetch(`${DUCKDUCKGO_HTML}?q=${encodeURIComponent(query)}`);
-  } catch (error) {
-    throw new WebSearchUnavailable(`DuckDuckGo could not be reached: ${error instanceof Error ? error.message : String(error)}`);
+/**
+ * Live or web hits with every one the store already has replaced by the
+ * stored hit (same URL, or same source label and external id), each stored
+ * hit once. The stored hit carries more (contact, who may apply) and an
+ * opportunity id the company can save.
+ */
+export function mergeWithStore(hits: ScoutHit[], stored: ScoutHit[]): { hits: ScoutHit[]; inStore: number } {
+  const merged: ScoutHit[] = [];
+  let inStore = 0;
+  for (const hit of hits) {
+    const match = stored.find((s) => s.url === hit.url || (!!hit.externalId && s.externalId === hit.externalId && s.sourceName === hit.sourceName));
+    if (match) inStore++;
+    const keep = match ?? hit;
+    if (!merged.some((m) => m.url === keep.url)) merged.push(keep);
   }
-  if (isBotChallenge(page)) throw new WebSearchUnavailable(`DuckDuckGo answered with a bot check (HTTP ${page.status}).`);
-  const hits = parseDuckDuckGo(page.html);
-  if (!hits.length && !/class="[^"]*result/.test(page.html)) throw new WebSearchUnavailable("DuckDuckGo's answer had no result list.");
-  const seen = new Set<string>();
-  return hits
-    .filter((hit) => isAllowedUrl(hit.url, domains) && !seen.has(hit.url) && seen.add(hit.url))
-    .slice(0, limit)
-    .map((hit) => ({ ...hit, origin: "web", retrievedAt: now.toISOString(), sourceName: new URL(hit.url).hostname.replace(/^www\./, "") }));
+  return { hits: merged, inStore };
 }
-
-export const duckDuckGoSource: SearchSource = {
-  name: "web",
-  search: (query) => searchWeb(query),
-};
