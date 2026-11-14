@@ -34,7 +34,7 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
   const metadata = AppMetadata.safeParse(data.user.app_metadata);
   if (!metadata.success) {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     return { error: "This account has no role yet. Ask BSP staff to set it up." };
   }
 
@@ -43,6 +43,6 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/");
 }

@@ -32,6 +32,16 @@ import type {
   TimedTestResults,
 } from "@/lib/trust/shapes";
 
+/** Display names for the red-team groups; the stored ids stay as they are. */
+const RED_TEAM_GROUP_LABELS: Record<string, string> = {
+  relevant: "Relevant questions",
+  unrelated: "Unrelated questions",
+  override: "Override attempts",
+  indirect_injection: "Hidden instructions in sources",
+  privacy: "Other companies' data",
+  eligibility: "\"Can we apply?\" questions",
+};
+
 const FIELDS_PER_PROFILE = ProfileField.options.length;
 
 // ---------------------------------------------------------------------------
@@ -322,7 +332,7 @@ export function RedTeamSection({ run }: { run: Run<RedTeamSummary> }) {
       {run.status === "measured" ? (
         <Table
           head={["Group", "Passed", "Pass rate"]}
-          rows={run.summary.groups.map((g) => [g.group, `${g.passed} of ${g.total}`, percentOf(g.passed, g.total)])}
+          rows={run.summary.groups.map((g) => [RED_TEAM_GROUP_LABELS[g.group] ?? g.group.replace(/_/g, " "), `${g.passed} of ${g.total}`, percentOf(g.passed, g.total)])}
         />
       ) : null}
     </Section>

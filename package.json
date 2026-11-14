@@ -39,7 +39,9 @@
     "eval": "tsx --env-file-if-exists=.env.local scripts/eval.ts",
     "gold:export": "tsx --env-file-if-exists=.env.local scripts/gold-export.ts",
     "check:links": "tsx --env-file-if-exists=.env.local scripts/check-links.ts",
-    "sources:status": "tsx --env-file-if-exists=.env.local scripts/sources-status.ts"
+    "sources:status": "tsx --env-file-if-exists=.env.local scripts/sources-status.ts",
+    "e2e": "node --env-file-if-exists=.env.local node_modules/@playwright/test/cli.js test",
+    "e2e:report": "node node_modules/@playwright/test/cli.js show-report"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
@@ -64,6 +66,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
