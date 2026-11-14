@@ -3,8 +3,11 @@
  * filters in the URL, each item's date status, the order of the list and the
  * member's own ranked matches.
  */
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
+import { formatDay } from "../i18n/format";
+import { createTranslator } from "../i18n/translate";
 import { OpportunityKind, OpportunityTag, type SourceState } from "../schemas";
-import { DAY_MS, daysUntil, formatDay } from "./dates";
+import { DAY_MS, daysUntil } from "./dates";
 
 /** One opportunity as the explorer shows it. */
 export type ExploreItem = {
@@ -30,6 +33,11 @@ export type ExploreItem = {
   cachedAt: Date | null;
 };
 
+/**
+ * The English names. The screen takes its words from messages/*.json
+ * (`common.kinds`, `explore.due`, `explore.titles`, C19); tests keep the
+ * English catalogue equal to these constants.
+ */
 export const KIND_LABELS: Record<OpportunityKind, string> = {
   funding: "Funding call",
   testbed: "Test facility",
@@ -174,19 +182,24 @@ export function filterItems(items: readonly ExploreItem[], filters: ExploreFilte
     .sort(compareItems(now));
 }
 
-/** One line on an item's date, e.g. "Deadline 1 Dec 2027" or "Opens 3 Aug 2027, deadline 1 Dec 2027". */
-export function dateLabel(item: Pick<ExploreItem, "kind" | "deadline" | "eventDate" | "opensAt">, now: Date): string {
+/**
+ * One line on an item's date, e.g. "Deadline 1 Dec 2027" or "Opens 3 Aug 2027, deadline 1 Dec 2027".
+ * In the reader's language (messages/*.json, `explore.dates`); English when `locale` is left out.
+ */
+export function dateLabel(item: Pick<ExploreItem, "kind" | "deadline" | "eventDate" | "opensAt">, now: Date, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "explore");
   const status = dateStatus(item, now);
   const date = keyDate(item);
-  if (!date) return "No date";
+  if (!date) return t("dates.noDate");
   const isEvent = !item.deadline;
-  const day = formatDay(date);
-  if (status === "closed") return isEvent ? `Took place ${day}` : `Closed ${day}`;
-  const main = isEvent ? day : `Deadline ${day}`;
-  if (status === "opens_later") return `Opens ${formatDay(item.opensAt!)}, deadline ${day}`;
+  const day = formatDay(date, locale);
+  if (status === "closed") return t(isEvent ? "dates.tookPlace" : "dates.closed", { day });
+  const main = isEvent ? day : t("dates.deadline", { day });
+  if (status === "opens_later") return t("dates.opensLater", { opens: formatDay(item.opensAt!, locale), day });
   if (status === "closing_soon") {
     const days = daysUntil(date, now);
-    return `${main} (${days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`})`;
+    const when = days === 0 ? t("dates.today") : days === 1 ? t("dates.tomorrow") : t("dates.inDays", { days });
+    return t("dates.soon", { date: main, when });
   }
   return main;
 }

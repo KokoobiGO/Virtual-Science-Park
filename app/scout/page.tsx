@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LoadingState, Skeleton } from "@/components/loading-skeleton";
+import { LoadingState, PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
 import { getViewer, requireRole } from "@/lib/auth";
 import { isCachedMode } from "@/lib/collectors/cache";
+import { LocaleProvider } from "@/lib/i18n/client";
+import type { Locale } from "@/lib/i18n/config";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/translate";
 import { prerunQuestions } from "@/lib/scout/prerun";
 import { briefQuestion, companySlug, getBrief, isUuid, listBriefs, prerunRows, type Member } from "@/lib/scout/queries";
 import { scoutTitle } from "./labels";
@@ -12,41 +16,52 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
 
 /** "Scout", or the open brief's question and "Scout". */
 export async function generateMetadata({ searchParams }: PageProps<"/scout">): Promise<Metadata> {
-  const id = first((await searchParams).brief);
-  if (!id || !isUuid(id)) return { title: scoutTitle(null) };
+  const [t, params] = await Promise.all([getT("scout"), searchParams]);
+  const id = first(params.brief);
+  if (!id || !isUuid(id)) return { title: scoutTitle(null, t) };
   const viewer = await getViewer();
-  if (viewer?.role !== "member" || !viewer.companyId) return { title: scoutTitle(null) };
+  if (viewer?.role !== "member" || !viewer.companyId) return { title: scoutTitle(null, t) };
   const question = await briefQuestion({ claims: viewer.claims, userId: viewer.userId, companyId: viewer.companyId }, id);
-  return { title: scoutTitle(question) };
+  return { title: scoutTitle(question, t) };
 }
 
 /**
  * Scout (C10): ask a question, watch the run, read the cited brief, reopen
  * earlier briefs. The briefs list is the company's saved briefs; an option
  * from the opportunity store can also be saved on its own (saved_items).
+ * The words follow the reader's language (C19); questions and briefs are shown as stored.
  */
 export default function Page(props: PageProps<"/scout">) {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
-      <div className="flex max-w-3xl flex-col gap-2">
-        <h1 className="text-title">Scout</h1>
-        <p className="text-muted-foreground">
-          Ask about funding, test facilities or events. Scout searches Blue Science Park&apos;s store of current opportunities,
-          reads the pages it needs and writes a short brief in which every option cites its source. Each option is a potential
-          match for you to check: whether you may take part is for the funder or the facility to decide.
-        </p>
-      </div>
-      <Suspense fallback={<ScoutSkeleton />}>
-        <ScoutScreen searchParams={props.searchParams} />
+      <Suspense fallback={<PageShellSkeleton className="max-w-3xl" />}>
+        <ScoutFrame searchParams={props.searchParams} />
       </Suspense>
     </section>
   );
 }
 
-/** The question box, a brief and the list of briefs, while they load. */
-function ScoutSkeleton() {
+/** Reads the language only, then waits for the session and the briefs behind a skeleton in that language. */
+async function ScoutFrame({ searchParams }: { searchParams: PageProps<"/scout">["searchParams"] }) {
+  const locale = await getLocale();
+  const t = createTranslator(locale, "scout");
   return (
-    <LoadingState label="Loading your briefs…">
+    <LocaleProvider locale={locale}>
+      <div className="flex max-w-3xl flex-col gap-2">
+        <h1 className="text-title">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("intro")}</p>
+      </div>
+      <Suspense fallback={<ScoutSkeleton label={t("loading")} />}>
+        <ScoutScreen searchParams={searchParams} locale={locale} />
+      </Suspense>
+    </LocaleProvider>
+  );
+}
+
+/** The question box, a brief and the list of briefs, while they load. */
+function ScoutSkeleton({ label }: { label: string }) {
+  return (
+    <LoadingState label={label}>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <div className="flex flex-col gap-2">
@@ -77,15 +92,10 @@ function ScoutSkeleton() {
   );
 }
 
-async function ScoutScreen({ searchParams }: { searchParams: PageProps<"/scout">["searchParams"] }) {
+async function ScoutScreen({ searchParams, locale }: { searchParams: PageProps<"/scout">["searchParams"]; locale: Locale }) {
   const viewer = await requireRole("member");
   if (!viewer.companyId) {
-    return (
-      <p className="max-w-prose rounded-xl border border-dashed p-6 text-muted-foreground">
-        Your account is not linked to a member company yet, so Scout has no profile to search for. Ask BSP staff to link your
-        account to your company.
-      </p>
-    );
+    return <p className="max-w-prose rounded-xl border border-dashed p-6 text-muted-foreground">{createTranslator(locale, "scout")("notLinked")}</p>;
   }
   const member: Member = { claims: viewer.claims, userId: viewer.userId, companyId: viewer.companyId };
 

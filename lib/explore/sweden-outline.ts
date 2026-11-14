@@ -136,8 +136,8 @@ export const VATTERN: readonly LonLat[] = [
 export const LAND: readonly (readonly LonLat[])[] = [MAINLAND, OLAND, GOTLAND];
 export const LAKES: readonly (readonly LonLat[])[] = [VANERN, VATTERN];
 
-/** Labels for the areas around the outline. */
-export const AREA_LABELS: readonly { text: string; at: LonLat }[] = [
-  { text: "Norway", at: [11.35, 60.35] },
-  { text: "Baltic Sea", at: [17.6, 56.35] },
+/** Labels for the areas around the outline. The words are in messages/*.json, `explore.map.areas` (C19). */
+export const AREA_LABELS: readonly { id: "norway" | "balticSea"; at: LonLat }[] = [
+  { id: "norway", at: [11.35, 60.35] },
+  { id: "balticSea", at: [17.6, 56.35] },
 ];

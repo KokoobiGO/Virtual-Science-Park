@@ -1,14 +1,31 @@
 /**
  * Dates on the explorer, shown in Swedish time: BSP is in Karlskrona, and the
  * sources store a deadline such as "23:59 on 1 December" as 22:59 UTC.
+ * Month names are in the reader's language (C19); English when left out.
  */
+import { DEFAULT_LOCALE, INTL_LOCALE, type Locale } from "../i18n/config";
+
 export const TIME_ZONE = "Europe/Stockholm";
 
 export const DAY_MS = 86_400_000;
 
 const dayFormat = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, day: "numeric", month: "short", year: "numeric" });
-const monthFormat = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, month: "long", year: "numeric" });
-const shortMonthFormat = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, month: "short" });
+const MONTH_OPTIONS = {
+  long: { timeZone: TIME_ZONE, month: "long", year: "numeric" },
+  short: { timeZone: TIME_ZONE, month: "short" },
+} satisfies Record<string, Intl.DateTimeFormatOptions>;
+const monthFormats = new Map<string, Intl.DateTimeFormat>();
+
+function monthFormat(style: keyof typeof MONTH_OPTIONS, locale: Locale): Intl.DateTimeFormat {
+  const key = `${style}|${locale}`;
+  let format = monthFormats.get(key);
+  if (!format) {
+    format = new Intl.DateTimeFormat(INTL_LOCALE[locale], MONTH_OPTIONS[style]);
+    monthFormats.set(key, format);
+  }
+  return format;
+}
+
 const partsFormat = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
 
 /** Year, month and day of `date` in Swedish time. */
@@ -35,14 +52,15 @@ function monthStart(key: string): Date {
   return new Date(Date.UTC(year, month - 1, 15));
 }
 
-/** "December 2027". */
-export function monthLabel(key: string): string {
-  return monthFormat.format(monthStart(key));
+/** "December 2027". Swedish writes "december 2027", but the month starts a heading, so it gets a capital there too. */
+export function monthLabel(key: string, locale: Locale = DEFAULT_LOCALE): string {
+  const label = monthFormat("long", locale).format(monthStart(key));
+  return label.charAt(0).toLocaleUpperCase(INTL_LOCALE[locale]) + label.slice(1);
 }
 
-/** "Dec". */
-export function shortMonthLabel(key: string): string {
-  return shortMonthFormat.format(monthStart(key));
+/** "Dec" ("dec." in Swedish). */
+export function shortMonthLabel(key: string, locale: Locale = DEFAULT_LOCALE): string {
+  return monthFormat("short", locale).format(monthStart(key));
 }
 
 /** Every month key from `first` to `last`, both included. */
