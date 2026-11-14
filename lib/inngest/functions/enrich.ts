@@ -99,6 +99,11 @@ export const enrichJob = inngest.createFunction(
         });
     });
 
+    // New opportunities or new profiles change the rankings: ask the matcher (A18).
+    if (result.opportunities.enriched + result.companies.enriched > 0) {
+      await step.sendEvent("request matching", { name: "app/match.requested", data: {} });
+    }
+
     return result;
   },
 );

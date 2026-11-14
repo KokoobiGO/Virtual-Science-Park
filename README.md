@@ -61,6 +61,7 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run collect -- <source\|all>` | Run one collector or all of them and store the opportunities (A9 to A13, A25, A26); add `--dry` to only print |
 | `npm run enrich` | Tag and embed opportunities and companies that have no embedding yet (A14); `--force`, `--limit N`, `--dry` |
 | `npm run similar -- <slug>` | The nearest opportunities and companies to one member, by embedding (A14) |
+| `npm run match -- [slug ...]` | Rank and store the top 20 opportunities per company in both modes (A15); `--dry` prints the ranking with its five parts |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 
@@ -88,6 +89,7 @@ lib/profiler/        profiler (A5, A6, A8): page text in, claims out; quote chec
 lib/collectors/     collectors (A9 to A13, A25, A26): one folder per outside source, one shared store
 lib/tagger/         tagger (A14): which of the six tags a text is about
 lib/embeddings/     embedding texts and the enrich functions (A14)
+lib/matcher/        matcher (A15, A18): the ranking SQL, the score parts, storing the top 20
 lib/links/          link checker (A20)
 lib/sources/        source health verdicts (A19)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
@@ -296,6 +298,39 @@ also runs every night at 03:30, after the collectors.
   one adds the company's private claims and priorities.
 - Voyage without billing allows 3 requests and 10,000 tokens a minute, so a
   full run takes about 10 minutes with `npm run enrich` and longer as a job.
+
+## Matcher: retrieval and score (A15, A18, A22)
+
+```
+event: app/match.requested            data: {}   or   { "slugs": ["embeddedart"] }
+event: app/company.profile.changed    data: { "companyId": "..." }
+```
+
+`rankCompany(db, companyId, mode)` in `lib/matcher/rank.ts` is one SQL
+statement that ranks the current opportunities for one company. The
+`match-companies` job stores the top 20 per company and mode in `matches`; it
+also runs at 04:30 every night and after the enrich job found something new.
+
+| Part | Weight | What it is |
+| --- | --- | --- |
+| similarity | 0.45 | Cosine similarity of the two embeddings, minus the opportunity's average similarity to all companies, rescaled 0 to 1 inside the company's pool |
+| tagOverlap | 0.20 | Shared tags over all tags of the two |
+| priorityBoost | 0.15 | Personal only: the similarity, when the kind answers a switched-on priority |
+| urgency | 0.10 | A deadline or event date within 60 days |
+| feedback | 0.10 | Personal only: 1 for saved or useful items, otherwise how much the item's tags look like liked and dismissed ones |
+
+- The pool: opportunities with an embedding, no fixtures, no passed deadlines
+  or event dates, no news older than 45 days, no news about the company itself,
+  nothing the company marked not relevant, nothing the judge rejected.
+- Public mode reads public data only: no `company_private`, no feedback, and
+  the company's public embedding.
+- The fast path after a profile edit is `rankCompany` on the member's own
+  database client: the new order is back in about 0.1 to 0.4 s. The job stores
+  it afterwards.
+- Storing never deletes: rows that fall out of the top 20 get `rank = null` and
+  keep the judge's text. A company without an embedding is skipped, not wiped.
+- `tests/ranking.integration.test.ts` holds the A22 tests. Every write in them
+  is rolled back.
 
 ## Source status, cached mode and schedules (A19, A23)
 

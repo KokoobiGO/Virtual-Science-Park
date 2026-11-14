@@ -3,6 +3,7 @@ import { enrichJob } from "./enrich";
 import { fetchSnapshotJob } from "./fetch-snapshot";
 import { heartbeat } from "./heartbeat";
 import { importMembersJob } from "./import-members";
+import { matchCompaniesJob } from "./match-companies";
 import { profileAllMembersJob } from "./profile-all-members";
 import { profileCompanyJob } from "./profile-company";
 import { refreshProfilesJob } from "./refresh-profiles";
@@ -19,5 +20,6 @@ export const functions = [
   profileAllMembersJob,
   collectSourcesJob,
   enrichJob,
+  matchCompaniesJob,
   refreshProfilesJob,
 ];
