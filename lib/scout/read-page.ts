@@ -44,7 +44,7 @@ export async function readPage(url: string, options: ReadPageOptions = {}): Prom
       .limit(1);
     if (!stored) throw new FetchPageError(`DEMO_MODE=cached and no stored copy of ${url}`);
     const text = cutText(stored.text, PAGE_TEXT_CHARS);
-    return { url: stored.url, title: stored.title, text, retrievedAt: stored.retrievedAt.toISOString(), chars: stored.text.length };
+    return { url: stored.url, title: stored.title, text, retrievedAt: stored.retrievedAt.toISOString(), chars: stored.text.length, stored: true };
   }
 
   const page = await fetch(url);

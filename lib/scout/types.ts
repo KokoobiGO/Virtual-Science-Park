@@ -7,7 +7,7 @@
  * it fails. Zod parses it on the way out, because a request reads it back.
  */
 import { z } from "zod";
-import { OpportunityKind } from "../schemas";
+import { OpportunityKind, SourceState } from "../schemas";
 
 /** The adapter interface every search source answers with (B1). */
 export type SearchHit = { title: string; url: string; snippet: string };
@@ -31,10 +31,20 @@ export type ScoutHit = SearchHit & {
   eligibilityText?: string | null;
   /** The longer text the writer reads (store rows); the snippet is a cut of it. */
   description?: string | null;
+  /** Store rows: typed in by the team (opportunities.simulated), for the data status label (D20). */
+  simulated?: boolean;
+  /** Store rows: the source's state (source_status.state, matched on its label). */
+  sourceState?: SourceState | null;
+  /** Store rows from a cached source: when its recorded copy was taken (ISO). */
+  sourceCachedAt?: string | null;
 };
 
-/** One page read during the run (read_page). */
-export type PageRead = { url: string; title: string | null; text: string; retrievedAt: string; chars: number };
+/**
+ * One page read during the run (read_page). `stored` is true when the text is
+ * the latest stored snapshot (DEMO_MODE=cached), not a fresh read; then
+ * `retrievedAt` is the date of that copy.
+ */
+export type PageRead = { url: string; title: string | null; text: string; retrievedAt: string; chars: number; stored?: boolean };
 
 /** A source as the run knows it: a hit with its short id (R1, R2, ...) and the page text when it was read. */
 export type SourceRecord = ScoutHit & { id: string; page: PageRead | null };
@@ -56,6 +66,15 @@ export const Citation = z.object({
   sourceName: z.string().nullable(),
   /** True when Scout read the page itself during the run. */
   pageRead: z.boolean(),
+  // The data status of the cited source (D20). Optional, so briefs stored before these fields still parse.
+  /** Store rows: typed in by the team, so labelled "Hand-entered". */
+  simulated: z.boolean().optional(),
+  /** Store rows: the source's state when the brief was written; "cached" is labelled "Cached copy". */
+  sourceState: SourceState.nullable().optional(),
+  /** Store rows from a cached source: when its recorded copy was taken (ISO). */
+  sourceCachedAt: z.string().nullable().optional(),
+  /** True when the page Scout read was a stored copy (DEMO_MODE=cached); `retrievedAt` is then the copy's date. */
+  pageStored: z.boolean().optional(),
 });
 export type Citation = z.infer<typeof Citation>;
 
@@ -134,7 +153,16 @@ export type BriefView = {
 };
 
 /** One line of the list of earlier briefs. */
-export type BriefListItem = Pick<BriefView, "id" | "question" | "status" | "prerun" | "createdAt" | "completedAt"> & { options: number };
+export type BriefListItem = Pick<BriefView, "id" | "question" | "status" | "prerun" | "createdAt" | "completedAt"> & {
+  options: number;
+  /** When the run behind the brief was asked (its result's createdAt): for a pre-run copy, the date of the recording. */
+  recordedAt: string | null;
+};
+
+/** When the run behind a brief was asked. A pre-run copy is a new row, so its own dates are the copy's, not the recording's. */
+export function recordedAt(brief: Pick<BriefView, "createdAt" | "completedAt"> & { recordedAt?: string | null; result?: { createdAt: string } | null }): string {
+  return brief.result?.createdAt ?? brief.recordedAt ?? brief.completedAt ?? brief.createdAt;
+}
 
 /** Options a brief should have; fewer only with an "only N found" note. */
 export const MIN_OPTIONS = 5;

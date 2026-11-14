@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DUE_OPTIONS, filtersToQuery, KIND_LABELS, NO_FILTERS, type ExploreFilters } from "@/lib/explore/filter";
+import { clearFiltersHref, DUE_OPTIONS, filtersToQuery, KIND_LABELS, type ExploreFilters } from "@/lib/explore/filter";
 import { OpportunityKind, OpportunityTag } from "@/lib/schemas";
 
 const SELECT_CLASS =
@@ -79,7 +79,8 @@ export function FilterForm({ filters }: { filters: ExploreFilters }) {
 
       <div className="flex gap-2">
         <Button type="submit">Filter</Button>
-        <Button variant="ghost" nativeButton={false} render={<Link href={`/explore${filtersToQuery(NO_FILTERS, { view: filters.view })}`} />}>
+        {/* "Clear", not "Clear filters": e2e/member.spec.ts finds the submit button by the name "Filter" without exact matching. */}
+        <Button variant="ghost" nativeButton={false} render={<Link href={clearFiltersHref(filters)} />}>
           Clear
         </Button>
       </div>

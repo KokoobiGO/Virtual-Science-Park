@@ -220,6 +220,11 @@ export function toScoutOption(option: WriterOption, source: SourceRecord): Scout
       origin: source.origin,
       sourceName: source.sourceName ?? null,
       pageRead: source.page !== null,
+      // The data status of the cited source (D20): hand-entered, or read from a cached copy.
+      simulated: source.simulated ?? false,
+      sourceState: source.sourceState ?? null,
+      sourceCachedAt: source.sourceCachedAt ?? null,
+      pageStored: source.page?.stored === true,
     },
     opportunityId: source.opportunityId ?? null,
     deadline: source.deadline ?? source.eventDate ?? null,
@@ -346,7 +351,8 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
     const out = await unit<{ page: PageRead | null; error: string | null }>(`read ${pagesRead}`, async () => {
       try {
         const page = await deps.readPage(source.url);
-        return { value: { page, error: null }, progress: [{ kind: "read" as const, text: `Read the page of "${source.title.slice(0, 80)}" (${page.chars.toLocaleString("en")} characters).` }] };
+        const what = page.stored ? `the stored copy (${isoDay(page.retrievedAt)}) of the page of` : "the page of";
+        return { value: { page, error: null }, progress: [{ kind: "read" as const, text: `Read ${what} "${source.title.slice(0, 80)}" (${page.chars.toLocaleString("en")} characters).` }] };
       } catch (error) {
         const message = errorText(error);
         return { value: { page: null, error: message }, progress: [{ kind: "read" as const, text: `Could not read the page of "${source.title.slice(0, 80)}": ${message}` }] };

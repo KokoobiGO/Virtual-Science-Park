@@ -3,7 +3,7 @@
  * filters in the URL, each item's date status, the order of the list and the
  * member's own ranked matches.
  */
-import { OpportunityKind, OpportunityTag } from "../schemas";
+import { OpportunityKind, OpportunityTag, type SourceState } from "../schemas";
 import { DAY_MS, daysUntil, formatDay } from "./dates";
 
 /** One opportunity as the explorer shows it. */
@@ -20,10 +20,14 @@ export type ExploreItem = {
   deadline: Date | null;
   eventDate: Date | null;
   tags: string[];
-  /** Hand-entered by the team, not read from a live source. */
+  /** Hand-entered by the team, not read from a live source (only "fixture-" rows are simulated samples). */
   simulated: boolean;
   /** For a test facility: true when an official page confirmed it and that outside companies can use it. */
   verified: boolean | null;
+  /** The source's state (source_status.state, matched on its label), for the data status label (D20). Null without a status row. */
+  sourceState: SourceState | null;
+  /** For a source whose state is cached: when the recorded copy was taken. */
+  cachedAt: Date | null;
 };
 
 export const KIND_LABELS: Record<OpportunityKind, string> = {
@@ -57,6 +61,13 @@ export type ExploreFilters = {
 
 export const NO_FILTERS: ExploreFilters = { kind: null, tag: null, due: null, q: "", view: "list" };
 
+/** The page title of each view; the layout adds the site name. */
+export const EXPLORE_VIEW_TITLES: Record<ExploreView, string> = {
+  list: "Explore",
+  timeline: "Deadline timeline · Explore",
+  map: "Test facility map · Explore",
+};
+
 export const MAX_QUERY_CHARS = 100;
 
 type Params = Record<string, string | string[] | undefined>;
@@ -89,6 +100,17 @@ export function filtersToQuery(filters: ExploreFilters, changes: Partial<Explore
   if (merged.q) params.set("q", merged.q);
   const query = params.toString();
   return query ? `?${query}` : "";
+}
+
+/** True when a filter narrows this view. The timeline and the map apply only the tag and the search. */
+export function hasActiveFilters(filters: ExploreFilters): boolean {
+  if (filters.tag || filters.q) return true;
+  return filters.view === "list" && Boolean(filters.kind || filters.due);
+}
+
+/** The same view with every filter removed. */
+export function clearFiltersHref(filters: Pick<ExploreFilters, "view">): string {
+  return `/explore${filtersToQuery(NO_FILTERS, { view: filters.view })}`;
 }
 
 /** The date that decides an item's status: a call's deadline, an event's date. */

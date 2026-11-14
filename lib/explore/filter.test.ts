@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  clearFiltersHref,
   dateLabel,
   dateStatus,
+  EXPLORE_VIEW_TITLES,
   filterItems,
   filtersToQuery,
+  hasActiveFilters,
   matchesQuery,
   NO_FILTERS,
   parseFilters,
@@ -31,6 +34,8 @@ function item(overrides: Partial<ExploreItem> = {}): ExploreItem {
     tags: [],
     simulated: false,
     verified: null,
+    sourceState: "live",
+    cachedAt: null,
     ...overrides,
   };
 }
@@ -62,6 +67,29 @@ describe("parseFilters", () => {
     expect(parseFilters(Object.fromEntries(new URLSearchParams(query)))).toEqual(filters);
     expect(filtersToQuery(filters, { view: "timeline", kind: null })).toBe("?view=timeline&tag=ai&due=open&q=agent");
     expect(filtersToQuery(NO_FILTERS)).toBe("");
+  });
+});
+
+describe("active filters, clearing them and the view titles", () => {
+  it("counts only the filters a view applies", () => {
+    expect(hasActiveFilters(NO_FILTERS)).toBe(false);
+    expect(hasActiveFilters({ ...NO_FILTERS, kind: "event" })).toBe(true);
+    expect(hasActiveFilters({ ...NO_FILTERS, due: "soon" })).toBe(true);
+    expect(hasActiveFilters({ ...NO_FILTERS, q: "wind" })).toBe(true);
+    // The timeline and the map carry kind and due along but do not apply them.
+    expect(hasActiveFilters({ ...NO_FILTERS, view: "timeline", kind: "event", due: "soon" })).toBe(false);
+    expect(hasActiveFilters({ ...NO_FILTERS, view: "map", tag: "marine" })).toBe(true);
+  });
+
+  it("clears every filter and keeps the view", () => {
+    expect(clearFiltersHref({ view: "list" })).toBe("/explore");
+    expect(clearFiltersHref(parseFilters({ view: "map", tag: "marine", q: "sea" }))).toBe("/explore?view=map");
+  });
+
+  it("gives each view its own title", () => {
+    expect(EXPLORE_VIEW_TITLES[parseFilters({}).view]).toBe("Explore");
+    expect(EXPLORE_VIEW_TITLES[parseFilters({ view: "timeline" }).view]).toBe("Deadline timeline · Explore");
+    expect(EXPLORE_VIEW_TITLES[parseFilters({ view: "map" }).view]).toBe("Test facility map · Explore");
   });
 });
 

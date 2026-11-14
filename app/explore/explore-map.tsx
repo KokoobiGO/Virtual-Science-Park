@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { filtersToQuery, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
 import { project, ringPath, type TestbedMap } from "@/lib/explore/map";
 import { AREA_LABELS, LAKES, LAND } from "@/lib/explore/sweden-outline";
-import { MatchNote, SimulatedBadge, SourceLink } from "./opportunity-bits";
+import { ItemStatusLabel, MatchNote, NoResults, SourceLink } from "./opportunity-bits";
 import { TestbedMapPicker, type PickerPin } from "./testbed-map-picker";
 
 /** The third view (C15): test facilities as pins on a sketch of southern Sweden. Tag and search apply; the kind is fixed. */
@@ -40,6 +40,7 @@ export function ExploreMap({ map, matches, filters }: { map: TestbedMap; matches
         </p>
       </div>
 
+      <h2 className="sr-only">Test facilities on the map</h2>
       <TestbedMapPicker
         label={`Sketch map of southern Sweden with ${map.pins.length} test ${map.pins.length === 1 ? "facility" : "facilities"}`}
         drawing={<SwedenSketch map={map} />}
@@ -49,7 +50,13 @@ export function ExploreMap({ map, matches, filters }: { map: TestbedMap; matches
 
       <Legend />
 
-      {shown === 0 ? <p className="rounded-xl border p-6 text-sm text-muted-foreground">No test facility fits these filters.</p> : null}
+      {shown === 0 ? (
+        <NoResults
+          filters={filters}
+          filtered="No test facility fits these filters."
+          empty="No test facilities are stored yet. They appear here once BSP staff have added them."
+        />
+      ) : null}
 
       {noPlace.length ? (
         <section className="flex flex-col gap-3" aria-labelledby="no-location-heading">
@@ -159,26 +166,26 @@ function TestbedCard({
 }) {
   const verified = item.verified === true;
   return (
-    <article className="flex h-full flex-col gap-2 rounded-xl border bg-card p-4 text-card-foreground shadow-card">
+    <article className="flex h-full min-w-0 flex-col gap-2 rounded-xl border bg-card p-4 text-card-foreground shadow-card">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <Badge variant="secondary">Test facility</Badge>
-        {item.simulated ? <SimulatedBadge /> : null}
+        <ItemStatusLabel item={item} />
         {verified ? null : (
           <Badge variant="muted" title={NOT_VERIFIED}>
             Not verified
           </Badge>
         )}
-        <span className="text-muted-foreground">{item.source}</span>
+        <span className="break-words text-muted-foreground">{item.source}</span>
       </div>
       <h3 className="text-base">
         <SourceLink url={item.url} title={item.title} />
       </h3>
       {place ? (
-        <p className="text-sm">
+        <p className="text-sm break-words">
           <span className="font-medium">{place.town}.</span> <span className="text-muted-foreground">{place.source}</span>
         </p>
       ) : null}
-      {item.description ? <p className="line-clamp-4 text-sm text-muted-foreground">{item.description}</p> : null}
+      {item.description ? <p className="line-clamp-4 text-sm break-words text-muted-foreground">{item.description}</p> : null}
       {verified ? null : <p className="text-xs text-muted-foreground">{NOT_VERIFIED}</p>}
       {match ? <MatchNote match={match} /> : null}
       <Link href={listHref} className="w-fit text-sm text-primary underline-offset-4 hover:underline">

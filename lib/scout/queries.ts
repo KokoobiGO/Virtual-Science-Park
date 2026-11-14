@@ -9,7 +9,8 @@
 import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import type { JwtClaims } from "../db/user";
 import { withUserDb } from "../db/user";
-import { briefs, companies, savedItems } from "../db/schema";
+import { briefs, companies, opportunities, savedItems, sourceStatus } from "../db/schema";
+import { idsWithoutStatus, withCitationStatus, type CitationStatus } from "./citations";
 import { StoredBriefJson, type BriefListItem, type BriefView, type ProgressStep } from "./types";
 
 /** A member as the queries need them: verified claims, user id and company. */
@@ -57,6 +58,7 @@ export async function listBriefs(member: Member): Promise<BriefListItem[]> {
         createdAt: briefs.createdAt,
         completedAt: briefs.completedAt,
         options: sql<number>`coalesce(jsonb_array_length(${briefs.brief} -> 'result' -> 'options'), 0)`.mapWith(Number),
+        recordedAt: sql<string | null>`${briefs.brief} -> 'result' ->> 'createdAt'`,
       })
       .from(briefs)
       .where(eq(briefs.companyId, member.companyId))
@@ -71,7 +73,15 @@ export async function listBriefs(member: Member): Promise<BriefListItem[]> {
     createdAt: r.createdAt.toISOString(),
     completedAt: r.completedAt?.toISOString() ?? null,
     options: r.options,
+    recordedAt: r.recordedAt ?? null,
   }));
+}
+
+/** The question of one brief of the member's company, for the page title; null when there is none. */
+export async function briefQuestion(member: Member, id: string): Promise<string | null> {
+  if (!isUuid(id)) return null;
+  const [row] = await withUserDb(member.claims, (tx) => tx.select({ question: briefs.question }).from(briefs).where(eq(briefs.id, id)));
+  return row?.question ?? null;
 }
 
 /** One brief of the member's company, or null (also for another company's id: RLS hides it). */
@@ -81,14 +91,30 @@ export async function getBrief(member: Member, id: string): Promise<BriefView | 
     const [row] = await tx.select().from(briefs).where(eq(briefs.id, id));
     if (!row) return null;
     const stored = StoredBriefJson.safeParse(row.brief ?? {});
-    const optionIds = stored.success ? (stored.data.result?.options.flatMap((o) => (o.opportunityId ? [o.opportunityId] : [])) ?? []) : [];
+    const result = stored.success ? stored.data.result : null;
+    const optionIds = result?.options.flatMap((o) => (o.opportunityId ? [o.opportunityId] : [])) ?? [];
     const saved = optionIds.length
       ? await tx
           .select({ opportunityId: savedItems.opportunityId })
           .from(savedItems)
           .where(and(eq(savedItems.companyId, member.companyId), inArray(savedItems.opportunityId, optionIds)))
       : [];
-    return view(row, saved.map((s) => s.opportunityId), Date.now());
+    const brief = view(row, saved.map((s) => s.opportunityId), Date.now());
+
+    // A brief written before its citations carried a data status (D20): take it from the cited rows as they are now.
+    const missing = brief.result ? idsWithoutStatus(brief.result).filter(isUuid) : [];
+    if (brief.result && missing.length) {
+      const rows = await tx
+        .select({ id: opportunities.id, simulated: opportunities.simulated, sourceState: sourceStatus.state, sourceCachedAt: sourceStatus.cachedAt })
+        .from(opportunities)
+        .leftJoin(sourceStatus, eq(sourceStatus.label, opportunities.source))
+        .where(inArray(opportunities.id, missing));
+      const byId = new Map<string, CitationStatus>(
+        rows.map((r) => [r.id, { simulated: r.simulated, sourceState: r.sourceState, sourceCachedAt: r.sourceCachedAt?.toISOString() ?? null }]),
+      );
+      brief.result = withCitationStatus(brief.result, byId);
+    }
+    return brief;
   });
 }
 

@@ -6,7 +6,7 @@
 import "server-only";
 import { and, eq, isNotNull, not, like } from "drizzle-orm";
 import type { Viewer } from "../auth";
-import { matches, opportunities } from "../db/schema";
+import { matches, opportunities, sourceStatus } from "../db/schema";
 import { withUserDb } from "../db/user";
 import { FIXTURE_PREFIX } from "../matcher/score";
 import { personalMatchMap, type ExploreItem, type MatchInfo } from "./filter";
@@ -34,8 +34,12 @@ export async function loadExplore(viewer: Viewer): Promise<ExploreData> {
         tags: opportunities.tags,
         simulated: opportunities.simulated,
         verified: opportunities.verified,
+        // For the data status label (D20): opportunities.source is the collector's label.
+        sourceState: sourceStatus.state,
+        cachedAt: sourceStatus.cachedAt,
       })
       .from(opportunities)
+      .leftJoin(sourceStatus, eq(sourceStatus.label, opportunities.source))
       // The old hand-written test fixtures are never shown.
       .where(not(like(opportunities.externalId, `${FIXTURE_PREFIX}%`)));
 

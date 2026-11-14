@@ -1,24 +1,34 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { formatDay, monthLabel, shortMonthLabel } from "@/lib/explore/dates";
-import { dateStatus, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
+import { dateStatus, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
 import { monthCounts, type MonthGroup, type Timeline } from "@/lib/explore/timeline";
-import { SimulatedBadge, SourceLink } from "./opportunity-bits";
+import { ItemStatusLabel, NoResults, SourceLink } from "./opportunity-bits";
 
 /** The second view (C16): call deadlines by month, then dated events. No map. */
-export function ExploreTimeline({ timeline, matches, now }: { timeline: Timeline; matches: Map<string, MatchInfo> | null; now: Date }) {
+export function ExploreTimeline({
+  timeline,
+  matches,
+  filters,
+  now,
+}: {
+  timeline: Timeline;
+  matches: Map<string, MatchInfo> | null;
+  filters: ExploreFilters;
+  now: Date;
+}) {
   const callCount = timeline.calls.reduce((sum, g) => sum + g.items.length, 0);
   const eventCount = timeline.events.reduce((sum, g) => sum + g.items.length, 0);
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4" aria-labelledby="calls-heading">
         <div className="flex flex-col gap-1">
-          <h2 id="calls-heading" className="text-lg font-semibold">
+          <h2 id="calls-heading" className="text-heading">
             Funding call deadlines
           </h2>
           <p className="text-sm text-muted-foreground">
-            {callCount} funding calls whose deadline has not passed, by the month of the deadline. Calls that open later say
-            so. Click a month to jump to its calls.
+            {callCount} funding {callCount === 1 ? "call" : "calls"} whose deadline has not passed, by the month of the deadline.
+            Calls that open later say so. Select a month&apos;s bar to jump to its calls.
           </p>
         </div>
         <MonthBars groups={timeline.calls} />
@@ -29,12 +39,18 @@ export function ExploreTimeline({ timeline, matches, now }: { timeline: Timeline
             ))}
           </MonthSection>
         ))}
-        {callCount ? null : <p className="rounded-xl border p-6 text-sm text-muted-foreground">No open funding call fits these filters.</p>}
+        {callCount ? null : (
+          <NoResults
+            filters={filters}
+            filtered="No open funding call fits these filters."
+            empty="No funding call with a deadline ahead is stored right now. New calls appear after the nightly collection."
+          />
+        )}
       </section>
 
       <section className="flex flex-col gap-4" aria-labelledby="events-heading">
         <div className="flex flex-col gap-1">
-          <h2 id="events-heading" className="text-lg font-semibold">
+          <h2 id="events-heading" className="text-heading">
             Events
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -51,7 +67,13 @@ export function ExploreTimeline({ timeline, matches, now }: { timeline: Timeline
             ))}
           </MonthSection>
         ))}
-        {eventCount ? null : <p className="rounded-xl border p-6 text-sm text-muted-foreground">No dated event ahead fits these filters.</p>}
+        {eventCount ? null : (
+          <NoResults
+            filters={filters}
+            filtered="No dated event ahead fits these filters."
+            empty="No dated event ahead is stored right now. New events appear after the nightly collection."
+          />
+        )}
         {timeline.undatedEvents.length ? (
           <div className="flex flex-col gap-2">
             <h3 className="font-medium">Recurring, no date stored</h3>
@@ -70,20 +92,23 @@ export function ExploreTimeline({ timeline, matches, now }: { timeline: Timeline
   );
 }
 
-/** One bar per month, so the busy months stand out. Each bar links to its month. */
+/** One bar per month, so the busy months stand out. Each bar links to its month; the count is written above it. */
 function MonthBars({ groups }: { groups: MonthGroup<ExploreItem>[] }) {
   const counts = monthCounts(groups);
   if (!counts.length) return null;
   const max = Math.max(...counts.map((c) => c.count));
   return (
-    <div className="overflow-x-auto rounded-xl border p-4">
+    // `relative`, so the screen-reader-only month labels (absolutely placed) stay inside the scrolling box on a phone.
+    <div className="relative overflow-x-auto rounded-xl border p-4">
       <ol className="flex min-w-max items-end gap-1.5" aria-label="Deadlines per month">
         {counts.map((c, i) => {
           const [year, month] = c.key.split("-");
           const label = `${monthLabel(c.key)}: ${c.count} ${c.count === 1 ? "deadline" : "deadlines"}`;
           return (
             <li key={c.key} className="flex w-9 flex-col items-center gap-1">
-              <span className="text-xs tabular-nums text-muted-foreground">{c.count || ""}</span>
+              <span aria-hidden className="text-xs tabular-nums text-muted-foreground">
+                {c.count || ""}
+              </span>
               <div className="flex h-28 w-full items-end justify-center">
                 {c.count ? (
                   <a
@@ -94,11 +119,18 @@ function MonthBars({ groups }: { groups: MonthGroup<ExploreItem>[] }) {
                     style={{ height: `${Math.max(6, (c.count / max) * 100)}%` }}
                   />
                 ) : (
-                  <span className="block h-px w-6 bg-border" aria-label={label} />
+                  <>
+                    <span aria-hidden className="block h-px w-6 bg-border" />
+                    <span className="sr-only">{label}</span>
+                  </>
                 )}
               </div>
-              <span className="text-xs">{shortMonthLabel(c.key)}</span>
-              <span className="h-4 text-xs text-muted-foreground">{i === 0 || month === "01" ? year : ""}</span>
+              <span aria-hidden className="text-xs">
+                {shortMonthLabel(c.key)}
+              </span>
+              <span aria-hidden className="h-4 text-xs text-muted-foreground">
+                {i === 0 || month === "01" ? year : ""}
+              </span>
             </li>
           );
         })}
@@ -124,13 +156,13 @@ function MonthSection({ group, idPrefix, noun, children }: { group: MonthGroup<E
 function TimelineRow({ item, date, match, now }: { item: ExploreItem; date: Date; match: MatchInfo | null; now: Date }) {
   const status = dateStatus(item, now);
   return (
-    <li className="flex gap-4 px-4 py-2.5">
+    <li className="flex gap-3 px-4 py-2.5 sm:gap-4">
       <span className={`w-24 shrink-0 text-sm tabular-nums ${status === "closing_soon" ? "font-medium" : "text-muted-foreground"}`}>
         {formatDay(date)}
       </span>
       <div className="flex min-w-0 flex-col gap-1">
         <SourceLink url={item.url} title={item.title} className="text-sm" />
-        <ItemMeta item={item} match={match} />
+        <ItemMeta item={item} match={match} closingSoon={status === "closing_soon"} />
         {status === "opens_later" && item.opensAt ? (
           <span className="text-xs text-muted-foreground">Not open yet: opens {formatDay(item.opensAt)}.</span>
         ) : null}
@@ -139,11 +171,12 @@ function TimelineRow({ item, date, match, now }: { item: ExploreItem; date: Date
   );
 }
 
-function ItemMeta({ item, match }: { item: ExploreItem; match: MatchInfo | null }) {
+function ItemMeta({ item, match, closingSoon = false }: { item: ExploreItem; match: MatchInfo | null; closingSoon?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      <span>{item.source}</span>
-      {item.simulated ? <SimulatedBadge /> : null}
+      {closingSoon ? <Badge>Closing soon</Badge> : null}
+      <span className="break-words">{item.source}</span>
+      <ItemStatusLabel item={item} />
       {match ? (
         <Badge variant="secondary" title={match.why ?? "Not judged yet."}>
           Your potential match, number {match.position}

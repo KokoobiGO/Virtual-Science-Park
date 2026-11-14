@@ -22,6 +22,8 @@ function item(overrides: Partial<ExploreItem> = {}): ExploreItem {
     tags: [],
     simulated: false,
     verified: null,
+    sourceState: "live",
+    cachedAt: null,
     ...overrides,
   };
 }

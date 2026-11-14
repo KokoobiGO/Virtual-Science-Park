@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FetchedPage } from "../fetcher/fetch-page";
-import { isAllowedUrl, isBotChallenge, maxSearches, parseDuckDuckGo, resultTarget, searchWeb, WebSearchUnavailable } from "./search";
+import { isAllowedUrl, isBotChallenge, maxSearches, parseDuckDuckGo, resultTarget, searchWeb, storeHit, WebSearchUnavailable } from "./search";
 
 const RESULTS_PAGE = `<html><body><div class="results">
   <div class="result results_links results_links_deep web-result result--ad">
@@ -67,6 +67,39 @@ describe("web search (DuckDuckGo)", () => {
     expect(resultTarget("//duckduckgo.com/l/?uddg=https%3A%2F%2Fri.se%2Fen&rut=1")).toBe("https://ri.se/en");
     expect(resultTarget("https://www.bth.se/x")).toBe("https://www.bth.se/x");
     expect(resultTarget("//duckduckgo.com/l/?rut=1")).toBeNull();
+  });
+});
+
+describe("store hits", () => {
+  const row = {
+    id: "00000000-0000-4000-8000-000000000001",
+    kind: "testbed" as const,
+    source: "Curated testbed list",
+    title: "MTC  Saltö",
+    url: "https://www.mtcos.se/x",
+    description: "Sea trials.",
+    deadline: null,
+    eventDate: null,
+    contact: null,
+    eligibilityText: null,
+    retrievedAt: new Date("2026-11-10T03:00:00Z"),
+  };
+
+  it("carries the data status of the row and its source (D20)", () => {
+    expect(storeHit({ ...row, simulated: true, sourceState: "simulated", sourceCachedAt: null })).toMatchObject({
+      title: "MTC Saltö",
+      origin: "store",
+      simulated: true,
+      sourceState: "simulated",
+      sourceCachedAt: null,
+    });
+    expect(storeHit({ ...row, simulated: false, sourceState: "cached", sourceCachedAt: new Date("2026-11-09T02:00:00Z") })).toMatchObject({
+      simulated: false,
+      sourceState: "cached",
+      sourceCachedAt: "2026-11-09T02:00:00.000Z",
+    });
+    // A source without a status row (no left-joined row).
+    expect(storeHit({ ...row, simulated: false, sourceState: null, sourceCachedAt: null }).sourceState).toBeNull();
   });
 });
 

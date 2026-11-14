@@ -140,6 +140,33 @@ describe("runScout", () => {
     expect(requests[1].messages.some((m) => m.role === "tool" && m.content.includes("Seen before: R1"))).toBe(true);
   });
 
+  it("records each citation's data status, and a page read from a stored copy (D20)", async () => {
+    const goodBrief = JSON.stringify({ options: [1, 2, 3, 4, 5].map((n) => option(`R${n}`, n)), summary: "Five test facilities offer sea trials for underwater sensors." });
+    const { chat } = fakeChat(
+      [reply({ tool_calls: [toolCall("c1", "read_page", { id: "R2" })] }), reply({ tool_calls: [toolCall("c2", "finish", { candidates: ["R1", "R2"] })] })],
+      [goodBrief],
+    );
+    const hits = [
+      [
+        hit(1, { simulated: true, sourceState: "simulated" }),
+        hit(2, { simulated: false, sourceState: "cached", sourceCachedAt: "2026-11-09T02:00:00.000Z" }),
+        hit(3, { simulated: false, sourceState: "live" }),
+        hit(4),
+        hit(5),
+      ],
+    ];
+    const stored = async (url: string) => ({ url, title: "Page", text: "Sea trials at 40 m depth. Contact: lab@example.se.", retrievedAt: "2026-11-08T03:00:00Z", chars: 52, stored: true });
+    const result = await runScout(input, deps({ chat, hits, readPage: stored }));
+
+    const byUrl = new Map(result.brief!.options.map((o) => [o.citation.url.slice(-1), o.citation]));
+    expect(byUrl.get("1")).toMatchObject({ simulated: true, sourceState: "simulated", pageRead: false, pageStored: false });
+    expect(byUrl.get("2")).toMatchObject({ sourceState: "cached", sourceCachedAt: "2026-11-09T02:00:00.000Z", pageRead: true, pageStored: true, retrievedAt: "2026-11-08" });
+    expect(byUrl.get("3")).toMatchObject({ simulated: false, sourceState: "live" });
+    // A hit without the fields (an older job's step output) counts as read live.
+    expect(byUrl.get("4")).toMatchObject({ simulated: false, sourceState: null, sourceCachedAt: null });
+    expect(result.progress.some((p) => p.kind === "read" && p.text.startsWith('Read the stored copy (2026-11-08) of the page of "Facility 2"'))).toBe(true);
+  });
+
   it("asks the writer again when too few options pass, and keeps the better answer", async () => {
     const bad = JSON.stringify({
       options: [option("R1", 1, { whyProfile: "EmbeddedArt is eligible for this test range and its sensor systems fit." }), option("R2", 2)],

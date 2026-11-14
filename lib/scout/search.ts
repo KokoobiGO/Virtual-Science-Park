@@ -22,11 +22,11 @@
 import * as cheerio from "cheerio/slim";
 import { and, asc, cosineDistance, eq, gte, isNotNull, isNull, ne, notLike, or, sql, type SQL } from "drizzle-orm";
 import { getDb, type Db } from "../db";
-import { opportunities } from "../db/schema";
+import { opportunities, sourceStatus } from "../db/schema";
 import { cutText } from "../embeddings/text";
 import { fetchPage, type FetchedPage } from "../fetcher/fetch-page";
 import { FIXTURE_PREFIX } from "../matcher/score";
-import type { OpportunityKind } from "../schemas";
+import type { OpportunityKind, SourceState } from "../schemas";
 import { voyageEmbed } from "../voyage";
 import { hasSpecific, keywordPlan, rankByKeywords } from "./keywords";
 import type { ScoutHit, SearchHit, SourceOrigin } from "./types";
@@ -78,7 +78,14 @@ type StoreRow = {
   contact: string | null;
   eligibilityText: string | null;
   retrievedAt: Date;
+  simulated: boolean;
+  /** From source_status (left join on its label); null when the source has no status row. */
+  sourceState: SourceState | null;
+  sourceCachedAt: Date | null;
 };
+
+/** Every store query joins the source's status by label, for the citation's data status label (D20). */
+const statusJoin = eq(sourceStatus.label, opportunities.source);
 
 const storeColumns = {
   id: opportunities.id,
@@ -92,6 +99,9 @@ const storeColumns = {
   contact: opportunities.contact,
   eligibilityText: opportunities.eligibilityText,
   retrievedAt: opportunities.retrievedAt,
+  simulated: opportunities.simulated,
+  sourceState: sourceStatus.state,
+  sourceCachedAt: sourceStatus.cachedAt,
 };
 
 /** Current, real opportunities: no fixtures, no news, no closed calls, no past events. */
@@ -121,6 +131,9 @@ export function storeHit(row: StoreRow): ScoutHit {
     contact: row.contact ? collapse(row.contact) : null,
     eligibilityText: row.eligibilityText ? collapse(row.eligibilityText) : null,
     description: description ? cutText(description, STORE_DESCRIPTION_CHARS) : null,
+    simulated: row.simulated,
+    sourceState: row.sourceState,
+    sourceCachedAt: row.sourceCachedAt?.toISOString() ?? null,
   };
 }
 
@@ -165,6 +178,7 @@ export async function searchStore(query: string, options: StoreSearchOptions = {
     const rows = await db
       .select(storeColumns)
       .from(opportunities)
+      .leftJoin(sourceStatus, statusJoin)
       .where(and(isNotNull(opportunities.embedding), pool))
       .orderBy(asc(distance))
       .limit(limit);
@@ -182,6 +196,7 @@ export async function searchStore(query: string, options: StoreSearchOptions = {
     const rows = await db
       .select({ ...storeColumns, tags: opportunities.tags, closeness })
       .from(opportunities)
+      .leftJoin(sourceStatus, statusJoin)
       .where(pool);
     const ranked = rankByKeywords(
       rows.map((row) => ({ ...row, closeness: Number(row.closeness) || 0 })),

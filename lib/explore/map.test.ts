@@ -146,6 +146,8 @@ function testbed(externalId: string, overrides: Partial<ExploreItem> = {}): Expl
     tags: [],
     simulated: true,
     verified: true,
+    sourceState: "simulated",
+    cachedAt: null,
     ...overrides,
   };
 }
