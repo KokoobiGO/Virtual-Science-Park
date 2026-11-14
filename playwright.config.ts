@@ -76,5 +76,7 @@ export default defineConfig({
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"] },
     },
+    // The profile-change re-rank on /week. Skips itself unless E2E_RERANK=1.
+    { name: "rerank", testMatch: /rerank\.spec\.ts$/, use: { ...devices["Desktop Chrome"] } },
   ],
 });

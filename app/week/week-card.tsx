@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DataStatusLabel, itemDataStatus } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { calendarHref, cardDates, isWebLink, kindLabel, notOpenYetLabel, sourceLabel } from "@/lib/week/format";
@@ -46,6 +47,8 @@ export function WeekCard({ card, now }: { card: WeekCardView; now: Date }) {
   const opportunity = card.kind === "match" ? card.opportunity : null;
   const dates = opportunity ? cardDates(opportunity, now) : [];
   const notOpen = opportunity ? notOpenYetLabel(opportunity.opensAt, now) : null;
+  // D20: hand-entered, simulated or cached data is always labelled; nothing for an item read live.
+  const status = opportunity ? itemDataStatus(opportunity) : null;
   const area = card.trendArea ? (AREA_LABELS[card.trendArea] ?? card.trendArea) : null;
 
   return (
@@ -63,11 +66,7 @@ export function WeekCard({ card, now }: { card: WeekCardView; now: Date }) {
               {opportunity ? <Badge variant="secondary">{kindLabel(opportunity.kind)}</Badge> : null}
               {opportunity ? <Badge variant="outline">{opportunity.source}</Badge> : null}
               {notOpen ? <Badge variant="warning">{notOpen}</Badge> : null}
-              {opportunity?.simulated ? (
-                <Badge variant="outline" className="border-dashed" title="Entered by hand by the team, not read from a live source">
-                  Simulated data
-                </Badge>
-              ) : null}
+              {status ? <DataStatusLabel kind={status} date={opportunity?.cachedAt} /> : null}
             </>
           )}
         </div>

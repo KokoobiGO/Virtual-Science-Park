@@ -28,6 +28,9 @@ const matchCard = (over: Partial<WeekCardView> = {}): WeekCardView => ({
     deadline: new Date("2026-12-02T13:00:00Z"),
     eventDate: null,
     simulated: false,
+    externalId: "watchdog-2026",
+    sourceState: "live",
+    cachedAt: null,
   },
   trendArea: null,
   saved: false,
@@ -56,6 +59,8 @@ describe("WeekCard", () => {
     ]) {
       expect(html).toContain(text);
     }
+    // Read live: no data status label.
+    expect(html).not.toContain("data-data-status");
     expect(html).not.toContain("Simulated");
     expect(html).not.toContain("Not open yet");
     expect(html).not.toMatch(/eligible/i);
@@ -81,11 +86,33 @@ describe("WeekCard", () => {
     expect(html.match(/aria-pressed="true"/g)).toHaveLength(2); // saved and useful
   });
 
-  it("labels simulated data and leaves out the calendar without a date", () => {
-    const html = render(matchCard({ opportunity: { ...matchCard().opportunity!, simulated: true, deadline: null, kind: "testbed" } }));
-    expect(html).toContain("Simulated data");
+  it("labels hand-entered data and leaves out the calendar without a date", () => {
+    const html = render(
+      matchCard({
+        opportunity: { ...matchCard().opportunity!, simulated: true, externalId: "testbed-ocean-lab", sourceState: "simulated", deadline: null, kind: "testbed" },
+      }),
+    );
+    expect(html).toContain('data-data-status="hand_entered"');
+    expect(html).toContain("Hand-entered");
+    expect(html).not.toContain("Simulated");
     expect(html).toContain("Testbed");
     expect(html).not.toContain("Add to calendar");
+  });
+
+  it("labels the team's sample rows as simulated, and a hand-entered source even on a row not marked", () => {
+    const opportunity = matchCard().opportunity!;
+    const sample = render(matchCard({ opportunity: { ...opportunity, simulated: true, externalId: "fixture-vinnova-1" } }));
+    expect(sample).toContain('data-data-status="simulated"');
+    expect(sample).toContain("Simulated");
+    expect(render(matchCard({ opportunity: { ...opportunity, sourceState: "simulated" } }))).toContain('data-data-status="hand_entered"');
+  });
+
+  it("labels a card whose source is a cached copy, with the date of the copy", () => {
+    const opportunity = matchCard().opportunity!;
+    const html = render(matchCard({ opportunity: { ...opportunity, sourceState: "cached", cachedAt: new Date("2026-11-10T02:00:00Z") } }));
+    expect(html).toContain('data-data-status="cached"');
+    expect(html).toContain("Cached copy \u00B7 10 Nov 2026");
+    expect(render(matchCard({ opportunity: { ...opportunity, sourceState: "cached" } }))).toContain("Cached copy \u00B7 date unknown");
   });
 
   it("shows a trend card's note and sources, without match label or buttons", () => {

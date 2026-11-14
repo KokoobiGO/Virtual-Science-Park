@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { LoadingState, Skeleton } from "@/components/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getViewer } from "@/lib/auth";
@@ -25,10 +26,42 @@ export default function Page() {
           and its source. Every card is a potential match, not a decision: check the source or ask BSP staff.
         </p>
       </div>
-      <Suspense fallback={<p className="text-muted-foreground">Loading your cards...</p>}>
+      <Suspense fallback={<WeekSkeleton />}>
         <WeekContent />
       </Suspense>
     </section>
+  );
+}
+
+/** Shaped like the week heading and the card list below it (C20). */
+function WeekSkeleton() {
+  return (
+    <LoadingState label="Loading your cards…">
+      <Skeleton className="h-7 w-56 max-w-full" />
+      <div className="flex flex-col gap-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="flex flex-col gap-4 rounded-xl p-4 ring-1 ring-foreground/10">
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-48 max-w-full" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[0, 1, 2, 3].map((j) => (
+                <Skeleton key={j} className="h-7 w-24" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </LoadingState>
   );
 }
 
@@ -72,7 +105,9 @@ function NoCards() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>No cards yet</CardTitle>
+        <CardTitle>
+          <h2 className="text-base font-semibold">No cards yet</h2>
+        </CardTitle>
         <CardDescription>
           Your cards are built every Monday morning, and again after your profile changes, from the opportunities ranked
           for your company. None have been built for your company yet.
@@ -95,7 +130,9 @@ function StaffNotice() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>No company on a staff account</CardTitle>
+        <CardTitle>
+          <h2 className="text-base font-semibold">No company on a staff account</h2>
+        </CardTitle>
         <CardDescription>
           &quot;Your week&quot; shows one member company&apos;s cards. BSP staff accounts have no company, so there is
           nothing to show here. Use the staff tools instead.
