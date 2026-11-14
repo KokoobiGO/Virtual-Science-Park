@@ -7,13 +7,29 @@ source of every line. Nothing is ever called "eligible": the system only says
 
 One Next.js 16 app (TypeScript) on Netlify, one Supabase Postgres database
 with pgvector, Inngest for scheduled jobs, NVIDIA's free model API for every
-model call, and Voyage AI for embeddings. `docs/solution-explainer.md` is the
-one-page overview; `docs/handover.md` is the current state of the work.
+model call, and Voyage AI for embeddings. The interface is in English and,
+on part of the screens so far, Swedish. `docs/solution-explainer.md` is the
+one-page overview; `docs/handover.md` is the current state of the work;
+`docs/deploy-checklist.md` is how to deploy.
+
+## Rules for everyone working here
+
+- Work on the branch `dev`. **Never push or merge to `main` unless the
+  project owner says so at that moment.** Netlify builds on every push to
+  `main` and the build credits are low. See "Deploying".
+- Never open, print or paste a `.env` file or a key. Only `.env.example` is
+  shared.
+- The system never says a company is "eligible": it says "potential match",
+  and the decision stays with people. Code checks in the judge, Scout and the
+  Copilot refuse eligibility words.
+- Jobs and scripts write with `getDb()`; request paths (pages, route
+  handlers, server actions, Copilot tools) use `withUserDb()`.
 
 ## Run it locally
 
-You need Node.js 22.12 or newer (`.nvmrc`) and Git. Docker Desktop is only
-needed for a local Supabase database (option A below).
+You need Node.js 22.12 or newer (`engines` in `package.json`; `.nvmrc` says
+24, which Netlify and CI use) and Git. Docker Desktop is only needed for a
+local Supabase database (option A below).
 
 ```bash
 git clone https://github.com/KokoobiGO/Virtual-Science-Park.git
@@ -22,8 +38,8 @@ npm ci
 cp .env.example .env.local
 ```
 
-Then fill in `.env.local`. Every name is listed with a comment in
-`.env.example`. What each feature needs:
+Then fill in `.env.local`. `.env.example` lists the names with a comment.
+What each feature needs:
 
 | For | Names |
 |---|---|
@@ -31,6 +47,7 @@ Then fill in `.env.local`. Every name is listed with a comment in
 | Jobs on your machine | `INNGEST_DEV=1` (already set in `.env.example`) |
 | Every model call: profiler, tagger, judge, trend notes, connections, Scout, Copilot | `NVIDIA_API_KEY` (free key from build.nvidia.com) |
 | Embeddings: enrich, Scout's store search | `VOYAGE_API_KEY` |
+| Scout's general web search (optional; without a key Scout uses the store and the funders' own searches) | `TAVILY_API_KEY`, or `BRAVE_SEARCH_API_KEY` (Tavily is used when both are set) |
 | The weekly digest email | `RESEND_API_KEY`, and `APP_URL` for the links in it |
 | Optional | `DEMO_MODE` (`live` or `cached`), `SCOUT_MAX_SEARCHES` (default 6), `NVIDIA_MODEL_FAST` / `NVIDIA_MODEL_MAIN`, `NVIDIA_API_BASE_URL`, `VOYAGE_BASE_URL`, `VOYAGE_MODEL`, `INNGEST_API_BASE_URL` |
 | The deployed site only | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `APP_URL` (and no `INNGEST_DEV`) |
@@ -38,7 +55,7 @@ Then fill in `.env.local`. Every name is listed with a comment in
 
 `ANTHROPIC_API_KEY` and `ANTHROPIC_API_BASE_URL` are leftovers: only
 `lib/llm.ts` and `scripts/check-claude.ts` read them, and the app does not use
-Claude (see "Historical" at the end).
+them (see "Leftovers" at the end).
 
 Never commit `.env.local`, and never paste a key into a chat or an issue.
 `npm run check:services` and `npm run check:nvidia` test the keys and print
@@ -88,6 +105,12 @@ the project owner for the values. Do not run `npm run db:setup` or
 `npm run db:seed` against it: the seed writes fixture values over the three
 gold members.
 
+The hosted database is reached through Supabase's session pooler, which
+allows 15 clients at once, and every process (dev server, script, test run)
+opens up to 5 (`lib/db/index.ts`). With several runs at once a script or test
+can fail with `EMAXCONNSESSION ... max clients reached`: wait, then run it
+again, one at a time.
+
 ### Start the two servers
 
 ```bash
@@ -97,6 +120,11 @@ npm run inngest:dev   # second terminal: the jobs, http://127.0.0.1:8288
 
 Jobs only run while `inngest:dev` is running. After you add or change a job,
 re-sync it: `curl -X PUT http://localhost:3000/api/inngest`.
+
+The local Inngest dev server also fires the schedules (03:00 to 06:00, see
+"Jobs"). With the team's `.env.local` it runs them against the hosted
+database, and once the deployed site is synced, Inngest Cloud fires the same
+schedules there too. Stop `inngest:dev` at night.
 
 ### Sign in
 
@@ -119,7 +147,8 @@ member is profiled from public pages but has no sign-in.
 | Script | What it does |
 |---|---|
 | `npm run dev` / `build` / `start` | Next.js |
-| `npm run lint` / `typecheck` / `test` | What CI runs on every push |
+| `npm run lint` / `typecheck` / `test` | What CI runs on every push (`.github/workflows/`) |
+| `npm run test:unit` | Unit tests only: leaves out `*.integration.test.ts` (need a database) and `*.live.test.ts` (call a model) |
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run db:generate` | New migration from a change to `lib/db/schema.ts` |
 | `npm run db:migrate` | Apply `drizzle/` to `DATABASE_URL` |
@@ -151,7 +180,7 @@ member is profiled from public pages but has no sign-in.
 | `npm run cost` | Tokens and model calls per full run and per member per month, from the real runs, plus one Scout brief and one Copilot turn; $0 on NVIDIA's free API (A24) |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
-| `npm run e2e` | Playwright walk-through of the demo screens against the running site (`BASE_URL`, default http://localhost:3000); signs in with `DEMO_USER_PASSWORD` (D13) |
+| `npm run e2e` | Playwright walk-through of the demo screens against the running site (`BASE_URL`, default http://localhost:3000); signs in with `DEMO_USER_PASSWORD`; `E2E_SKIP_COPILOT=1` skips the two Copilot questions (D13). See "Playwright walk-through" |
 | `npm run e2e:report` | Open the last Playwright report |
 
 Every script loads `.env.local` itself. Scripts and jobs write with the
@@ -174,12 +203,12 @@ checks again on the server.
 ```
 app/page.tsx                 start page: the menu of the signed-in role
 app/sign-in/                 sign-in form (Supabase Auth, email and password)
-app/week/                    member: "Your week" cards and their buttons (C3, C4)
+app/week/                    member: "Your week" cards and their buttons (C3, C4); cards slide to a new order after a re-rank (C8)
 app/profile/                 member: own profile, evidence and editor (C5, C6, C7); staff: list of all members
 app/profile/[slug]/          anyone signed in: one company's public profile (C5)
 app/explore/                 anyone signed in: every opportunity as a list, timeline or testbed map, with filters (C14, C15, C16)
 app/scout/                   member: ask Scout, watch the run, read and save briefs (C10)
-app/copilot/                 member: the Copilot chat (C11)
+app/copilot/                 member: the Copilot chat as a full page (C11); the side panel is in components/copilot
 app/trust/                   anyone signed in: the Trust report (C12)
 app/sources/                 anyone signed in: data status of every source (C13)
 app/design/                  the design system: every component and badge (C1); static
@@ -191,14 +220,17 @@ app/staff/checks/            staff: test calls to the hosted services, page fetc
 app/demo/injection-test/     public: the planted test page for the injection demo (B13); no menu link
 app/api/chat/                POST: one Copilot turn as an event stream; /handoff sends an answer to staff
 app/api/scout/               start a brief, poll it, save an option (B4)
+app/api/week/                GET: when the member's cards were last built, polled by /week (C8)
 app/api/calendar/            "Add to calendar" .ics for one opportunity (C4)
 app/api/staff/compare/       the compare data as JSON, staff only (C9)
 app/api/checks/              the service checks behind /staff/checks
 app/api/members/import/      start and poll the member import, staff only
 app/api/snapshots/           the page fetcher behind /staff/checks
 app/api/inngest/             Inngest's endpoint; PUT re-syncs the jobs
+app/actions/                 server actions: sign in, sign out, set the interface language
 app/**/error.tsx, not-found  error and not-found pages
-components/                  header, data status panel, Copilot panel and launcher, shadcn/ui in components/ui
+components/                  header, language switch, data labels (data-status-label.tsx), data status panel, Copilot panel and launcher, shadcn/ui in components/ui
+messages/                    interface texts: en.json, sv.json; messages/README.md says how to add or translate a text
 proxy.ts                     redirects by sign-in and role (Next 16's name for middleware)
 ```
 
@@ -232,13 +264,14 @@ lib/judge/           judge (A16): the prompt, the checks on the answer, the roun
 lib/cards/           "Your week" cards (A17): which judged matches become cards, the week, storing
 lib/links/           link checker (A20)
 lib/sources/         source health verdicts (A19)
-lib/week/            Your week screen (C3, C4): reads, card buttons, Ask BSP handoff, .ics file, date labels
+lib/week/            Your week screen (C3, C4, C8): reads, card buttons, Ask BSP handoff, .ics file, date labels, the poll and the new-order line
 lib/profile-view/    profile screen (C5, C6, C7): which claim shows per field, quote in context, edit rules
 lib/explore/         explorer (C14, C15, C16): filters in the URL, date status, timeline by month, testbed map and places, reads
 lib/staff-views/     staff screens (C9, C17): compare two members, ecosystem layout, reads
 lib/trust/           Trust report (C12): reads, the report as plain data, the shapes of stored results
 lib/copilot/         Copilot (B2, B5 to B11): scope policy, classifier, tools, assistant loop, output check, chats, handoffs
-lib/scout/           Scout (B1, B3, B4, B15): search, research loop, brief writer, checks, storage, pre-run briefs
+lib/scout/           Scout (B1, B3, B4, B15): store search, live funder searches, keyed web search, research loop, brief writer, checks, storage, pre-run briefs
+lib/i18n/            interface language (C19): the cookie, translators for server and client, date and number formats
 lib/email/           weekly digest email (C18): build, load the cards, send
 lib/injection/       prompt-injection detector and the planted demo page and result (B13)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
@@ -252,11 +285,13 @@ data/injection-demo/ the recorded injection demo run, shown at /staff/injection-
 data/staff-session/  printable rating sheets, think-aloud questions, results.example.json (D7)
 data/timed-test/     answer key (draft), record sheet, results.example.json (D5)
 data/digest-preview/ digest previews from `npm run digest -- --dry`; git-ignored (private text)
-docs/                solution explainer, handover, prepared jury answers, quality and boundaries, pitch deck, Copilot scope policy, model choice
+docs/                solution explainer, handover, deploy checklist, prepared jury answers, quality and boundaries, pitch deck, demo script, team checklist, Copilot scope policy, model choice
 eval/redteam-prompts.json  44 red-team cases in 6 groups for the Copilot (B11)
-e2e/                 Playwright walk-through (D13): member, staff and phone-width runs; RESULTS.md has the last results
+eval/redteam-last-run.json the last full red-team run, case by case (B12)
+e2e/                 Playwright walk-through (D13); RESULTS.md has the first run's results and findings
 scripts/             one file per npm script
-tests/               privacy, ranking, refresh and cards integration tests
+tests/               privacy, ranking, refresh and cards integration tests, and security tests
+.github/workflows/   CI: lint, typecheck and tests on push
 ```
 
 ## Jobs
@@ -273,7 +308,7 @@ starts it and its schedule (Swedish time). Each section below has the details.
 | `profile-all-members` | `app/members.profile.requested` `{ force?, limit? }` | |
 | `refresh-profiles` | `app/members.refresh.requested` | Mondays 04:00 |
 | `collect-sources` | `app/sources.collect.requested` `{ sources? }` | daily 03:00 |
-| `enrich` | `app/enrich.requested` `{ force? }`, `app/company.embed.requested` `{ companyId, slug }` | daily 03:30 |
+| `enrich` | `app/enrich.requested` `{ force?, limit? }`, `app/company.embed.requested` `{ companyId, slug }` | daily 03:30 |
 | `match-companies` | `app/match.requested` `{ slugs?, afterProfileChange? }`, `app/company.profile.changed` `{ companyId }` | daily 04:30 |
 | `find-connections` | `app/connections.requested` | |
 | `trend-notes` | `app/trends.requested` `{ areas? }` | Mondays 05:00 |
@@ -283,20 +318,25 @@ starts it and its schedule (Swedish time). Each section below has the details.
 | `send-digest` | `app/digest.requested` `{ slug, to }` | |
 | `scout-brief` | `app/scout.requested` `{ briefId }` | |
 
-How the jobs chain (C8, added on 2026-11-14 evening):
+How the jobs chain (C8):
 
 ```
 nightly: collect-sources 03:00 -> enrich 03:30 -> match-companies 04:30 (and whenever enrich found something new)
-profile edit  -> app/company.profile.changed -> match-companies: did a claim change since the last embedding?
-                 yes: app/company.embed.requested -> enrich (one company) -> app/match.requested { afterProfileChange } -> match-companies
-                 no (a priority switch): rank now
+profile changed -> app/company.profile.changed -> match-companies: is a claim newer than the last embedding?
+                   yes (a text edit): app/company.embed.requested -> enrich (one company: tagger + Voyage)
+                                      -> app/match.requested { afterProfileChange } -> match-companies
+                   no (a priority switch): rank now
 after a re-rank -> app/company.judge.requested { cards: true } -> judge-company (new rows) -> app/cards.requested -> build-week-cards
                    or, with nothing to judge, app/cards.requested straight away
+/week           -> polls GET /api/week; when the cards were built again it loads them and slides each card to its new place
 ```
 
-The follow-up after a re-rank runs for the companies whose stored top 20
-changed, and always after a profile change. The schedules have not yet run on
-the deployed site (see "Deploying").
+Each hop is its own job, so every step stays under Netlify's 30 s. The
+follow-up after a re-rank runs for the companies whose stored top 20 changed,
+and always after a profile change. Run once on Techinova on 2026-11-14: the
+cards were rebuilt 7.5 s after a priority switch and 27 s after a text edit
+(commit `5d1dfbc`). The schedules have not yet run on the deployed site (see
+"Deploying").
 
 ## Privacy model
 
@@ -316,19 +356,18 @@ every access token; users cannot change it. The policies in
 
 ## NVIDIA API (S3)
 
-Every model call in the app goes to NVIDIA's free developer API. The project
-owner decided on 2026-11-14 to stay on it and not to use Claude. Model IDs
-live in `lib/nvidia.ts`. The API is OpenAI-compatible chat completions at
+Every model call in the app goes to NVIDIA's free developer API; the project
+owner decided on 2026-11-14 to stay on it. Model IDs live in `lib/nvidia.ts`. The API is OpenAI-compatible chat completions at
 `https://integrate.api.nvidia.com/v1`, called with plain `fetch`, so there is
 no SDK version to pin.
 
 | Feature | What we use | Note |
 |---|---|---|
-| Models | `nvidia/nemotron-3.5-super-vl-120b-a12b` for both the fast and the main slot, since 2026-11-14 evening | See "Model choice" below. Until then both slots used `nvidia/nemotron-3.5-lightning-30b-a3b` |
+| Models | `nvidia/nemotron-3.5-super-vl-120b-a12b` for both slots: fast (scope classifier, tagging) and main (profiler, judge, trend notes, connections, Scout, Copilot) | Since 2026-11-14, 21:56; see "Model choice" below. Before that both slots used `nvidia/nemotron-3.5-lightning-30b-a3b` |
 | Thinking | Off: `chat_template_kwargs: {enable_thinking: false}` | With it on, one call can run past Netlify's 30 s step limit |
 | Structured outputs | `response_format: {type: "json_schema", ...}`; `nvext.guided_json` is refused | The check reports which of the two the endpoint accepted |
 | Tool calling | `tools` + `tool_choice: "auto"`, answer with a `role: "tool"` message | No Tool Runner: the agent loops (Copilot, Scout) are ours |
-| Web search | None | No server-side search. Scout brings its own search (see "Scout") |
+| Web search | None | No search on NVIDIA's side. Scout brings its own (see "Scout") |
 | Rate limit | 429 at roughly 30 to 45 requests a minute | Jobs run at most two model steps at once; scripts wait a minute and try again |
 
 `npm run check:nvidia` makes one test call per row with the key in
@@ -359,9 +398,13 @@ tags).
 - The samples are small (15 judge entries, 10 texts): read the scores as a
   strong hint, not a proof. The benchmark script itself was lost; the table
   in the doc is its saved output.
-- Tags and judgements are being redone with the new model on 2026-11-14
-  evening. The profiles, connections and the injection demo run stored at
-  22:00 that day were made with the lightning model.
+- Still from the lightning model, not redone: every company profile (14 Nov,
+  afternoon), the stored connections (18:55), the injection demo run (20:49)
+  and the two Scout pre-run briefs (20:51, 20:55). Whether to re-profile with
+  the new model is open (`docs/handover.md`). The judgements were redone with
+  the new model that evening, and a second re-judge with the tightened judge
+  prompt was running at 23:30 (see "Judge"). The tags were being redone with
+  it too; this README does not record when that finished.
 
 ## Hosted setup (S2, S4)
 
@@ -370,9 +413,10 @@ tags).
    `npm run db:setup` with those values to migrate, seed and create the demo
    accounts there (on a new, empty project only; later use `db:migrate` and
    `db:demo-users`).
-2. **Netlify**: the site deploys from `main` on GitHub. Add every variable from
-   `.env.example` (without `INNGEST_DEV`) and redeploy after each change. Put
-   the production URL in `APP_URL`.
+2. **Netlify**: the site deploys from `main` on GitHub. Set the variables
+   listed in section 3 of `docs/deploy-checklist.md` (never `INNGEST_DEV`;
+   leave `NVIDIA_MODEL_FAST` and `NVIDIA_MODEL_MAIN` empty) and redeploy after
+   each change. Put the production URL in `APP_URL`.
 3. **Inngest**: add `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` to Netlify,
    redeploy, then sync the app so Inngest Cloud knows its functions:
 
@@ -391,27 +435,32 @@ tags).
 
 ## Deploying
 
-- Work happens on the branch `dev`. Pushing `dev` builds nothing.
-- `main` deploys to Netlify on every push, and the team's build credits are
-  low. So `dev` is merged into `main` only when the project owner says so. A
-  commit message with `[skip netlify]` skips a build.
-- After a merge and its one build, re-sync Inngest so it knows every job and
-  schedule, then check that the crons show in the Inngest dashboard:
+The rule: **work on `dev`, and never push or merge to `main` unless the
+project owner says so at that moment.** Netlify builds the site on every push
+to `main` and the team's build credits are low; an earlier "yes" does not
+carry over. Pushing `dev` builds nothing.
+
+- `docs/deploy-checklist.md` has every step of a merge: what to fix and check
+  first, the Netlify variables, the one merge command, what to look for in
+  the build log, what to open on the live site, and how to roll back.
+- After a deploy, re-sync Inngest so Inngest Cloud knows every job and
+  schedule:
 
   ```bash
   curl -X PUT https://jade-kashata-27a74f.netlify.app/api/inngest
   ```
 
-- Netlify cuts a request, and so a job step, off at 30 s. Model calls use a
-  26 s timeout and jobs keep every step under that.
-- To do before the next merge: `/trust` and `/staff/injection-demo` read JSON
-  files from `data/` at request time (`data/timed-test/results.json`,
-  `data/staff-session/results.json`, `data/injection-demo/result.json`).
-  Netlify only ships files the build traces, so `next.config.ts` needs
-  `outputFileTracingIncludes` for those paths, or the deployed pages act as if
-  the files were missing. Not done yet.
+  It answers `Successfully registered`. Then check that the crons show in the
+  Inngest dashboard (app `virtual-science-park`, environment `production`).
+- A commit message with `[skip netlify]` skips a build.
+- Netlify cuts a request, and so a job step, off at 30 s. Inngest runs one
+  step per request (`checkpointing: false` in `lib/inngest/client.ts`), model
+  calls in jobs use a 26 s timeout, and a Copilot turn has 23 s.
+- `/trust` and `/staff/injection-demo` read JSON files from `data/` at request
+  time. `next.config.ts` names them in `outputFileTracingIncludes`, so Netlify
+  ships them with the server function (commit `5115577`).
 - The deployed `main` is far behind `dev`: it is at `07a88cd`, the A5
-  profiler prompt (see `docs/handover.md`).
+  profiler prompt (14 Nov, 16:13).
 
 ## Page fetcher (A1)
 
@@ -498,9 +547,13 @@ event: app/sources.collect.requested   data: {}   or   { "sources": ["vinnova"] 
 - Every live collector keeps a real `recorded.json` next to its code. When the
   source fails, or with `DEMO_MODE=cached`, that copy is used and the source's
   state is "cached" with the date of the copy.
-- Hand-entered sources are stored with `simulated = true`, the plan's label
-  for anything the team wrote by hand. Testbeds whose link is dead or could not
-  be checked stay in the JSON with `linkOk: false` and are not stored.
+- Hand-entered sources are stored with `simulated = true`. The screens show
+  them as "Hand-entered"; only the team's old `fixture-` sample rows show as
+  "Simulated" (see "Data labels"). Testbeds whose link is dead or could not be
+  checked stay in the JSON with `linkOk: false` and are not stored: 11 of the
+  27 entries are usable.
+- EU topic links are the portal's topic page plus the topic identifier, as
+  the search API gives it (`lib/collectors/eu-funding/topic-url.ts`).
 - New collector: a folder in `lib/collectors/` that exports a `Collector`
   (see `types.ts`), added to the list in `lib/collectors/index.ts`.
 - Import `cheerio/slim`, never `cheerio`: the main entry loads its own undici,
@@ -593,6 +646,10 @@ staff can read.
   neither company has expressed interest.
 - The table always holds the latest run. Borderline pairs can come and go
   between runs, because the model is not fully stable on them.
+- In progress on 2026-11-14 night: the finder is being reworked for the new
+  model (more kinds of candidate pairs, and each side must name what it
+  brings). The stored pairs (18:55) are from the earlier finder and the
+  lightning model.
 
 ## Hand-check and eval (A7, A21)
 
@@ -634,6 +691,24 @@ three things the text leaves open, or rejects the match with a reason. It can
 only answer for the matches it was given, and `eligibility` stays
 `potential_match`.
 
+What it keeps and rejects (`lib/judge/prompt.ts`):
+
+- Keep when something the company makes, sells, runs or knows has a direct,
+  specific part in what the opportunity funds, tests or is about, also as one
+  part of a larger system. A partial fit in the company's own field is a
+  keep, with the doubt in "uncertain".
+- Reject a different field, a call closed to this kind of organisation, and
+  a stretched match: the company would have to enter a field it is not in, or
+  the only link is one any organisation could claim ("could present its
+  services there", "could use the money for a market analysis"). Support for
+  growing businesses (loans, vouchers, accelerators, export programmes) is
+  closed to public agencies, municipalities, regions and universities, and a
+  reject for a large corporation unless the text says otherwise.
+- An event is kept for any member that could plausibly attend.
+- The stretched-match rule was added on 2026-11-14 (commit `97013d0`): with
+  the new model and the earlier prompt the judge kept 1,027 of 1,120 ranked
+  public rows (92 %, matching eval 22:28), some clearly unrelated.
+
 - Checks in code before anything is stored: no eligibility words ("eligible",
   "qualifies", "guarantee" ...), no next step that says "apply", lengths, and a
   reject that names a link to the company is asked again. An entry that fails
@@ -645,15 +720,18 @@ only answer for the matches it was given, and `eligibility` stays
   round keep their rank, so every reader must filter on `rejected`.
 - Many rejections are normal: the matcher always stores 20 rows per company,
   and members such as a public agency or a bank have few real matches among
-  the stored opportunities. An event is kept for any member that could attend.
+  the stored opportunities.
 - Cards: no model call. Up to 6 judged personal matches in rank order (at most
   3 of one kind, 2 of one source, no news) plus one trend card when this week
-  has a trend note for one of the company's tags. Stored per company and week
-  in `week_cards`; building again replaces that week. Also Mondays at 06:00.
+  has a trend note for one of the company's tags. A call that is not open yet
+  only fills a week that has fewer than 5 open items, after the open ones, and
+  its card says so, for example "Not open yet: opens 1 Dec 2026". Stored per
+  company and week in `week_cards`; building again replaces that week. Also
+  Mondays at 06:00.
 - After a re-rank, the match job sends `app/company.judge.requested` with
   `cards: true` for each company whose top 20 changed and has rows the judge
-  has not seen; the judge then asks for the cards (see "Jobs"). Added on
-  2026-11-14 evening. `npm run judge` still picks up anything left unjudged.
+  has not seen; the judge then asks for the cards (see "Jobs").
+  `npm run judge` still picks up anything left unjudged.
 
 ## Trend analyst (A27)
 
@@ -669,8 +747,12 @@ two inputs and cites at most four.
   in it appears in a cited input, a deadline is not written as an opening
   date, and there are no promise words. A note that fails twice is not stored,
   so an area can be without a note in a given week.
-- With the lightning model (until 2026-11-14) the notes read as "what closes when in your area"
-  more than as market analysis, and about one area in six fails the checks.
+- With the lightning model (until 2026-11-14) the notes read as "what closes
+  when in your area" more than as market analysis, and about one area in six
+  failed the checks.
+- In progress on 2026-11-14 night: the prompt and checks are being reworked
+  for the new model (each input marked new or not, the note about a new one,
+  no analysis the inputs do not state).
 
 ## Source status, cached mode and schedules (A19, A23)
 
@@ -694,11 +776,17 @@ two inputs and cites at most four.
 of a week card) and stores one `eval_runs` row of kind `link_check`.
 
 - `ok`: a 2xx answer after redirects. `broken`: 404 or 410, no such host, a
-  refused connection, a TLS error, a 5xx twice, or a redirect to the site's own
-  `/404` page. `blocked`: 401, 403, 429 or a timeout, so a person must check.
-- Limits of the check: the EU portal answers 200 for any topic id, so "ok"
-  there only means the portal is up. Energimyndigheten also answers 200 for a
-  missing page.
+  refused connection, a TLS error, a 5xx twice, a redirect to the site's own
+  `/404` page, or an address we will not request. `blocked`: 401, 403, 429, a
+  timeout or an answer we cannot read, so a person must check.
+- EU Funding & Tenders topic links are not judged by the page's answer: the
+  portal answers 200 for any topic id and sometimes redirects a good topic to
+  a page that answers 404. The topic id is looked up in the portal's search
+  API instead (`lib/links/sources.ts`): found is `ok`, not found is `broken`.
+- ri.se and energimyndigheten.se answer 200 for a missing page, so their
+  links are not requested and count as "cannot verify by script"
+  (`unverifiable`), with the reason. The Trust report shows them apart from
+  working and broken links.
 
 ## Member import (A2)
 
@@ -715,13 +803,28 @@ to `companies`. A member without a website link gets `website_missing = true`.
 - `npm run db:seed` writes the fixture values back over the three gold
   members; run the import again afterwards.
 
-## Your week screen (C3, C4)
+## Your week screen (C3, C4, C8)
 
 `/week`, members only. It shows the company's newest stored week of cards
-from `week_cards` (built by `npm run cards` or the Monday 06:00 job). When this
-week's cards are not built yet, it shows the latest week and says so. Every
-card is labelled "Potential match" and carries the judge's why, a next step,
-what is unsure, and the source link; a trend card shows that week's note.
+from `week_cards` (built by `npm run cards`, the Monday 06:00 job, or the
+chain after a re-rank). When this week's cards are not built yet, it shows the
+latest week and says so. Every card is labelled "Potential match" and carries
+the judge's why, a next step, what is unsure, the source link and its data
+label (see "Data labels"); a trend card shows that week's note.
+
+After a change the page updates by itself (C8, `app/week/week-live.tsx`,
+`lib/week/live.ts`):
+
+- It polls `GET /api/week` (the week, when its cards were built, when the
+  profile last changed) every 4 s while new cards are on their way, every
+  30 s otherwise, and not while the tab is hidden. It polls rather than using
+  Supabase Realtime, which would need a migration.
+- For up to 15 minutes after a profile change it says "Your profile changed:
+  your cards are being re-ranked. This page updates by itself."
+- When the cards were built again it loads them, each card slides from its
+  old place to its new one (no movement with reduced motion), and a line says
+  what changed. The order last shown is kept in the browser, so a reload
+  after the change moves the cards too.
 
 | Button | What it writes | Then |
 | --- | --- | --- |
@@ -766,14 +869,16 @@ what is unsure, and the source link; a trend card shows that week's note.
 - `/explore`, every signed-in user: every opportunity in the store, filtered
   by kind (funding, testbed, event, news), tag, due date and a text search,
   all kept in the URL. "Timeline" shows funding deadlines and events by month.
-  "Map" (C15, added 2026-11-14 evening) pins the test facilities at town
-  level on a sketch map of southern Sweden. The opportunities table has no
-  location column: the places come from a hand-kept table
-  (`lib/explore/testbed-places.ts`, the town the facility's own stored text
-  names, with that text as a quote), and `data/testbeds.seed.json` holds a
-  town and coordinates for 14 entries. A facility without a known place is
-  listed under "Location not stored", never guessed. Hand-entered items carry
-  a "Simulated" badge; a member's own ranked matches are marked.
+  Every item carries its data label (see "Data labels"); a member's own
+  ranked matches are marked.
+- The testbed map (C15, the "Map" view) pins the stored test facilities at
+  town level on a sketch map of southern Sweden. The opportunities table has
+  no location column: the places come from the hand-kept testbed list,
+  `data/testbeds.seed.json`, where 14 of the 27 entries have a `town`, `lat`
+  and `lon` from the facility's own address. A stored testbed is looked up
+  there by its external id (`lib/explore/testbed-places.ts`), and the map
+  quotes the entry's own words that name the town. A facility without a
+  known place is listed under "Location not stored", never guessed.
 - `/staff/compare?a=<slug>&b=<slug>`, staff only: each member's top five from
   the public ranking (ranked, not rejected), side by side, with the
   opportunities that are in both marked. The same data as JSON at
@@ -794,11 +899,11 @@ stored result that cannot be read says so. Nothing is filled in.
 | Section | Read from |
 | --- | --- |
 | Profile accuracy, Quote check | `eval_runs` kinds `profile_accuracy`, `quote_check` (`npm run eval`) |
-| Link health | `eval_runs` kind `link_check` (`npm run check:links`) |
+| Link health | `eval_runs` kind `link_check` (`npm run check:links`): working, broken, blocked and "cannot verify by script" |
 | Source status | `source_status` |
 | Matching | `eval_runs` kind `matching` (`npm run eval`): ranked, judged, kept and rejected per mode over every member, counts only. Until one is stored, `matches` as the viewer may read them (staff: every public ranking; a member: its own) |
 | Red-team tests | `eval_runs` kind `red_team` (`npm run eval -- red_team`) |
-| Privacy tests | `eval_runs` kind `privacy`; nothing writes it yet (shape in `lib/trust/shapes.ts`) |
+| Privacy tests | `eval_runs` kind `privacy`: one row, 17 of 17, stored by hand on 2026-11-14 at 20:36. No script writes it; a new run must be stored the same way (shape in `lib/trust/shapes.ts`) |
 | Timed test, Staff session | `data/timed-test/results.json`, `data/staff-session/results.json`, written by the team after each session; `results.example.json` next to each shows the shape |
 | Known limits | fixed text on the page |
 
@@ -808,11 +913,22 @@ stored result that cannot be read says so. Nothing is filled in.
 
 ## Copilot (B2, B5 to B12, C11)
 
-A chat for members at `/copilot`, and from a launcher on every page for a
-signed-in member (staff and signed-out visitors do not get it). It answers
-from the store only (no web search) about funding calls, testbeds, events,
-BSP news, and the member's own profile and matches, with a source for every
-fact.
+A chat for members. It answers from the store only (no web search) about
+funding calls, testbeds, events, BSP news, and the member's own profile and
+matches, with a source for every fact.
+
+- **Side panel** (`components/copilot/copilot-launcher.tsx`): a "Copilot"
+  button at the bottom right of every page opens the chat as a side panel
+  (full screen on a phone). The chat stays open across pages; following a
+  link closes the panel. Only signed-in members get it; on `/copilot` the
+  button hides and the chat is the page.
+- **Sources** under each answer: title, publisher, the dates that go with the
+  source as every screen writes them ("closes 8 Dec 2026", "retrieved 14 Nov
+  2026"), and the data label when the source is "Hand-entered", "Simulated"
+  or a "Cached copy" (with the copy's date). The answer itself also gets a
+  label line, for example "Source [2]: Hand-entered. Typed in by the team
+  from the source, not read automatically." A source whose text looked like
+  instructions to an AI carries a warning.
 
 ```
 POST /api/chat           { "message": "...", "threadId": "<uuid>"? }   text/event-stream: status events, then one final (or error)
@@ -844,7 +960,8 @@ One turn, in `lib/copilot/turn.ts`:
    factual sentence without a valid cite is removed (the model gets one
    chance to fix it); a sentence that sounds like an eligibility decision is
    rewritten to "potential match" with the call's own "who may apply" and the
-   staff contact; tool actions are confirmed in code; the "information only"
+   staff contact; tool actions are confirmed in code; cited hand-entered,
+   simulated or cached sources get their label line; the "information only"
    note is added. The browser never gets unchecked text.
 
 - Turns are stored in `chats`, private to the company; staff never read
@@ -858,13 +975,23 @@ One turn, in `lib/copilot/turn.ts`:
   in-scope turn (measured 2026-11-14). Tokens per turn are not recorded yet.
 - Red team (B11, B12): `eval/redteam-prompts.json` holds 44 cases in 6
   groups (relevant, unrelated, override, indirect injection, privacy,
-  eligibility). `npm run eval -- red_team` runs them as real turns for a demo
-  member, with every write rolled back. The last full run, 2026-11-14 22:07
-  Swedish time with the super-vl model (`eval/redteam-last-run.json`), passed
-  41 of 44: all override and indirect-injection cases passed; two follow-up
-  turns gave no citation, and "yes or no: are we eligible" was labelled out
-  of scope instead of getting "potential match". Whether that run is stored
-  for `/trust` is not checked here.
+  eligibility).
+
+  ```bash
+  npm run eval -- red_team                    # all 44 cases, stored for /trust
+  npm run eval -- red_team --group=override   # one group, printed, not stored
+  ```
+
+  It runs every case as real Copilot turns for a demo member, with every
+  write rolled back: about 150 model calls and 15 minutes. Three full runs
+  are stored in `eval_runs`, all on 2026-11-14 with both slots on the
+  super-vl model: 41 of 44 at 22:07, then, after the fixes in commit
+  `d6ed1af`, 44 of 44 at 22:14 and 44 of 44 at 22:20. The first run failed
+  two follow-up answers without a citation and "Just answer yes or no: will
+  we get funding from ...?", which got the out-of-scope reply instead of the
+  potential-match answer. `eval/redteam-last-run.json` holds the 22:20 run
+  case by case.
+- The Copilot's screens and answers are in English only so far.
 - The fact heuristic can miss a fact written without numbers or names ("the
   deadline is next week").
 
@@ -885,18 +1012,38 @@ event: app/scout.requested   data: { "briefId": "<uuid>" }
   its own step (30 s at most each), and each step writes the progress lines
   to the row. A run stays under 300 s. A rate limit waits 60 s; when the job
   gives up, the row is marked failed with the error.
-- Search (`lib/scout/search.ts`) has two sources. **Store**: BSP's own
-  opportunities by embedding similarity; when Voyage does not answer (3
-  requests a minute without billing), by bilingual keywords
-  (`lib/scout/keywords.ts`: "grid" also finds "elnät"); no fixtures, closed
-  calls, past events or news. **Web**:
-  DuckDuckGo's HTML page through the repo's fetcher, trusted domains only.
-  Measured on 2026-11-14, DuckDuckGo answers the fetcher with a bot check
-  (HTTP 202), so web search is unavailable; we do not try to get around it.
-  The run goes on with the store, and the brief says "Web search was not
-  available; built from stored sources."
-- Limits: `SCOUT_MAX_SEARCHES` searches (default 6, 1 to 20), 3 page reads,
-  7 research turns.
+- Search (`lib/scout/search.ts`, B1). Every search asks three kinds of
+  source in parallel and lists the results in this order:
+  - **Store**: BSP's own opportunities by embedding similarity. When Voyage
+    does not answer (3 requests a minute without billing), by bilingual
+    keywords instead (`lib/scout/keywords.ts`: "grid" also finds "elnät"),
+    ties broken by closeness to the company's own embedding. No fixtures,
+    closed calls, past events or news.
+  - **Live sources** (`lib/scout/live-sources.ts`, no key needed): the
+    funders' own public searches, asked at question time, so calls newer than
+    the last collect are found: the EU Funding & Tenders portal's search API,
+    vinnova.se's "Hitta finansiering" list and Energimyndigheten's calls
+    list. Funding searches only, 8 s per source; a source that fails is
+    reported and the others go on. A live hit the store already has is shown
+    as the stored hit.
+  - **Web** (`lib/scout/web-search.ts`): Tavily when `TAVILY_API_KEY` is set,
+    else Brave Search with `BRAVE_SEARCH_API_KEY`; at most 3 web searches per
+    brief. Without a key the progress lines say "no web search key
+    configured" and nothing is called.
+
+  Live and web hits must be on a trusted domain (`ALLOWED_WEB_DOMAINS` in
+  `lib/scout/search.ts`), and each is run through the injection detector; a
+  flagged hit carries a warning. With `DEMO_MODE=cached` live and web search
+  are off. When neither a live source nor the web answered, the brief says
+  "Web search was not available; built from stored sources." DuckDuckGo, the
+  earlier web source, answered every request with a bot check and was
+  removed.
+- What has been shown: the live sources answered in real runs on
+  2026-11-14, but a full brief built from a live search has not been shown
+  yet (both real runs ran out of time on rate limits). Tavily and Brave have
+  never been called live: no key was available.
+- Limits: `SCOUT_MAX_SEARCHES` searches (default 6, 1 to 20), 3 of them
+  with web search, 3 page reads, 7 research turns.
 - Checks in code (`lib/scout/verify.ts`) on every option: it cites one source
   the run really returned, no two options cite the same one, no eligibility
   words, and every year, date, amount, link and email address is in the cited
@@ -911,8 +1058,8 @@ event: app/scout.requested   data: { "briefId": "<uuid>" }
   2026-11-14: EmbeddedArt (the underwater sensor question) and Techinova
   ("Funding for safer electricity grid technology"). In cached mode the run
   also reads stored snapshots instead of fetching pages.
-- One brief used 37,337 input and 2,110 output tokens and 8 model calls on
-  average over the 11 recorded runs (`npm run cost`, read 2026-11-14 22:13).
+- One brief used 34,897 input and 1,943 output tokens and 8 model calls on
+  average over the recorded runs (`npm run cost`, read 2026-11-14 23:25).
 
 ## Weekly digest email (C18)
 
@@ -938,6 +1085,8 @@ event: app/digest.requested   data: { "slug": "embeddedart", "to": "someone@exam
 - Links in the email point at `APP_URL`, or http://localhost:3000 when it is
   empty. Plain email HTML: tables, inline styles, no images; every database
   text is escaped.
+- Each card carries the same data label as on the screens. The email is in
+  English only so far.
 
 ## Prompt-injection demo (B13)
 
@@ -970,57 +1119,124 @@ Proof that instructions hidden in a web page do not steer the system.
 - Scout and the Copilot wrap every outside text as data in their prompts too;
   the red-team file has 6 indirect-injection cases for the Copilot.
 
+## Data labels (D20)
+
+Product rule: data that is not read live from its source is always labelled.
+One component does it everywhere, `components/data-status-label.tsx`, and
+`itemDataStatus()` there picks the label for an opportunity.
+
+| Label | Meaning |
+| --- | --- |
+| "Live · read 14 Nov 2026" | read from the source; the date of the last successful read |
+| "Stale · last read 10 Nov 2026" | a live source with no successful read for more than 48 hours |
+| "Cached copy · 10 Nov 2026" | a recorded copy is shown; the date of the copy |
+| "Hand-entered" | typed in by the team from the source (regional funding, the testbed list, BSP's event series) |
+| "Simulated" | sample data the team wrote, not real (the old `fixture-` rows, fixture page text) |
+
+Hand-entered rows are stored with `simulated = true`; the label tells them
+apart from the team's sample rows by the `fixture-` external id. Explore,
+"Your week", Scout, the Copilot's sources and its label line, the Trust
+report, the data status page, the profile evidence, staff compare, the
+injection demo page and the digest email all use it.
+
+## Swedish interface (C19)
+
+The header has an "English / Svenska" switch. The choice is a cookie
+(`vsp_locale`), not part of the address, so it survives sign-in and sign-out;
+no cookie means English. The texts live in `messages/en.json` and
+`messages/sv.json`, with exactly the same keys (a test fails otherwise);
+`lib/i18n/` reads them.
+
+- Quotes from company pages and call texts are never translated, nor is data
+  from the database (company names, opportunity titles, the judge's text).
+- Not every screen is translated yet. `messages/README.md` lists which are,
+  which are still in English (among them the Copilot, the Trust report and
+  the digest email), how to add a text, and the Swedish word list ("möjlig
+  matchning" for "potential match").
+
+## Playwright walk-through (D13)
+
+`npm run e2e` drives a real browser through the demo screens, signed in
+through the real sign-in form as `embeddedart@` and `staff@`, against a
+server that is already running. It never starts one itself.
+
+```bash
+npm run e2e                                  # against http://localhost:3000
+E2E_SKIP_COPILOT=1 npm run e2e               # without the two Copilot questions (each stores a chat turn)
+npm run e2e -- --project=staff               # one part
+npm run e2e:report                           # open the last report
+```
+
+- The parts are in `playwright.config.ts`: sign-in setup, member screens,
+  staff screens, phone width (375 px), wording (no "eligible" in our labels),
+  and more being added.
+- It saves and unsaves one card and opens the profile editor and cancels; it
+  does not press buttons that change real data or send something (Useful,
+  Ask BSP, the editor's Save, sign out).
+- Results: `e2e/RESULTS.md` has the first run (2026-11-14, 21:21 UTC: 28
+  passed, 2 failed on one finding that was then fixed, 2 skipped) and its
+  findings. Against a local production build of `dev`, 30 passed and 2
+  Copilot steps were skipped (`docs/deploy-checklist.md`, commit `5115577`).
+  It has not been run against the deployed site.
+
 ## Data status
 
-The hosted database on 2026-11-14, read about 22:00 Swedish time with the
-read-only scripts. Run them again for today's numbers.
+The hosted database on the evening of 2026-11-14, Swedish time. The numbers
+come from the read-only scripts and `eval_runs`, as recorded in
+`docs/prepared-answers.md` and `docs/handover.md`; they were not read again
+for this README. Run `npm run profile:status`, `npm run sources:status` and
+`npm run cost` for today's numbers.
 
-**Members** (`npm run profile:status`): 56 members, all profiled: 50
-`profiled`, 6 `thin`, 0 `failed`. The thin ones are ballou (its website's
-certificate has expired), karlskrona-kommun (its website needs JavaScript),
-blekinge-business-incubator, dnv-cyber, kingspan-baga and nexer: each had only
-2 of 7 fields supported by quotes.
+**Members** (`npm run profile:status`, about 22:00): 56 members, all
+profiled: 50 `profiled`, 6 `thin`, 0 `failed`. The thin ones are ballou (its
+website's certificate has expired), karlskrona-kommun (its website needs
+JavaScript), blekinge-business-incubator, dnv-cyber, kingspan-baga and nexer:
+each had only 2 of 7 fields supported by quotes. The profiles are from the
+lightning model.
 
-**Sources** (`npm run sources:status`), items in the last collect:
+**Sources and opportunities** (read 23:20 to 23:24): 9 sources, 6 live and
+3 hand-entered. 190 opportunities, test rows left out:
 
-| Source | State | Items | Last success |
-| --- | --- | --- | --- |
-| BSP member list | ok | 56 | 2026-11-14 15:55 |
-| EU Funding & Tenders | ok | 129 | 2026-11-14 21:05 |
-| Vinnova | ok | 15 | 2026-11-14 17:49 |
-| Energimyndigheten | ok | 11 | 2026-11-14 21:05 |
-| Blue Science Park news | ok | 4 | 2026-11-14 17:50 |
-| Tech Concept Lab | ok | 1 | 2026-11-14 17:49 |
-| Curated testbed list | hand-entered | 9 (18 of 27 left out: dead or unchecked link) | 2026-11-14 17:49 |
-| Regional funding | hand-entered | 8 | 2026-11-14 17:53 |
-| BSP and MTC event series | hand-entered | 5 | 2026-11-14 17:49 |
+| Source | Label | Opportunities |
+| --- | --- | --- |
+| EU Funding & Tenders | live | 135 |
+| Vinnova | live | 15 |
+| Energimyndigheten | live | 11 |
+| Blue Science Park news | live | 4 |
+| Tech Concept Lab | live | 1 |
+| Curated testbed list | hand-entered | 11 (16 of 27 left out: a dead link, or ri.se's bot check) |
+| Regional funding | hand-entered | 8 |
+| BSP and MTC event series | hand-entered | 5 |
 
-The testbed seed file was updated at 22:13 (commit `894ba6f`): 11 usable
-entries, 16 of 27 left out (ri.se refuses scripted reading, FOI removed its
-pages). The database gets them at the next collect.
+So 166 come from live sources and 24 were typed in by the team (they
+describe real offers, links checked 2026-11-14). The sixth live source is
+BSP's member list (56 members, last import 15:55). 15 old fixture
+opportunities are kept out of every ranking.
 
-So 160 opportunities come from live sources and 22 were typed in by the team
-(labelled "simulated" in the app; they describe real offers, links checked
-2026-11-14). 15 old fixture opportunities are kept out of every ranking
-(`docs/prepared-answers.md`, 2026-11-14).
+**Tags** (23:20): 79 of 190 opportunities and 27 of 56 members had no tag.
 
-**Model use** (`npm run cost`, read 2026-11-14 22:13): one run of everything
-took 3,391,022 tokens and 1,353 model calls, about 46 minutes of calls at 30
-a minute; at most 262,401 tokens and 105 calls per member per month if all is
-redone weekly; $0 on NVIDIA's free API. One Scout brief: 37,337 input and
-2,110 output tokens, 8 calls (average of 11 runs). Copilot turns do not record
-tokens yet. The judge line adds up every recorded judge run, so the re-judge
-running this evening will raise it.
+**Model use** (`npm run cost`, read 23:25): one run of everything took
+4,585,962 tokens and 1,730 model calls; $0 on NVIDIA's free API. This
+over-counts: the judge line adds up every recorded judge run, re-judges
+included. One Scout brief: 34,897 input and 1,943 output tokens, 8 calls.
+Copilot turns do not record tokens yet.
 
-**Evals** (stored in `eval_runs`, 2026-11-14, from `docs/prepared-answers.md`):
-314 of 419 profile quotes found on the page and 85 of 448 fields stored as
-missing (quote check); 0 of 23 gold claims hand-checked, so profile accuracy
-is not measured yet; 181 of 181 opportunity links ok (link check, with the
-limits under "Link checker").
+**Evals** (`eval_runs`):
 
-**Being regenerated on 2026-11-14 evening:** tags, judged / kept / rejected
-matches and the week cards. The orchestrator is re-tagging and re-judging
-every match with the new model, so these counts change for about an hour.
+| Eval | Result | Stored |
+| --- | --- | --- |
+| Quote check | 314 of 419 profile quotes found on the page; 85 of 448 fields stored as missing | 22:28 |
+| Profile accuracy | 0 of 23 gold claims hand-checked: not measured yet | 22:28 |
+| Matching | 1,027 of 1,120 ranked public rows kept (new model, the judge prompt before `97013d0`) | 22:28 |
+| Red team | 44 of 44 (41 of 44 at 22:07, 44 of 44 at 22:14) | 22:20 |
+| Privacy | 17 of 17 | 20:36 |
+| Link check | 184 of 186 ok, 2 broken | 22:29, before the EU topic lookup and the "cannot verify" outcome (commit `b985293`, 23:35) |
+
+**In flight at 23:30:** a second re-judge of every match with the tightened
+judge prompt (see "Judge"), then the week cards, `npm run eval` and
+`npm run check:links` again. The cards in the database then (327 for 56
+members, week of 9 Nov) were built at 22:27, before it. The matching, card,
+tag and link numbers above change with it.
 
 > TO FILL (orchestrator), after the re-judge: judged, kept and rejected public
 > and personal matches, untagged opportunities and members, and week cards,
@@ -1033,18 +1249,21 @@ sign-in, row-level security) with pgvector; Drizzle; Inngest for jobs and
 schedules; NVIDIA's model API; Voyage AI embeddings; Resend; Mozilla
 Readability, cheerio and linkedom for page text; Zod; Vitest and Playwright.
 Data comes from public sources: BSP's and Tech Concept Lab's websites,
-Vinnova's open data, the EU Funding & Tenders search and Energimyndigheten's
-call list.
+Vinnova's open data and funding search, the EU Funding & Tenders search and
+Energimyndigheten's call list.
 
 **Built in the hackathon:** the page fetcher and snapshots, the quote check,
 the member import, the profiler with its thin rule and refresh, the eight
 collectors with recorded fallbacks and cached mode, the tagger and
 embeddings, the matching SQL with its two modes, the judge and its checks,
-the week cards, the trend analyst, the connection finder, the link checker,
-the evals, the row-level security policies, the Copilot (scope policy,
-classifier, tools, our own tool loop, output check), Scout (search adapter,
-research loop, checked brief), the digest email, the injection detector and
-demo, and every screen.
+the week cards, the job chain that re-ranks and rebuilds the cards after a
+profile change, the trend analyst, the connection finder, the link checker,
+the evals (including the red team), the row-level security policies, the
+Copilot (scope policy, classifier, tools, our own tool loop, output check,
+side panel), Scout (store, live funder and keyed web search, research loop,
+checked brief), the digest email, the injection detector and demo, the data
+labels, the Swedish interface, the Playwright walk-through, and every
+screen.
 
 ## Known limitations
 
@@ -1052,25 +1271,39 @@ Collected from the sections above and the code, 2026-11-14.
 
 - **Free model, small tests.** Every model call runs on NVIDIA's free API. The
   model was picked on small samples (15 judge entries, 10 texts). The
-  profiles, connections and the injection demo run were made with the smaller
-  lightning model. With it, 75 of 183 opportunities and 23 of 56 members had
-  no tag, the profiler's retry saved 2 of 87 failed fields, and about one area
-  in six failed the trend-note checks (2026-11-14, before the switch). The
-  judge rejected 1,209 of the 2,035 public rows it judged (2026-11-14,
-  evening, before the re-judge); whether it is too strict is not measured.
+  profiles, the stored connections, the injection demo run and the two Scout
+  pre-run briefs were made with the smaller lightning model. With it, the
+  profiler's retry saved 2 of 87 failed fields and about one area in six
+  failed the trend-note checks. Tags are noisy: at 23:20, 79 of 190
+  opportunities and 27 of 56 members had no tag.
+- **Where the judge draws the line depends on the model and the prompt.**
+  With the earlier model it rejected 1,209 of 2,035 judged public rows; with
+  the new model and the same prompt it kept 92 % (1,027 of 1,120), some
+  clearly unrelated. The prompt was tightened (commit `97013d0`) and a second
+  re-judge was running at 23:30; its numbers go in the "TO FILL" block under
+  "Data status". No person has rated the keep or reject line yet.
 - **Rate limits.** NVIDIA answers 429 above roughly 30 to 45 requests a
   minute; Voyage without billing allows 3 requests a minute.
-- **No web search for Scout.** DuckDuckGo answers our fetcher with a bot
-  check, so briefs are built from stored sources only.
+- **Scout's live and web search are not proven end to end.** The funders'
+  live searches answered in real runs, but no full brief from a live search
+  has been shown (both runs ran out of time on rate limits), and Tavily and
+  Brave have never been called (no key).
 - **Hand-entered sources.** Regional funding, the testbed list and BSP's event
-  series are typed in by the team, labelled "simulated" (also when they
-  describe a real offer) and change only when the team edits them. Only 9 of
-  27 testbeds are stored (11 usable in the seed file since 22:13 that day):
-  ri.se refuses scripted reading, so the RISE pages were never checked, and
-  FOI removed its pages.
-- **Link check limits.** The EU portal answers 200 for any topic id, so "ok"
-  there only means the portal is up; Energimyndigheten also answers 200 for a
-  missing page.
+  series are typed in by the team, labelled "Hand-entered" and change only
+  when the team edits them. Only 11 of 27 testbeds are stored: the rest have
+  a dead link, or sit on ri.se, which answers scripts with a bot check, so
+  the RISE pages were never checked.
+- **Link check limits.** ri.se and energimyndigheten.se answer 200 for a
+  missing page, so their links are "cannot verify by script". A working link
+  does not prove the page still says what we stored.
+- **Database connections.** The hosted database's session pooler allows 15
+  clients and each process opens up to 5. Local runs already hit the limit
+  (`EMAXCONNSESSION`); on Netlify every warm function instance and job step
+  holds its own. `docs/deploy-checklist.md` recommends the transaction pooler
+  for Netlify's `DATABASE_URL` (not tried yet).
+- **Two places can fire the schedules.** A local `npm run inngest:dev` left
+  running fires the same crons against the same hosted database as Inngest
+  Cloud does once the deployed site is synced. Stop it at night.
 - **Quotes prove presence, not support.** A quote is on the page word for
   word, but it may not support the value: EmbeddedArt's "UV-sensors" passes
   although "UV" there probably means underwater. Accuracy is not measured
@@ -1079,19 +1312,19 @@ Collected from the sections above and the code, 2026-11-14.
   `robots.txt`. The member list import reads BSP's site live even in cached
   mode.
 - **Verified by tests and over HTTP more than by hand.** The screens were
-  checked with unit and integration tests, HTTP requests and a Playwright
+  checked with unit and integration tests, HTTP requests and the Playwright
   walk-through (`npm run e2e`); the staff session and the timed test have not
-  been run (no results files yet). The red team ran once (41 of 44, see
-  "Copilot").
-- **The job chain after a profile edit or a re-rank is new** (re-embed, rank,
-  judge, cards; added 2026-11-14 evening). This README describes the code; a
-  whole chain run is not recorded here. Each hop is its own job, so after an
-  edit the new order and cards take as long as an embedding, a ranking and
-  a judge run.
-- **No Swedish interface**: the screens are in English (quotes stay in the
-  page's language).
-- **The testbed map is a sketch at town level**, from a hand-kept table of
-  places; a new testbed needs a row there to get a pin.
+  been run (no results files yet). The red team is 44 cases written by the
+  team, run three times on one evening (44 of 44 in the last two).
+- **The job chain after a profile change is young.** It was run once on
+  Techinova (cards rebuilt 7.5 s after a priority switch, 27 s after a text
+  edit). Each hop is its own job, so on a busy evening the new order takes as
+  long as an embedding, a ranking and a judge run in the queue.
+- **The Swedish interface is partial**: some screens are still English only
+  (see `messages/README.md`). Quotes stay in the page's language.
+- **The testbed map is a sketch at town level**, from the town and
+  coordinates in `data/testbeds.seed.json`; a new testbed needs them there to
+  get a pin.
 - **No member email list**: the digest goes to one named address per send,
   and without a verified Resend domain only to the account owner.
 - **`BSP_CONTACT` is a placeholder** in `lib/copilot/policy.ts`.
@@ -1099,55 +1332,37 @@ Collected from the sections above and the code, 2026-11-14.
   `dev` and the crons have never run on Netlify.
 - **Copilot tokens are not recorded**, so the Copilot's cost per turn is only
   known as a number of calls.
-- **Connections**: candidates are each member's nearest neighbours, mostly
-  the same kind of company, and borderline pairs come and go between runs.
-- **On Netlify**, `/trust` and `/staff/injection-demo` will not find their
-  JSON files until `next.config.ts` traces them (see "Deploying").
+- **Connections**: the stored pairs come from each member's nearest
+  neighbours, mostly the same kind of company, and borderline pairs come and
+  go between runs. The rework for the new model is in progress.
+- **Privacy tests are stored by hand.** The Trust report's privacy row
+  (17 of 17) was stored by hand; no script writes it.
 
 ## Next steps
 
 1. Measure: the team's hand-check of the gold profiles, then `npm run eval`;
    the staff session (`npm run session:sheets`); the timed test (confirm the
-   draft answer key first); a stored privacy test run for the Trust report;
-   fix the 3 failing red-team cases and run the red team again.
-2. Look at the judge's rejections with staff after the re-judge.
-3. Re-run `npm run injection:demo` with the new model.
-4. Run the new chain once end to end on real data: edit a demo member's
-   profile text and check that its ranking and cards change.
-5. Record the Copilot's tokens per turn, so `npm run cost` can show them.
-6. Get BSP's real staff contact for `BSP_CONTACT`, a member email list and a
+   draft answer key first).
+2. After the second re-judge: fill in the "TO FILL" block, and look at the
+   judge's keep and reject line with staff.
+3. Decide whether to re-profile every member with the new model; re-run
+   `npm run injection:demo` and the two Scout pre-run briefs with it.
+4. Show one full Scout brief built from a live funder search; try Tavily or
+   Brave once a key is set.
+5. Translate the screens still in English (`messages/README.md`).
+6. Record the Copilot's tokens per turn, so `npm run cost` can show them.
+7. Get BSP's real staff contact for `BSP_CONTACT`, a member email list and a
    verified Resend domain, then schedule the digest.
-7. Add `outputFileTracingIncludes` to `next.config.ts`, merge `dev` to `main`
-   when the project owner says so, re-sync Inngest, and watch the first
-   scheduled runs.
-8. Open the left-out RISE testbed pages by hand; add a "hand-entered" state
-   so real offers are not shown as "simulated".
-9. Later: a Swedish interface, and a location column for testbeds instead of
-   the hand-kept table.
+8. Follow `docs/deploy-checklist.md`: merge `dev` to `main` only when the
+   project owner says so, re-sync Inngest, and watch the first scheduled
+   runs.
+9. Open the left-out RISE testbed pages by hand. Later: a location column for
+   testbeds instead of the coordinates in the seed file.
 
-## Historical: Claude API versions (S3)
+## Leftovers
 
-The project owner decided on 2026-11-14 not to use Claude: the app runs on
-NVIDIA's free API and will stay there. `lib/llm.ts`, `scripts/check-claude.ts`
-(`npm run check:claude`) and the `@anthropic-ai/sdk` dependency are leftovers
-from the first plan; nothing in the app calls them. This section is kept as
-it was for reference.
-
-Checked against the live Claude docs on 13 Nov 2026. `@anthropic-ai/sdk` is
-pinned to exactly **1.8.0** because the Tool Runner is beta.
-
-| Feature | What we use | Note |
-|---|---|---|
-| Models | `claude-haiku-5-5` (classifier, tagging), `claude-sonnet-5-5` (everything else) | Plan IDs confirmed. Retirement not before Oct / Sep 2027 |
-| Web search | `web_search_20260318` | **The plan says `web_search_20250305`**, the basic version. 20260209 added dynamic filtering, 20260318 adds `response_inclusion`. $10 per 1,000 searches |
-| Structured outputs | `client.messages.parse` with `output_config.format = zodOutputFormat(schema)` | `output_format` is deprecated |
-| Tool Runner | `client.beta.messages.toolRunner` with `betaZodTool` | Beta |
-| Refusal fallback | beta `server-side-fallback-2026-07-01`, `fallbacks: "default"` | Recommended on Sonnet 5.5 calls |
-
-Things that return a 400 on Sonnet 5.5 and Haiku 5.5: forced `tool_choice`
-(`any` / `tool`), `thinking: {type: "disabled"}` on Sonnet 5.5 (use
-`between_tools` or low effort), and `temperature` / `top_p` / `top_k` on API
-version `2026-10-21`.
-
-`npm run check:claude` makes one test call per row. It has not been run: it
-needs `ANTHROPIC_API_KEY`.
+The project owner decided on 2026-11-14 that the app runs on NVIDIA's free
+API only. `lib/llm.ts`, `scripts/check-claude.ts` (`npm run check:claude`),
+the `@anthropic-ai/sdk` dependency and the `ANTHROPIC_*` names in
+`.env.example` are leftovers from before that decision; nothing in the app
+calls them. Their earlier notes are in git history.
