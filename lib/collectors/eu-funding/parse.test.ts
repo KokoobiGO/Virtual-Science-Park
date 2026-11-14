@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Recorded } from "../cache";
+import { toInstant } from "../swedish-time";
 import { EU_STATUS, type EuSearchHit } from "./api";
 import { MAX_TOPICS, parseEuFunding, toPlainText } from "./parse";
 import recordedJson from "./recorded.json";
@@ -94,6 +95,22 @@ describe("parseEuFunding rules", () => {
   it("keeps a deadline that falls today", () => {
     const [item] = parseEuFunding([hit({ deadlineDate: ["2026-11-14T00:00:00.000+0000"] })], at);
     expect(item.deadline).toBe("2026-11-14");
+  });
+
+  it("closes a deadline day at 23:59 Swedish time, in winter and in summer", () => {
+    const winter = [hit({ deadlineDate: ["2027-01-15T00:00:00.000+0000"] })];
+    expect(parseEuFunding(winter, new Date("2027-01-15T22:30:00Z"))).toHaveLength(1); // 23:30 CET
+    expect(parseEuFunding(winter, new Date("2027-01-15T23:00:00Z"))).toEqual([]); // 00:00 CET on the 16th
+    const summer = [hit({ deadlineDate: ["2027-06-15T00:00:00.000+0000"] })];
+    expect(parseEuFunding(summer, new Date("2027-06-15T21:30:00Z"))).toHaveLength(1); // 23:30 CEST
+    expect(parseEuFunding(summer, new Date("2027-06-15T22:30:00Z"))).toEqual([]); // 00:30 CEST on the 16th
+  });
+
+  it("stores the deadline day as 23:59 Swedish time, in winter and in summer", () => {
+    const [winter] = parseEuFunding([hit({ deadlineDate: ["2027-01-15T00:00:00.000+0000"] })], at);
+    const [summer] = parseEuFunding([hit({ deadlineDate: ["2027-06-15T00:00:00.000+0000"] })], at);
+    expect(toInstant(winter.deadline, true)?.toISOString()).toBe("2027-01-15T22:59:00.000Z");
+    expect(toInstant(summer.deadline, true)?.toISOString()).toBe("2027-06-15T21:59:00.000Z");
   });
 
   it("cuts a long description at a word, at most 4000 characters", () => {

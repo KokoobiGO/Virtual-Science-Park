@@ -5,6 +5,7 @@
 // "cheerio/slim", not "cheerio": the full entry loads undici 7, which takes
 // over Node's fetch and can crash the process on large responses.
 import { load } from "cheerio/slim";
+import { endOfSwedishDay } from "../swedish-time";
 import type { CollectedOpportunity } from "../types";
 import { EU_STATUS, type EuSearchHit } from "./api";
 
@@ -33,11 +34,11 @@ function toOpportunity(hit: EuSearchHit, now: Date): CollectedOpportunity | null
   const opensAt = toDay(meta.startDate?.[0]);
   const deadlines = (meta.deadlineDate ?? []).map(toDay).filter((day): day is string => !!day);
   // Several cut-offs: the next one that has not passed.
-  const deadline = deadlines.sort().find((day) => endOfDay(day) > now);
+  const deadline = deadlines.sort().find((day) => endOfSwedishDay(day) > now);
   if (!deadline) {
     // No cut-off left. Keep only a forthcoming topic that has no deadline yet and opens later.
     const forthcoming = meta.status?.[0] === EU_STATUS.forthcoming;
-    if (deadlines.length > 0 || !forthcoming || !opensAt || endOfDay(opensAt) <= now) return null;
+    if (deadlines.length > 0 || !forthcoming || !opensAt || endOfSwedishDay(opensAt) <= now) return null;
   }
 
   // A few topics (the EIC ones) have no text; the type of action at least says what they are.
@@ -60,14 +61,14 @@ function nearestFirst(a: CollectedOpportunity, b: CollectedOpportunity): number 
   return key(a).localeCompare(key(b));
 }
 
-/** "2027-10-07T00:00:00.000+0000" becomes "2027-10-07". The API's dates are calendar days. */
+/**
+ * "2027-10-07T00:00:00.000+0000" becomes "2027-10-07". The API's dates are
+ * calendar days with no time of day, so a deadline day is taken to close at
+ * 23:59 Swedish time (endOfSwedishDay), as storeCollected() reads it. Brussels
+ * keeps the same clock, so this is also the end of the day in Brussels.
+ */
 function toDay(value: string | undefined): string | undefined {
   return value?.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-}
-
-/** A deadline day closes at the end of the day, Swedish time, as storeCollected() reads it. */
-function endOfDay(day: string): Date {
-  return new Date(`${day}T23:59:00+01:00`);
 }
 
 /** HTML to one line of plain text: block tags become spaces, entities are decoded. */

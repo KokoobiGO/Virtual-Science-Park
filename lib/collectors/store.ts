@@ -9,17 +9,10 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { opportunities, sourceStatus } from "../db/schema";
+import { toInstant } from "./swedish-time";
 import type { CollectResult, Collector, CollectedOpportunity } from "./types";
 
 export type StoredCollection = { source: string; state: CollectResult["state"]; items: number; inserted: number; updated: number };
-
-/** A calendar day is read as Swedish time; a deadline day closes at the end of the day. */
-function toDate(value: string | undefined, endOfDay = false): Date | null {
-  if (!value) return null;
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T${endOfDay ? "23:59:00" : "00:00:00"}+01:00`) : new Date(value);
-  if (Number.isNaN(date.getTime())) throw new Error(`Not a date: ${value}`);
-  return date;
-}
 
 function toRow(collector: Collector, item: CollectedOpportunity, result: CollectResult, now: Date) {
   return {
@@ -29,10 +22,10 @@ function toRow(collector: Collector, item: CollectedOpportunity, result: Collect
     title: item.title,
     url: item.url,
     description: item.description ?? null,
-    publishedAt: toDate(item.publishedAt),
-    opensAt: toDate(item.opensAt),
-    deadline: toDate(item.deadline, true),
-    eventDate: toDate(item.eventDate),
+    publishedAt: toInstant(item.publishedAt),
+    opensAt: toInstant(item.opensAt),
+    deadline: toInstant(item.deadline, true),
+    eventDate: toInstant(item.eventDate),
     format: item.format ?? null,
     audience: item.audience ?? null,
     eligibilityText: item.eligibilityText ?? null,

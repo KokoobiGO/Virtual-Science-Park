@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { toInstant } from "../swedish-time";
 import { loadSeriesEvents, NO_DATE_PREFIX, seriesEventsCollector, toOpportunity, type SeriesEvent } from "./index";
 
 describe("BSP and MTC event series", () => {
@@ -39,5 +40,11 @@ describe("BSP and MTC event series", () => {
     const dated = toOpportunity({ ...base, nextDate: "2027-05-12" });
     expect(dated.eventDate).toBe("2027-05-12");
     expect(dated.description).toBe("Two sentences. Here. How often: yearly. Organiser: Blue Science Park.");
+  });
+
+  it("stores an event day as the start of the Swedish day, in winter and in summer", () => {
+    const base: SeriesEvent = { externalId: "s", organiser: "BSP", title: "T", url: "https://example.se/", description: "D.", checkedAt: "2026-11-14" };
+    expect(toInstant(toOpportunity({ ...base, nextDate: "2027-01-15" }).eventDate)?.toISOString()).toBe("2027-01-14T23:00:00.000Z");
+    expect(toInstant(toOpportunity({ ...base, nextDate: "2027-06-15" }).eventDate)?.toISOString()).toBe("2027-06-14T22:00:00.000Z");
   });
 });

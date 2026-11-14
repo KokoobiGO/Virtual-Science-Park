@@ -6,6 +6,7 @@
  * round ("ansökningsomgång") is one opening of it, with its own dates and
  * text. One opportunity is one round, joined with its call.
  */
+import { withSwedishOffset } from "../swedish-time";
 import type { CollectedOpportunity } from "../types";
 
 /** One round from data.vinnova.se/api/ansokningsomgangar. Only the fields we read. */
@@ -146,14 +147,6 @@ function clip(text: string, max: number): string {
   return `${space > max * 0.8 ? cut.slice(0, space) : cut}\u2026`;
 }
 
-const offsetFormat = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Stockholm", timeZoneName: "longOffset" });
-
-/** Stockholm's offset at an instant: "+01:00" in winter, "+02:00" in summer. */
-function stockholmOffset(instant: Date): string {
-  const name = offsetFormat.formatToParts(instant).find((part) => part.type === "timeZoneName")?.value ?? "GMT+01:00";
-  return name === "GMT" ? "+00:00" : name.slice(3);
-}
-
 /**
  * Vinnova gives Swedish wall-clock time without an offset ("2027-01-12T14:00:00").
  * Add the offset that applies on that day. Missing dates and the "1900-01-01"
@@ -162,11 +155,5 @@ function stockholmOffset(instant: Date): string {
 export function swedishTime(local: string | null | undefined): string | undefined {
   const wall = local?.slice(0, 19);
   if (!wall || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(wall) || Number(wall.slice(0, 4)) < 2000) return undefined;
-  let offset = "+01:00";
-  for (let i = 0; i < 2; i++) {
-    const next = stockholmOffset(new Date(wall + offset));
-    if (next === offset) break;
-    offset = next;
-  }
-  return wall + offset;
+  return withSwedishOffset(wall);
 }

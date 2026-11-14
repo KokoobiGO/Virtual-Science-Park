@@ -114,6 +114,18 @@ describe("parseEnergimyndigheten edge cases", () => {
     expect(items[0].description!.endsWith("\u2026")).toBe(true);
   });
 
+  it("reads the source's deadlines as 23:59 Swedish time in winter and in summer", () => {
+    // The source sends instants with the right offset: 22:59Z in winter, 21:59Z in summer
+    // ("Pilot och demonstration 2026" closed 1 June 2026 at 23:59).
+    expect(stockholm(msDate("/Date(1797375540000)/")!)).toBe("2026-12-15 23:59:00");
+    expect(msDate("/Date(1780351140000)/")).toBe("2026-06-01T21:59:00.000Z");
+    expect(stockholm(msDate("/Date(1780351140000)/")!)).toBe("2026-06-01 23:59:00");
+
+    const summer = { Items: [call({ DeadlineForApplications: "/Date(1780351140000)/" })] };
+    expect(parseEnergimyndigheten(summer, new Date("2026-06-01T21:30:00Z"))).toHaveLength(1);
+    expect(parseEnergimyndigheten(summer, new Date("2026-06-01T22:00:00Z"))).toEqual([]);
+  });
+
   it("reads dates with or without an offset", () => {
     expect(msDate("/Date(1797375540000)/")).toBe("2026-12-15T22:59:00.000Z");
     expect(msDate("/Date(1797375540000+0100)/")).toBe("2026-12-15T22:59:00.000Z");

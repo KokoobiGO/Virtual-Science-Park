@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import regionalJson from "../../../data/regional-funding.json";
-import { parseRegional, regionalCollector, type RegionalRecord } from ".";
+import { toInstant } from "../swedish-time";
+import { parseRegional, regionalCollector, toOpportunities, type RegionalRecord } from ".";
 
 const good: RegionalRecord = {
   externalId: "example-grant",
@@ -37,6 +38,17 @@ describe("parseRegional", () => {
 
   it("throws on a repeated externalId", () => {
     expect(() => parseRegional([good, good])).toThrow(/"example-grant" is used twice/);
+  });
+});
+
+describe("regional deadlines", () => {
+  it("are stored as 23:59 Swedish time on the day, in winter and in summer", () => {
+    const [winter, summer] = toOpportunities([
+      { ...good, deadline: "2027-01-15" },
+      { ...good, externalId: "summer-grant", deadline: "2027-06-15" },
+    ]);
+    expect(toInstant(winter.deadline, true)?.toISOString()).toBe("2027-01-15T22:59:00.000Z");
+    expect(toInstant(summer.deadline, true)?.toISOString()).toBe("2027-06-15T21:59:00.000Z");
   });
 });
 
