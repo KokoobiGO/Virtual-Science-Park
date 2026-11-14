@@ -16,6 +16,12 @@ export type { ProfilerSource } from "./prompt";
 /** Netlify cuts a job step off after 30 s; stop before that with a clear error. */
 const TIMEOUT_MS = 26_000;
 
+/**
+ * Measured on nemotron-3.5-lightning on 2026-11-14: with the model's thinking
+ * on, one profile takes longer than a job step may; with it off, about 8 s.
+ */
+const DEFAULT_THINKING = false;
+
 export class ProfilerOutputError extends Error {
   constructor(
     message: string,
@@ -53,7 +59,7 @@ export async function runProfiler(
         { role: "user", content: buildProfilerUserMessage(companyName, sources) },
       ],
       response_format: { type: "json_schema", json_schema: { name: "company_profile", schema: profilerJsonSchema(), strict: true } },
-      ...(options.thinking === undefined ? {} : { chat_template_kwargs: { enable_thinking: options.thinking } }),
+      chat_template_kwargs: { enable_thinking: options.thinking ?? DEFAULT_THINKING },
     },
     { timeoutMs: TIMEOUT_MS },
   );

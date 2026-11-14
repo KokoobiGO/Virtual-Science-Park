@@ -21,7 +21,7 @@ describe("verifyQuote: quotes from the page pass", () => {
   });
 
   it("passes with odd spaces, line breaks and non-breaking spaces", () => {
-    expect(verifyQuote("  EmbeddedArt  utvecklar\nUV-sensorer för sjöbevakning ", SNAPSHOT)).toEqual(found);
+    expect(verifyQuote("  EmbeddedArt  utvecklar\nUV-sensorer\u00A0för sjöbevakning ", SNAPSHOT)).toEqual(found);
   });
 
   it("passes with straight quotes and a plain hyphen where the page has curly quotes and a dash", () => {
@@ -34,7 +34,7 @@ describe("verifyQuote: quotes from the page pass", () => {
 
   it("passes whatever the capitals, and with a separate accent on å ä ö", () => {
     expect(verifyQuote("VÅRA SYSTEM ANVÄNDS AV KUNDER INOM FÖRSVAR", SNAPSHOT)).toEqual(found);
-    expect(verifyQuote("Våra system används av kunder inom försvar", SNAPSHOT)).toEqual(found);
+    expect(verifyQuote("Va\u030Ara system anva\u0308nds av kunder inom fo\u0308rsvar", SNAPSHOT)).toEqual(found);
   });
 
   it("passes a quote wrapped in quote marks or ended early with a full stop", () => {

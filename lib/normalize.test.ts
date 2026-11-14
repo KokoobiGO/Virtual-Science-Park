@@ -7,13 +7,13 @@ describe("normalizeText", () => {
   });
 
   it("joins a letter and its separate accent into one character (NFC)", () => {
-    const decomposed = "sjöbevakning på Öland"; // o + ¨, a + ˚, O + ¨
+    const decomposed = "sjo\u0308bevakning pa\u030A O\u0308land"; // o + ¨, a + ˚, O + ¨
     expect(decomposed).not.toBe("sjöbevakning på Öland");
     expect(normalizeText(decomposed)).toBe("sjöbevakning på öland");
   });
 
   it("squashes spaces, tabs, line breaks and non-breaking spaces to one space", () => {
-    expect(normalizeText("  Vi  bygger\tsensorer\n\nför sjöbevakning \r\n")).toBe("vi bygger sensorer för sjöbevakning");
+    expect(normalizeText("  Vi  bygger\tsensorer\n\nför\u00A0sjöbevakning \r\n")).toBe("vi bygger sensorer för sjöbevakning");
   });
 
   it("uses one kind of quote mark", () => {
@@ -30,21 +30,21 @@ describe("normalizeText", () => {
   });
 
   it("uses one kind of dash", () => {
-    for (const dash of ["-", "‐", "‑", "‒", "–", "—", "―", "−"]) {
+    for (const dash of ["-", "\u2010", "\u2011", "\u2012", "\u2013", "\u2014", "\u2015", "\u2212"]) {
       expect(normalizeText(`UV${dash}sensorer 2009${dash}2026`)).toBe("uv-sensorer 2009-2026");
     }
   });
 
   it("drops invisible characters and writes an ellipsis as three dots", () => {
-    expect(normalizeText("sjö­bevak​ning﻿ …")).toBe("sjöbevakning ...");
+    expect(normalizeText("sjö\u00ADbevak\u200Bning\uFEFF …")).toBe("sjöbevakning ...");
   });
 
   it("gives the same result when run twice", () => {
-    const once = normalizeText("  ”Från  projekt – till produkt”… ");
+    const once = normalizeText("  ”Från  projekt – till\u00A0produkt”… ");
     expect(normalizeText(once)).toBe(once);
   });
 
   it("returns an empty string for only white space", () => {
-    expect(normalizeText(" \n\t ")).toBe("");
+    expect(normalizeText(" \n\t\u00A0")).toBe("");
   });
 });

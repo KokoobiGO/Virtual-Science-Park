@@ -16,11 +16,15 @@ const ProfilerEvidence = z.object({
   quote: z.string(),
 });
 
+/**
+ * The order matters: the model writes the keys in this order, and it copies a
+ * quote more faithfully before it has put the same thing in English.
+ */
 const ProfilerClaim = z.object({
   status: z.enum(["stated", "inferred", "missing"]),
+  evidence: z.array(ProfilerEvidence),
   values: z.array(z.string()),
   confidence: z.number(),
-  evidence: z.array(ProfilerEvidence),
 });
 
 /** One claim per profile field, all eight required. */

@@ -38,12 +38,19 @@ FIELDS
 
 FOR EACH FIELD
 - status: "stated" when a source says it. "inferred" when it is your reasonable reading of what the sources say. "missing" when the sources do not say. Missing is a good answer: never fill a gap with a guess, or with what you know about the company from anywhere else.
+- evidence: one to three quotes that support the field, each with the id of the source it is from. Write the quotes first, then the values they support. An empty list when missing.
 - values: short phrases in English. For summary, exactly one sentence. An empty list when missing.
 - confidence: a number from 0 to 1. 0 when missing.
-- evidence: one to three quotes that support the values, each with the id of the source it is from. An empty list when missing.
 
 QUOTES
-Copy each quote word for word from one source, in the source's own language. Do not translate it, correct it, leave words out in the middle or join two pieces. About 25 words at most. A quote that is not exactly in its source gets the claim thrown away.
+The sources are mostly in Swedish. The values are in English, but a quote is never translated: a quote from a Swedish source is in Swedish.
+Copy each quote character for character from one source: one sentence or part of a sentence, about 25 words at most. Do not correct it, leave words out in the middle or join two pieces. The quote itself must say what the values say; a company name or a label alone is not evidence.
+A program checks that every quote is in its source exactly. A translated or reworded quote fails that check and the claim is thrown away.
+
+EXAMPLE
+A source S1 contains: "Vi utvecklar sensorer för sjöbevakning och säljer till kunder i hela Norden."
+Right: "evidence": [{"source": "S1", "quote": "Vi utvecklar sensorer för sjöbevakning"}], "values": ["Sensors for maritime surveillance"]
+Wrong: "evidence": [{"source": "S1", "quote": "We develop sensors for maritime surveillance"}] (translated, so it is not in the source)
 
 RULES
 - inferredInterests is "inferred" or "missing", never "stated".
@@ -60,7 +67,7 @@ export function sourceTextForProfiler(source: ProfilerSource): string {
   if (source.source === "bsp_member") text = text.split(/\n+Fler medlemmar\n/)[0];
   if (text.length > MAX_SOURCE_CHARS) text = `${text.slice(0, MAX_SOURCE_CHARS)}\n[cut here: the page is longer]`;
   // The page must not be able to close its own block.
-  return text.replace(/<\s*\/?\s*untrusted_source/gi, "<​untrusted_source");
+  return text.replace(/<\s*\/?\s*untrusted_source/gi, "<\u200Buntrusted_source");
 }
 
 export const sourceId = (index: number) => `S${index + 1}`;
@@ -70,5 +77,5 @@ export function buildProfilerUserMessage(companyName: string, sources: ProfilerS
     (source, i) =>
       `<untrusted_source id="${sourceId(i)}" url="${source.url.replace(/"/g, "%22")}">\n${sourceTextForProfiler(source)}\n</untrusted_source>`,
   );
-  return `Company: ${companyName}\n\n${blocks.join("\n\n")}\n\nBuild the profile of ${companyName} from these ${sources.length === 1 ? "source" : `${sources.length} sources`}.`;
+  return `Company: ${companyName}\n\n${blocks.join("\n\n")}\n\nBuild the profile of ${companyName} from these ${sources.length === 1 ? "source" : `${sources.length} sources`}. Remember: values in English, quotes copied exactly in the source's own language.`;
 }
