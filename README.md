@@ -78,6 +78,8 @@ lib/resend.ts        Resend email client, for the weekly digest (C18)
 lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clean text
 lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/members/         member list import (A2): BSP's member list and pages into companies
+lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
+lib/quote-check.ts   quote verifier (A4): is a claim's quote in the stored page text, word for word?
 lib/inngest/         Inngest client and functions (S10)
 data/fixtures/       hand-written sample data (S9), all SIMULATED
 scripts/             migrate, seed, demo users, service checks

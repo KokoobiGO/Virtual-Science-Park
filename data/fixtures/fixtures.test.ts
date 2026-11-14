@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { verifyQuote } from "../../lib/quote-check";
 import { loadFixtures } from ".";
 
 describe("fixtures", () => {
@@ -32,5 +33,19 @@ describe("fixtures", () => {
   it("keep EmbeddedArt's quotes in Swedish", () => {
     const embeddedart = fixtures.companies.find((c) => c.slug === "embeddedart")!;
     expect(embeddedart.snapshots.every((s) => s.lang === "sv")).toBe(true);
+  });
+
+  it("pass the quote check (A4) for every quote", () => {
+    const failed: string[] = [];
+    for (const company of fixtures.companies) {
+      const texts = new Map(company.snapshots.map((s) => [s.key, s.text]));
+      for (const claim of company.claims) {
+        for (const e of claim.evidence) {
+          const verdict = verifyQuote(e.quote, texts.get(e.snapshot) ?? "");
+          if (!verdict.found) failed.push(`${company.slug}.${claim.field} (${verdict.reason}): ${e.quote}`);
+        }
+      }
+    }
+    expect(failed).toEqual([]);
   });
 });
