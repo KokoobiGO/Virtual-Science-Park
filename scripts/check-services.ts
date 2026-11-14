@@ -13,6 +13,7 @@ import { closeDb, getDb } from "../lib/db";
 import { inngest } from "../lib/inngest/client";
 import { getAnthropic } from "../lib/llm";
 import { VOYAGE_MODEL, voyageBaseUrl, voyageEmbed } from "../lib/voyage";
+import { RESEND_TEST_INBOX, sendEmail } from "../lib/resend";
 
 type Status = "PASS" | "FAIL" | "SKIPPED";
 type Result = { service: string; status: Status; detail: string };
@@ -87,20 +88,13 @@ async function main() {
 
   results.push(
     await check("Resend", ["RESEND_API_KEY"], async () => {
-      // delivered@resend.dev is Resend's test inbox: nothing reaches a person.
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${env("RESEND_API_KEY")}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: "Virtual Science Park <onboarding@resend.dev>",
-          to: ["delivered@resend.dev"],
-          subject: "Service check",
-          text: "Sent by npm run check:services.",
-        }),
+      // Resend's test inbox: nothing reaches a person.
+      const { id } = await sendEmail({
+        to: [RESEND_TEST_INBOX],
+        subject: "Service check",
+        text: "Sent by npm run check:services.",
       });
-      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      const body = (await res.json()) as { id: string };
-      return `test email accepted (${body.id})`;
+      return `test email accepted (${id})`;
     }),
   );
 

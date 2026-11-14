@@ -73,6 +73,7 @@ lib/db/user.ts       Drizzle as the signed-in user, so RLS applies
 lib/llm.ts           Claude model IDs and tool versions (S3)
 lib/nvidia.ts        NVIDIA API model IDs and a fetch client (S3), for testing
 lib/voyage.ts        Voyage AI embeddings client (voyage-4, 1024 dimensions)
+lib/resend.ts        Resend email client, for the weekly digest (C18)
 lib/inngest/         Inngest client and functions (S10)
 data/fixtures/       hand-written sample data (S9), all SIMULATED
 scripts/             migrate, seed, demo users, service checks
@@ -163,7 +164,8 @@ not that the key may call it.
    or changes a function (or use Resync in the Inngest dashboard). "Run Inngest
    check" at `/staff/checks` sends the heartbeat event and waits for its run.
 4. **Anthropic** (set a spend limit), **Voyage AI** and **Resend**: add the keys.
-   "Run Voyage check" at `/staff/checks` embeds one text with the deployed key.
+   "Run Voyage check" at `/staff/checks` embeds one text with the deployed key;
+   "Run Resend check" sends one email to Resend's test inbox (nobody gets it).
 5. Run `npm run check:services` until every row says PASS.
 
 ## Data status
