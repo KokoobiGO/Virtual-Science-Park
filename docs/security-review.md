@@ -624,3 +624,52 @@ npx vitest run tests/security-rls.integration.test.ts                          #
 The scripts used for the local-only runs (SSRF fetch, sign-in redirect, role
 checks, read-only counts) were kept outside the repo. The sign-in runs signed
 the demo sessions out again.
+
+## Status after fixes (14 Nov 2026, late evening)
+
+- **F3 (fetcher private-address check): fixed.** `lib/fetcher/fetch-page.ts` blocks private, mapped and reserved addresses, resolves the host name and checks every redirect hop. The five tests in `tests/security-fetcher.test.ts` now pass as plain tests. `lib/scout/fetch-json.ts` gets the address checks but no DNS check.
+- **F1, F2, F6 (database rules): not applied.** The SQL below is ready. Applying it is the owner's decision. To make the migration: `npx drizzle-kit generate --custom --name=security_rls`, paste the SQL, then `npm run db:migrate`, then re-run `tests/security-rls.integration.test.ts`. After it, the anon read of `eval_runs` answers "permission denied" instead of 0 rows; count that as 0 in the test. Apply at a quiet moment (short table locks). Also turn off sign-ups in the hosted project.
+- **F5 (open redirect), F4 (dev mode in production), security headers, the red-team answers in `eval/redteam-last-run.json`: not done.**
+- **Still open:** F7 to F12, F14, F15.
+
+```sql
+-- F6: a role is needed to read "signed-in only" data
+create or replace function app.has_role() returns boolean language sql stable as $$
+  select coalesce(app.role() in ('member', 'staff'), false)
+$$;--> statement-breakpoint
+grant execute on function app.has_role() to anon, authenticated, service_role;--> statement-breakpoint
+drop policy companies_read on companies;--> statement-breakpoint
+create policy companies_read on companies for select to authenticated using ((select app.has_role()));--> statement-breakpoint
+drop policy snapshots_read on snapshots;--> statement-breakpoint
+create policy snapshots_read on snapshots for select to authenticated using ((select app.has_role()));--> statement-breakpoint
+drop policy opportunities_read on opportunities;--> statement-breakpoint
+create policy opportunities_read on opportunities for select to authenticated using ((select app.has_role()));--> statement-breakpoint
+drop policy trend_notes_read on trend_notes;--> statement-breakpoint
+create policy trend_notes_read on trend_notes for select to authenticated using ((select app.has_role()));--> statement-breakpoint
+drop policy claims_read on claims;--> statement-breakpoint
+create policy claims_read on claims for select to authenticated
+  using ((visibility = 'public' and (select app.has_role())) or company_id = (select app.company_id()));--> statement-breakpoint
+drop policy evidence_read on evidence;--> statement-breakpoint
+create policy evidence_read on evidence for select to authenticated
+  using ((select app.has_role()) and exists (select 1 from claims c where c.id = evidence.claim_id));--> statement-breakpoint
+-- F1: members write only their own corrections, and only move claims between review states
+drop policy claims_member_insert on claims;--> statement-breakpoint
+create policy claims_member_insert on claims for insert to authenticated
+  with check (company_id = (select app.company_id()) and updated_by = 'user'
+              and status in ('user_corrected', 'user_confirmed') and confidence = 1);--> statement-breakpoint
+revoke update on claims from anon, authenticated;--> statement-breakpoint
+grant update (review_state, updated_at) on claims to authenticated;--> statement-breakpoint
+-- F2: no anon; members and staff read the summaries, never details
+drop policy eval_runs_read on eval_runs;--> statement-breakpoint
+create policy eval_runs_read on eval_runs for select to authenticated using ((select app.role()) in ('member', 'staff'));--> statement-breakpoint
+revoke select on eval_runs from anon, authenticated;--> statement-breakpoint
+grant select (id, kind, git_sha, summary, ran_at) on eval_runs to authenticated;
+```
+
+A second, separate rule is needed before members can delete their own Copilot turns (not written as a migration either):
+
+```sql
+create policy chats_own_delete on chats
+  for delete to authenticated
+  using (company_id = (select app.company_id()) and user_id = (select app.user_id()));
+```
