@@ -57,8 +57,9 @@ When the classifier gives no usable question, the Copilot asks:
 - Anything that needs a human decision, a booking, or information the store does not have.
 
 The Copilot offers to pass the question on and only sends it when the member
-asks or agrees. The member then sees "sent to BSP staff". Contact route:
-`bsp-staff@PLACEHOLDER.invalid` (a placeholder until BSP decides the real route).
+asks or agrees. The member then sees "sent to BSP staff". Contact route: the
+address in the environment variable `BSP_CONTACT_EMAIL`. While it is not
+set, replies say "ask BSP staff" and give no address.
 
 ## Every answer
 

@@ -21,10 +21,12 @@
  *
  * Scout and the Copilot run when a member asks, so they are shown per brief
  * and per turn, outside the monthly number. Scout records its tokens in
- * job_runs (jobs "scout-brief" and "scout-script"). Copilot turns do not
- * record tokens anywhere yet; only their number of model calls is known.
+ * job_runs (jobs "scout-brief" and "scout-script"), the Copilot as job
+ * "copilot-turn" (lib/copilot/turn.ts, copilotTurnRun). Until a turn is
+ * recorded, only the measured number of model calls is shown.
  */
 import { count, inArray, sql } from "drizzle-orm";
+import { COPILOT_TURN_JOB } from "../lib/copilot/turn";
 import { closeDb, getDb } from "../lib/db";
 import { companies, jobRuns } from "../lib/db/schema";
 
@@ -47,7 +49,7 @@ const EMBEDDING_TOKENS = 57_000;
  * Model calls in one in-scope Copilot turn, measured on 2026-11-14: the
  * classifier, then the assistant's tool rounds and answer, plus one call when
  * the output check asks for a revision (lib/copilot/turn.ts). Out-of-scope and
- * unclear turns make one call. Tokens are not recorded yet.
+ * unclear turns make one call. Shown only while no turn is recorded in job_runs.
  */
 const COPILOT_CALLS_PER_TURN = { min: 3, max: 6 };
 
@@ -73,10 +75,11 @@ const n = (value: number) => Math.round(value).toLocaleString("en-US");
 
 async function main() {
   const [{ members }] = await getDb().select({ members: count() }).from(companies);
-  const [profiling, judging, scout] = await Promise.all([
+  const [profiling, judging, scout, copilot] = await Promise.all([
     usageOf(["profile-company"]),
     usageOf(["judge-script", "judge-company"]),
     usageOf(["scout-brief", "scout-script"]),
+    usageOf([COPILOT_TURN_JOB]),
   ]);
 
   const lines: { job: string; where: string; usage: Usage }[] = [
@@ -118,9 +121,16 @@ async function main() {
   } else {
     console.log(`${"One Scout brief".padEnd(30)} ${"-".padStart(10)} ${"-".padStart(9)} ${"-".padStart(6)}  no run recorded in job_runs yet`);
   }
-  console.log(
-    `${"One Copilot turn (in scope)".padEnd(30)} ${"-".padStart(10)} ${"-".padStart(9)} ${`${COPILOT_CALLS_PER_TURN.min}-${COPILOT_CALLS_PER_TURN.max}`.padStart(6)}  tokens not recorded yet; calls measured 2026-11-14`,
-  );
+  if (copilot.runs) {
+    const per = (value: number) => n(value / copilot.runs);
+    console.log(
+      `${"One Copilot turn (average)".padEnd(30)} ${per(copilot.input).padStart(10)} ${per(copilot.output).padStart(9)} ${per(copilot.calls ?? 0).padStart(6)}  job_runs, ${copilot.runs} turns (${copilot.succeeded} succeeded)`,
+    );
+  } else {
+    console.log(
+      `${"One Copilot turn (in scope)".padEnd(30)} ${"-".padStart(10)} ${"-".padStart(9)} ${`${COPILOT_CALLS_PER_TURN.min}-${COPILOT_CALLS_PER_TURN.max}`.padStart(6)}  tokens not recorded yet; calls measured 2026-11-14`,
+    );
+  }
 
   console.log("\nNot in the monthly number: Scout briefs and Copilot turns (per question, above), hosting, and the saving from skipping unchanged pages.");
 }

@@ -14,12 +14,26 @@ import { INFORMATION_ONLY_NOTE } from "../schemas";
 
 export { INFORMATION_ONLY_NOTE };
 
+/** What replies say instead of an address while BSP_CONTACT_EMAIL is not set. */
+export const NO_CONTACT_ADDRESS = "ask BSP staff";
+
 /**
- * PLACEHOLDER: BSP has not decided how members reach its staff yet. This one
- * value is shown in replies, stored as `handoffs.contact_route` and named in
- * the prompts. Replace it when the real route is known.
+ * The staff address from BSP_CONTACT_EMAIL, or NO_CONTACT_ADDRESS when it is
+ * empty, not an email address, or on the reserved `.invalid` domain (the old
+ * placeholder), so a reply never shows a made-up address.
  */
-export const BSP_CONTACT = "bsp-staff@PLACEHOLDER.invalid";
+export function bspContact(email: string | undefined): string {
+  const value = email?.trim() ?? "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && !/\.invalid$/i.test(value) ? value : NO_CONTACT_ADDRESS;
+}
+
+/**
+ * How members reach BSP staff: the address in BSP_CONTACT_EMAIL, or "ask BSP
+ * staff" with no address while it is not set. This one value is shown in
+ * replies, stored as `handoffs.contact_route` and named in the assistant
+ * prompt.
+ */
+export const BSP_CONTACT = bspContact(process.env.BSP_CONTACT_EMAIL);
 
 /** The one reply for out-of-scope questions and override attempts, word for word, everywhere. */
 export const OUT_OF_SCOPE_REPLY =
@@ -117,8 +131,9 @@ When the classifier gives no usable question, the Copilot asks:
 ${bullets(STAFF_TOPICS)}
 
 The Copilot offers to pass the question on and only sends it when the member
-asks or agrees. The member then sees "sent to BSP staff". Contact route:
-\`${BSP_CONTACT}\` (a placeholder until BSP decides the real route).
+asks or agrees. The member then sees "sent to BSP staff". Contact route: the
+address in the environment variable \`BSP_CONTACT_EMAIL\`. While it is not
+set, replies say "${NO_CONTACT_ADDRESS}" and give no address.
 
 ## Every answer
 

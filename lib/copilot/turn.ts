@@ -7,7 +7,10 @@
  *
  * Model calls per turn: 1 (classifier) for out-of-scope, override and unclear
  * turns; 1 + 1 to 4 (assistant, up to MAX_TOOL_ROUNDS tool rounds) otherwise.
+ * Every call goes through one wrapper that also adds up the tokens the model
+ * reports; copilotTurnRun() turns that into a job_runs row.
  */
+import type { jobRuns } from "../db/schema";
 import { NvidiaApiError, nvidiaChat } from "../nvidia";
 import type { ScopeLabel } from "../schemas";
 import { LOOK_IT_UP, reviseAnswer, runAssistant, TurnTimeout } from "./assistant";
@@ -62,6 +65,9 @@ export type TurnResult = {
   handoffIds: string[];
   savedOpportunityIds: string[];
   modelCalls: number;
+  /** Tokens as the model counted them, summed over the turn's calls. A call that failed adds none. */
+  inputTokens: number;
+  outputTokens: number;
   toolCalls: { name: string; ok: boolean }[];
   seconds: number;
   /** What the output check changed. */
@@ -109,10 +115,16 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
   const deadline = started + (deps.budgetMs ?? TURN_BUDGET_MS);
   const seconds = () => Math.round((now() - started) / 100) / 10;
   let calls = 0;
-  const chat: ChatFn = (request, options) => {
+  let inputTokens = 0;
+  let outputTokens = 0;
+  const chat: ChatFn = async (request, options) => {
     calls++;
-    return (deps.chat ?? nvidiaChat)(request, options);
+    const response = await (deps.chat ?? nvidiaChat)(request, options);
+    inputTokens += response.usage?.prompt_tokens ?? 0;
+    outputTokens += response.usage?.completion_tokens ?? 0;
+    return response;
   };
+  const usage = () => ({ modelCalls: calls, inputTokens, outputTokens, seconds: seconds() });
 
   deps.onStatus?.("Checking the question");
   const classification = await classifyTurn(input.history, input.message, {
@@ -129,11 +141,11 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
   };
 
   if (classification.label === "out_of_scope" || classification.label === "override_attempt") {
-    return { ...base, label: classification.label, text: OUT_OF_SCOPE_REPLY, outcome: "fixed_reply", modelCalls: calls, seconds: seconds() };
+    return { ...base, label: classification.label, text: OUT_OF_SCOPE_REPLY, outcome: "fixed_reply", ...usage() };
   }
   if (classification.label === "unclear") {
     const question = classification.question && !soundsLikeEligibilityDecision(classification.question) ? classification.question : DEFAULT_CLARIFYING_QUESTION;
-    return { ...base, label: "unclear", text: question, outcome: "clarify", modelCalls: calls, seconds: seconds() };
+    return { ...base, label: "unclear", text: question, outcome: "clarify", ...usage() };
   }
 
   const toolCalls: { name: string; ok: boolean }[] = [];
@@ -158,7 +170,7 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
     });
 
     if (isFixedReply(run.text) && !run.handoffIds.length) {
-      return { ...base, toolCalls, label: "out_of_scope", text: OUT_OF_SCOPE_REPLY, outcome: "fixed_reply", modelCalls: calls, seconds: seconds() };
+      return { ...base, toolCalls, label: "out_of_scope", text: OUT_OF_SCOPE_REPLY, outcome: "fixed_reply", ...usage() };
     }
 
     deps.onStatus?.("Checking the answer");
@@ -193,8 +205,7 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
       handoffIds: run.handoffIds,
       savedOpportunityIds: run.savedOpportunityIds,
       toolCalls,
-      modelCalls: calls,
-      seconds: seconds(),
+      ...usage(),
     };
   } catch (error) {
     const timedOut = error instanceof TurnTimeout || (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError"));
@@ -206,8 +217,40 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
       label: "in_scope",
       text: timedOut ? FALLBACK_TIMEOUT_REPLY : busy ? FALLBACK_BUSY_REPLY : FALLBACK_ERROR_REPLY,
       outcome: timedOut ? "timeout" : busy ? "busy" : "error",
-      modelCalls: calls,
-      seconds: seconds(),
+      ...usage(),
     };
   }
+}
+
+/** The job name for Copilot turns in job_runs, read by `npm run cost`. */
+export const COPILOT_TURN_JOB = "copilot-turn";
+
+/**
+ * One turn as a job_runs row, in the shape Scout uses: tokens in their
+ * columns, the model calls as `stats.calls`. Counts and labels only: never the
+ * member's question, the answer, or the output check's changes (they quote the
+ * answer). A turn that ended in a fallback text is "failed".
+ */
+export function copilotTurnRun(result: TurnResult, { startedAt, trigger }: { startedAt: number; trigger: string }): typeof jobRuns.$inferInsert {
+  return {
+    job: COPILOT_TURN_JOB,
+    trigger,
+    status: result.outcome === "timeout" || result.outcome === "busy" || result.outcome === "error" ? "failed" : "succeeded",
+    startedAt: new Date(startedAt),
+    finishedAt: new Date(startedAt + Math.round(result.seconds * 1000)),
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+    stats: {
+      calls: result.modelCalls,
+      label: result.label,
+      outcome: result.outcome,
+      seconds: result.seconds,
+      classifier: result.classifier.decidedBy,
+      tools: result.toolCalls.map((t) => t.name),
+      citations: result.citations.length,
+      changes: result.changes.length,
+      handoff: result.handoffIds.length > 0,
+    },
+    error: null,
+  };
 }

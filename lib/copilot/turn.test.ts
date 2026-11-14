@@ -8,12 +8,13 @@ import { ANSWER_NOW, MAX_TOOL_ROUNDS } from "./assistant";
 import { BSP_CONTACT, DEFAULT_CLARIFYING_QUESTION, INFORMATION_ONLY_NOTE, OUT_OF_SCOPE_REPLY } from "./policy";
 import { SourceRegistry } from "./sources";
 import type { ToolExecutor } from "./tools";
-import { FALLBACK_BUSY_REPLY, FALLBACK_TIMEOUT_REPLY, runTurn } from "./turn";
+import { copilotTurnRun, FALLBACK_BUSY_REPLY, FALLBACK_TIMEOUT_REPLY, runTurn } from "./turn";
 
 type Step = { content?: string; toolCalls?: { name: string; args: Record<string, unknown> }[] } | Error;
 
 const response = (step: Exclude<Step, Error>): ChatResponse => ({
   model: "fake",
+  usage: { prompt_tokens: 100, completion_tokens: 10, total_tokens: 110 },
   choices: [
     {
       finish_reason: step.toolCalls ? "tool_calls" : "stop",
@@ -268,5 +269,53 @@ describe("runTurn", () => {
     expect(result.label).toBe("in_scope");
     expect(result.text).toContain("closes on 2026-12-08 [1]");
     expect(result.text).not.toContain(OUT_OF_SCOPE_REPLY);
+  });
+});
+
+describe("token count and the job_runs row", () => {
+  it("adds up the tokens of every model call in the turn", async () => {
+    const fixed = await runTurn(input("What is the capital of France?"), { ...fakeTools(), chat: fakeModel("out_of_scope").chat });
+    expect(fixed).toMatchObject({ modelCalls: 1, inputTokens: 100, outputTokens: 10 });
+
+    const model = fakeModel("in_scope", [
+      { toolCalls: [{ name: "searchOpportunities", args: { query: "marine surveillance" } }] },
+      { content: "The Baltic Marine Watchdog Challenge closes on 2026-12-08 [1]." },
+    ]);
+    const answered = await runTurn(input("Which calls fund sea surveillance?"), { ...fakeTools(), chat: model.chat });
+    expect(answered).toMatchObject({ modelCalls: 3, inputTokens: 300, outputTokens: 30 });
+  });
+
+  it("counts a failed call as a call without tokens", async () => {
+    const model = fakeModel("in_scope", [new NvidiaApiError(429, "Too Many Requests")]);
+    const result = await runTurn(input("Find sonar calls"), { ...fakeTools(), chat: model.chat });
+    expect(result).toMatchObject({ outcome: "busy", modelCalls: 2, inputTokens: 100, outputTokens: 10 });
+  });
+
+  it("is a copilot-turn row with counts only, never the question or the answer", async () => {
+    const question = "Which calls fund sea surveillance for our secret sonar project?";
+    const model = fakeModel("in_scope", [
+      { toolCalls: [{ name: "searchOpportunities", args: { query: "secret sonar" } }] },
+      { content: "The Baltic Marine Watchdog Challenge closes on 2026-12-08 [1]. Vinnova has funded 40 teams." },
+    ]);
+    const result = await runTurn(input(question), { ...fakeTools(), chat: model.chat });
+    expect(result.changes.length).toBeGreaterThan(0); // the check removed a sentence and quoted it
+
+    const row = copilotTurnRun(result, { startedAt: Date.parse("2026-11-14T12:00:00Z"), trigger: "api/chat" });
+    expect(row).toMatchObject({
+      job: "copilot-turn",
+      trigger: "api/chat",
+      status: "succeeded",
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      stats: { calls: result.modelCalls, label: "in_scope", outcome: "answer", tools: ["searchOpportunities"], citations: 1 },
+    });
+    const stored = JSON.stringify(row);
+    for (const text of [question, "secret sonar", "Baltic Marine Watchdog", "40 teams", "vinnova.se"]) expect(stored).not.toContain(text);
+  });
+
+  it("marks a turn that ended in a fallback text as failed", async () => {
+    const model = fakeModel("in_scope", [new NvidiaApiError(429, "Too Many Requests")]);
+    const result = await runTurn(input("Find sonar calls"), { ...fakeTools(), chat: model.chat });
+    expect(copilotTurnRun(result, { startedAt: 0, trigger: "api/chat" }).status).toBe("failed");
   });
 });
