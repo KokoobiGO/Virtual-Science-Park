@@ -61,7 +61,7 @@ describe("readRun", () => {
       "link_check",
       schema,
     );
-    expect(result).toEqual({ status: "measured", ranAt: at("2026-11-14T12:00:00Z"), summary: ok });
+    expect(result).toEqual({ status: "measured", ranAt: at("2026-11-14T12:00:00Z"), summary: { ...ok, unverifiable: 0 } });
   });
 
   it("is not measured when there is no run of the kind", () => {
