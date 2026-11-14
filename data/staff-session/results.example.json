@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-21",
+  "staff": 2,
+  "ratings": [
+    { "kind": "match", "item": "Company A: a Vinnova call on secure embedded systems", "verdict": "useful" },
+    { "kind": "match", "item": "Company B: a breakfast seminar", "verdict": "unsure", "comment": "Depends on who from the company would go." },
+    { "kind": "connection", "item": "Company A and company C", "verdict": "not_useful", "comment": "Same customers, nothing to trade." },
+    { "kind": "profile", "item": "Company C's profile", "verdict": "useful" }
+  ],
+  "notes": "EXAMPLE ONLY: these ratings are invented to show the shape. The Trust report reads results.json in this folder, never this file. Shape: lib/trust/shapes.ts (StaffSessionResults)."
+}

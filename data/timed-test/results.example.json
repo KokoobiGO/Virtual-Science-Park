@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-20",
+  "task": "Find two funding calls or events that fit your company in the next two months, and give the link to each.",
+  "trials": [
+    { "participant": "P1", "method": "with_app", "seconds": 140, "completed": true },
+    { "participant": "P1", "method": "without_app", "seconds": 900, "completed": false },
+    { "participant": "P2", "method": "with_app", "seconds": 95, "completed": true },
+    { "participant": "P2", "method": "without_app", "seconds": 610, "completed": true }
+  ],
+  "notes": "EXAMPLE ONLY: these numbers are invented to show the shape. The Trust report reads results.json in this folder, never this file. Shape: lib/trust/shapes.ts (TimedTestResults)."
+}
