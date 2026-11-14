@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNew, MAX_INPUTS, selectInputs, type TrendCandidate } from "./inputs";
+import { isFresh, isNew, MAX_INPUTS, selectInputs, tooFewReason, type TrendCandidate } from "./inputs";
 
 const NOW = new Date("2026-11-14T12:00:00Z");
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
@@ -44,6 +44,39 @@ describe("isNew", () => {
   it("counts a news item without a publish date by when it was stored", () => {
     expect(isNew(row({ kind: "news", publishedAt: null, createdAt: daysAgo(2) }), NOW)).toBe(true);
     expect(isNew(row({ kind: "news", publishedAt: null, createdAt: daysAgo(8) }), NOW)).toBe(false);
+  });
+});
+
+describe("isFresh", () => {
+  it("counts news from the last 14 days", () => {
+    expect(isFresh(row({ kind: "news", publishedAt: daysAgo(13) }), NOW)).toBe(true);
+    expect(isFresh(row({ kind: "news", publishedAt: daysAgo(15) }), NOW)).toBe(false);
+    expect(isFresh(row({ kind: "news", publishedAt: null }), NOW)).toBe(true);
+  });
+
+  it("counts a call by its opening date: opened in the last 14 days, or opens in the next 14", () => {
+    expect(isFresh(row({ opensAt: daysAgo(3) }), NOW)).toBe(true);
+    expect(isFresh(row({ opensAt: daysAgo(40), createdAt: daysAgo(0) }), NOW)).toBe(false);
+    expect(isFresh(row({ opensAt: daysAhead(2) }), NOW)).toBe(true);
+    expect(isFresh(row({ opensAt: daysAhead(20) }), NOW)).toBe(false);
+    // The opening date decides, even when the call was published lately.
+    expect(isFresh(row({ opensAt: daysAgo(40), publishedAt: daysAgo(2) }), NOW)).toBe(false);
+  });
+
+  it("counts a call without an opening date by its publish date, and one with neither as fresh", () => {
+    expect(isFresh(row({ publishedAt: daysAgo(2) }), NOW)).toBe(true);
+    expect(isFresh(row({ publishedAt: daysAgo(30) }), NOW)).toBe(false);
+    expect(isFresh(row({}), NOW)).toBe(true);
+  });
+});
+
+describe("tooFewReason", () => {
+  it("needs two inputs, and at least one fresh one", () => {
+    expect(tooFewReason([row({})], NOW)).toMatch(/1 new input this week; a note needs 2/);
+    expect(tooFewReason([], NOW)).toMatch(/0 new inputs/);
+    const stale = [row({ opensAt: daysAgo(60) }), row({ opensAt: daysAgo(90) })];
+    expect(tooFewReason(stale, NOW)).toMatch(/nothing changed this week/);
+    expect(tooFewReason([...stale, row({ kind: "news", publishedAt: daysAgo(1) })], NOW)).toBeNull();
   });
 });
 
@@ -98,6 +131,16 @@ describe("selectInputs", () => {
     expect(picked).toHaveLength(MAX_INPUTS);
     expect(picked[0].title).toBe("call 11");
     expect(picked.at(-1)!.title).toBe("call 04");
+  });
+
+  it("puts fresh rows before the others, whatever their deadlines", () => {
+    const rows = [
+      row({ title: "open for months, closes soon", opensAt: daysAgo(60), deadline: daysAhead(2) }),
+      row({ title: "opened this week", opensAt: daysAgo(2), deadline: daysAhead(90) }),
+      row({ title: "old news", kind: "news", publishedAt: daysAgo(13) }),
+      row({ title: "opens soon", opensAt: daysAhead(3), deadline: daysAhead(60) }),
+    ];
+    expect(titles(selectInputs(rows, "marine", NOW))).toEqual(["old news", "opens soon", "opened this week", "open for months, closes soon"]);
   });
 
   it("gives an empty list when nothing is new", () => {

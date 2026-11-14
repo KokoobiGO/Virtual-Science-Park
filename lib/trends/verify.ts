@@ -17,6 +17,12 @@
  * dates ("this month", "within weeks"); no funder that no cited input names
  * (a Vinnova call called an EU call); no input ids in the text.
  *
+ * Added on 2026-11-14 evening for the stronger super-vl model, which writes
+ * fluent analysis the inputs do not contain: the note cites at least one
+ * input that is new (when any is), and has no market analysis or prediction
+ * ("growing demand", "signals a shift", "is expected to", "key driver") that
+ * no cited input states itself. The body is now two or three sentences.
+ *
  * All of them are cheap guards. None can catch a wrong reading of an input,
  * an invented connection between two inputs, or a fact about an input the
  * note does not cite.
@@ -24,12 +30,44 @@
 
 export const TITLE_MAX_CHARS = 80;
 export const TITLE_MIN_CHARS = 10;
-/** Three to five plain sentences. */
-export const BODY_MIN_SENTENCES = 3;
-export const BODY_MAX_SENTENCES = 5;
-export const BODY_MIN_CHARS = 150;
-export const BODY_MAX_CHARS = 1000;
+/** Two or three plain sentences. */
+export const BODY_MIN_SENTENCES = 2;
+export const BODY_MAX_SENTENCES = 3;
+export const BODY_MIN_CHARS = 100;
+export const BODY_MAX_CHARS = 700;
 export const MIN_SOURCES = 2;
+
+/**
+ * Analysis and predictions a note may not add on its own. A match is fine
+ * only when a cited input has the same words: then the input says it.
+ */
+export const ANALYSIS_PATTERNS: readonly RegExp[] = [
+  /\bgrowing (?:demand|interest|need|focus|importance|market|number|role)\b/i,
+  /\b(?:increasing(?:ly)?|rising|surging|booming|accelerating)\b/i,
+  /\bdemand for\b/i,
+  /\b(?:trends?|momentum|surge|boom)\b/i,
+  /\bsignal(?:s|ling|ing)?\b/i,
+  /\bshift(?:s|ing)? (?:to|toward|towards|in|from)\b/i,
+  /\b(?:will|is set to|are set to|is poised to|are poised to|is expected to|are expected to|is likely to|are likely to) (?:grow|increase|rise|drive|boost|create|transform|reshape|expand|accelerate|shape|lead|open|strengthen|benefit|help|make|become|fuel|spur)\b/i,
+  /\b(?:likely|poised)\b/i,
+  /\b(?:key|crucial|vital|pivotal) (?:driver|player|role|enabler|priority|step|area|opportunity)\b/i,
+  /\bcompetitive (?:edge|advantage)\b/i,
+  /\bmarket (?:demand|growth|opportunit(?:y|ies)|potential)\b/i,
+  /\b(?:more and more|ever more)\b/i,
+  /\b(?:underscores?|underlines?) (?:the|a|its)\b/i,
+];
+
+/** The analysis phrases in the note that no cited input states, as written in the note. */
+export function unsupportedAnalysis(text: string, citedText: string): string[] {
+  const inputs = citedText.toLowerCase();
+  const found: string[] = [];
+  for (const pattern of ANALYSIS_PATTERNS) {
+    for (const m of text.matchAll(new RegExp(pattern.source, "gi"))) {
+      if (!inputs.includes(m[0].toLowerCase()) && !found.includes(m[0])) found.push(m[0]);
+    }
+  }
+  return found;
+}
 
 /** Sentences end with . ! or ? before a space and a capital letter or digit, so "2.5" and "e.g. a call" do not end one. */
 export function sentenceCount(text: string): number {
@@ -47,8 +85,8 @@ export const PROMISE_WORDS = ["eligible", "qualif", "guarantee", "will receive",
 /** What the model answered, sources as the short ids it saw (S1..S8). */
 export type TrendDraft = { title: string; body: string; sources: string[] };
 
-/** One input as the model saw it: its short id and its block text. */
-export type CheckedInput = { id: string; text: string };
+/** One input as the model saw it: its short id and its block text, and whether it is new (inputs.ts, `isFresh`) when that is known. */
+export type CheckedInput = { id: string; text: string; fresh?: boolean };
 
 // ---------------------------------------------------------------------------
 // Years and amounts
@@ -277,14 +315,20 @@ export function checkNote(draft: TrendDraft, inputs: CheckedInput[]): string[] {
   if (title.length > TITLE_MAX_CHARS) problems.push(`The title is ${title.length} characters; at most ${TITLE_MAX_CHARS}. Shorten it.`);
   if (title.length < TITLE_MIN_CHARS) problems.push(`The title is ${title.length} characters; at least ${TITLE_MIN_CHARS}. Say what is happening.`);
   if (body.length > BODY_MAX_CHARS) {
-    problems.push(`The body is ${body.length} characters; at most ${BODY_MAX_CHARS}. Write it again in three or four short sentences, about 600 characters.`);
+    problems.push(`The body is ${body.length} characters; at most ${BODY_MAX_CHARS}. Write it again in two or three short sentences, about 450 characters.`);
   }
-  if (body.length < BODY_MIN_CHARS) problems.push(`The body is ${body.length} characters; at least ${BODY_MIN_CHARS}. Write three or four sentences.`);
+  if (body.length < BODY_MIN_CHARS) problems.push(`The body is ${body.length} characters; at least ${BODY_MIN_CHARS}. Write two or three sentences.`);
   const sentences = sentenceCount(body);
   if (sentences < BODY_MIN_SENTENCES || sentences > BODY_MAX_SENTENCES) {
     problems.push(
       `The body has ${sentences} sentence${sentences === 1 ? "" : "s"}; it must have ${BODY_MIN_SENTENCES} to ${BODY_MAX_SENTENCES}. ${sentences < BODY_MIN_SENTENCES ? "End with why it matters to a small tech company in this area." : "Leave inputs out."}`,
     );
+  }
+
+  // The note must say what is new: when some inputs are new, at least one cited input is.
+  const fresh = inputs.filter((input) => input.fresh).map((input) => input.id);
+  if (fresh.length && known.length && !known.some((id) => fresh.includes(id))) {
+    problems.push(`The note cites only inputs that are not new (${quoteList(known)}). Write about what is new: ${quoteList(fresh)}.`);
   }
 
   const text = `${title}\n${body}`;
@@ -339,6 +383,13 @@ export function checkNote(draft: TrendDraft, inputs: CheckedInput[]): string[] {
   if (openings.length && !openingUnknown && !/\((?:opened this week|not open yet)\)/.test(citedText)) {
     problems.push(
       `The note says ${openings.map((w) => `"${w}"`).join(", ")}, but every input it cites (${quoteList(known)}) was already open before this week. Say the calls are open and when they close.`,
+    );
+  }
+
+  const analysis = unsupportedAnalysis(text, citedText);
+  if (analysis.length) {
+    problems.push(
+      `The note says ${analysis.map((a) => `"${a}"`).join(", ")}, which no input it cites says. Add no analysis or prediction of your own: say what is new, what it is for and whom it is for, in the inputs' terms.`,
     );
   }
 

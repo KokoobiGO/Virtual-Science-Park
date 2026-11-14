@@ -8,8 +8,16 @@
  *   news of this week.
  * - Left out: the old samples (`externalId` "fixture-..."), hand-entered rows
  *   (`simulated`) and funding whose deadline has passed.
- * - Order: news first, newest first; then the rest by nearest deadline (no
- *   deadline last). At most 8. An area with fewer than 2 gets no note.
+ * - Fresh: what actually changed, as far as the row's own dates tell. News
+ *   from the last 14 days; a call that opened or was published in the last
+ *   14 days, or opens in the next 14; a call with no opening or publish date
+ *   at all (we cannot tell, so its first sighting counts). A call open since
+ *   September that our collector first stored this week is new to us but not
+ *   fresh: on 2026-11-14 every row in the table had been stored that day, and
+ *   notes written from those read as "what closes when" lists.
+ * - Order: fresh rows first, then the others; within each, news first
+ *   (newest first), then by nearest deadline (no deadline last). At most 8.
+ *   An area with fewer than 2 inputs, or with no fresh one, gets no note.
  *
  * `selectInputs` is pure, so the rules are tested on fake rows;
  * `loadCandidates` only narrows the table down for it.
@@ -25,6 +33,10 @@ export const MIN_INPUTS = 2;
 export const NEW_DAYS = 7;
 /** Days a news item counts as new after it was published. */
 export const NEWS_DAYS = 14;
+/** Days a call counts as fresh after it opened or was published, and before it opens. */
+export const FRESH_DAYS = 14;
+/** Fresh inputs a note needs: a note must say what changed. */
+export const MIN_FRESH = 1;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -56,8 +68,28 @@ export function isNew(row: TrendCandidate, now: Date): boolean {
 
 const expired = (row: TrendCandidate, now: Date) => row.kind === "funding" && row.deadline !== null && row.deadline.getTime() < now.getTime();
 
-/** News first (newest first), then by nearest deadline (none last), then by title so the order never wobbles. */
-function compareInputs(a: TrendCandidate, b: TrendCandidate): number {
+/**
+ * Whether the row is fresh by its own dates (see the top of this file). Only
+ * meaningful for a row that is new by `isNew`.
+ */
+export function isFresh(row: TrendCandidate, now: Date): boolean {
+  const days = (instant: Date) => (now.getTime() - instant.getTime()) / DAY_MS;
+  if (row.kind === "news") return row.publishedAt ? days(row.publishedAt) <= NEWS_DAYS : true;
+  if (row.opensAt) return days(row.opensAt) <= FRESH_DAYS && days(row.opensAt) >= -FRESH_DAYS;
+  if (row.publishedAt) return days(row.publishedAt) <= FRESH_DAYS;
+  return true;
+}
+
+/** Fresh first; then news first (newest first), then by nearest deadline (none last), then by title so the order never wobbles. */
+function compareInputs(now: Date) {
+  return (a: TrendCandidate, b: TrendCandidate) => {
+    const aFresh = isFresh(a, now);
+    if (aFresh !== isFresh(b, now)) return aFresh ? -1 : 1;
+    return compareKindAndDate(a, b);
+  };
+}
+
+function compareKindAndDate(a: TrendCandidate, b: TrendCandidate): number {
   const aNews = a.kind === "news";
   const bNews = b.kind === "news";
   if (aNews !== bNews) return aNews ? -1 : 1;
@@ -75,8 +107,18 @@ function compareInputs(a: TrendCandidate, b: TrendCandidate): number {
 export function selectInputs(rows: TrendCandidate[], area: OpportunityTag, now: Date): TrendCandidate[] {
   return rows
     .filter((row) => row.tags.includes(area) && !isFixture(row) && !row.simulated && !expired(row, now) && isNew(row, now))
-    .sort(compareInputs)
+    .sort(compareInputs(now))
     .slice(0, MAX_INPUTS);
+}
+
+/** Why an area gets no note, in a sentence for the run log; null when it has enough inputs. */
+export function tooFewReason(inputs: readonly TrendCandidate[], now: Date): string | null {
+  if (inputs.length < MIN_INPUTS) return `${inputs.length} new input${inputs.length === 1 ? "" : "s"} this week; a note needs ${MIN_INPUTS}`;
+  const fresh = inputs.filter((input) => isFresh(input, now)).length;
+  if (fresh < MIN_FRESH) {
+    return `nothing changed this week: the ${inputs.length} inputs were first stored this week, but every one opened or was published more than ${FRESH_DAYS} days ago, or opens more than ${FRESH_DAYS} days from now, and there is no news`;
+  }
+  return null;
 }
 
 /** The rows of one area that could be new this week. `selectInputs` applies the rules exactly. */

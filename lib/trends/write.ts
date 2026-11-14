@@ -10,7 +10,7 @@
 import { z } from "zod";
 import { NVIDIA_MODELS, nvidiaChat, type ChatMessage } from "../nvidia";
 import type { OpportunityTag } from "../schemas";
-import type { TrendCandidate } from "./inputs";
+import { isFresh, type TrendCandidate } from "./inputs";
 import { buildTrendUserMessage, inputId, inputText, TREND_SYSTEM_PROMPT } from "./prompt";
 import { checkNote, MIN_SOURCES, retryFeedback, type CheckedInput, type TrendDraft } from "./verify";
 
@@ -30,8 +30,8 @@ const RETRY_TEMPERATURE = 0.5;
  */
 const TrendReply = z.object({ sources: z.array(z.string()), title: z.string(), body: z.string() });
 
-/** Inputs one note may rest on: enough for a thread, few enough to keep it a note. */
-export const MAX_CITED = 4;
+/** Inputs one note may rest on: what is new and one or two connected inputs, few enough for two or three sentences. */
+export const MAX_CITED = 3;
 
 /** The reply schema for the model's decoding: the sources can only be the ids it was shown. */
 export function trendJsonSchema(ids: readonly string[]): Record<string, unknown> {
@@ -80,13 +80,15 @@ export type WrittenNote =
 
 export type WriteOptions = {
   model?: string;
+  /** The run's time, which decides which inputs are new (inputs.ts, `isFresh`). Default: now. */
+  now?: Date;
   /** Adds each call's token counts to this object. */
   usage?: TrendUsage;
 };
 
-/** The inputs as the checks see them: the same ids and text the model was shown. */
-export const checkedInputs = (inputs: TrendCandidate[], weekOf: string): CheckedInput[] =>
-  inputs.map((input, i) => ({ id: inputId(i), text: inputText(input, weekOf) }));
+/** The inputs as the checks see them: the same ids and text the model was shown, and whether each is new when `fresh` is given. */
+export const checkedInputs = (inputs: TrendCandidate[], weekOf: string, fresh?: readonly boolean[]): CheckedInput[] =>
+  inputs.map((input, i) => ({ id: inputId(i), text: inputText(input, weekOf, fresh?.[i]), ...(fresh ? { fresh: fresh[i] } : {}) }));
 
 /**
  * Writes one area's note and checks it, with one retry. API errors (a 429, a
@@ -97,8 +99,10 @@ export async function writeNote(area: OpportunityTag, inputs: TrendCandidate[], 
   const model = options.model ?? NVIDIA_MODELS.main;
   const started = Date.now();
   const deadline = started + TIMEOUT_MS;
-  const checked = checkedInputs(inputs, weekOf);
-  const question = buildTrendUserMessage(area, inputs, weekOf);
+  const now = options.now ?? new Date();
+  const fresh = inputs.map((input) => isFresh(input, now));
+  const checked = checkedInputs(inputs, weekOf, fresh);
+  const question = buildTrendUserMessage(area, inputs, weekOf, fresh);
   let messages: ChatMessage[] = [
     { role: "system", content: TREND_SYSTEM_PROMPT },
     { role: "user", content: question },
