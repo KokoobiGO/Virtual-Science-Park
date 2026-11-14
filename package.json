@@ -22,7 +22,8 @@
     "check:claude": "tsx --env-file-if-exists=.env.local scripts/check-claude.ts",
     "check:nvidia": "tsx --env-file-if-exists=.env.local scripts/check-nvidia.ts",
     "fetch:page": "tsx --env-file-if-exists=.env.local scripts/fetch-page.ts",
-    "profile:status": "tsx --env-file-if-exists=.env.local scripts/profile-status.ts"
+    "profile:status": "tsx --env-file-if-exists=.env.local scripts/profile-status.ts",
+    "collect": "tsx --env-file-if-exists=.env.local scripts/collect.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",
