@@ -7,7 +7,7 @@
 const TIMEOUT_MS = 15_000;
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_REDIRECTS = 5;
-const USER_AGENT = "Mozilla/5.0 (compatible; snapshot-fetcher/0.1)";
+export const USER_AGENT = "Mozilla/5.0 (compatible; snapshot-fetcher/0.1)";
 
 export class FetchPageError extends Error {
   constructor(

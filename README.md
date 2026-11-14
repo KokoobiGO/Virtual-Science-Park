@@ -77,6 +77,7 @@ lib/voyage.ts        Voyage AI embeddings client (voyage-4, 1024 dimensions)
 lib/resend.ts        Resend email client, for the weekly digest (C18)
 lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clean text
 lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
+lib/members/         member list import (A2): BSP's member list and pages into companies
 lib/inngest/         Inngest client and functions (S10)
 data/fixtures/       hand-written sample data (S9), all SIMULATED
 scripts/             migrate, seed, demo users, service checks
@@ -186,9 +187,24 @@ language and a hash of the text. Quotes are checked against that stored text.
 - Jobs call `fetchSnapshot()` in a step, or send `app/snapshot.requested`.
   Staff can try a URL under "Page fetcher" at `/staff/checks`.
 
+## Member import (A2)
+
+The `import-members` job reads BSP's member list from the site's WordPress API
+(`/wp-json/wp/v2/medlem`, 56 members on 14 Nov 2026) and each member's page,
+and writes name, description, industry, size, founding year, town and website
+to `companies`. A member without a website link gets `website_missing = true`.
+
+- Rows are matched on the slug, so running it again updates the same rows, and
+  the three gold members keep `is_gold`.
+- Start it with "Import members" at `/staff/checks`, or send the event
+  `app/members.import.requested`. The run is logged in `job_runs` and in
+  `source_status` as `bsp_members`.
+- `npm run db:seed` writes the fixture values back over the three gold
+  members; run the import again afterwards.
+
 ## Data status
 
-Everything in the database today comes from `data/fixtures/` and is marked
-`simulated`. The snapshot texts there are written by the team, not fetched, so
+The `companies` rows come from the live BSP member pages (A2). Everything else
+in the database today comes from `data/fixtures/` and is marked `simulated`. The snapshot texts there are written by the team, not fetched, so
 their quotes are not real quotes from the company sites. Real data replaces
 them as the collectors (A9 onward) and the profiler (A6) land.

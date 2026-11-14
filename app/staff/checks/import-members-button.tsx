@@ -1,0 +1,81 @@
+"use client";
+
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { MemberImportResult } from "@/lib/inngest/functions/import-members";
+
+type State =
+  | { kind: "idle" }
+  | { kind: "running"; status: string }
+  | { kind: "error"; message: string }
+  | { kind: "done"; result: MemberImportResult };
+
+const POLL_MS = 3_000;
+const GIVE_UP_MS = 4 * 60_000;
+
+/** Starts the import-members job and polls until it has finished. */
+export function ImportMembersButton() {
+  const [state, setState] = useState<State>({ kind: "idle" });
+
+  async function run() {
+    setState({ kind: "running", status: "Starting" });
+    try {
+      const start = await fetch("/api/members/import", { method: "POST" });
+      const started = (await start.json()) as { eventId?: string; error?: string };
+      if (!start.ok || !started.eventId) throw new Error(started.error ?? `${start.status}`);
+
+      const deadline = Date.now() + GIVE_UP_MS;
+      while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+        const res = await fetch(`/api/members/import?event=${started.eventId}`, { cache: "no-store" });
+        const body = (await res.json()) as { status?: string; finished?: boolean; output?: unknown; error?: string };
+        if (!res.ok) throw new Error(body.error ?? `${res.status}`);
+        if (!body.finished) {
+          setState({ kind: "running", status: body.status ?? "Running" });
+          continue;
+        }
+        if (body.status !== "Completed") throw new Error(`The job ${body.status?.toLowerCase()}: ${JSON.stringify(body.output)}`);
+        setState({ kind: "done", result: body.output as MemberImportResult });
+        return;
+      }
+      throw new Error("Still running after 4 minutes. See the Inngest dashboard.");
+    } catch (error) {
+      setState({ kind: "error", message: (error as Error).message });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <Button onClick={run} disabled={state.kind === "running"}>
+          {state.kind === "running" ? "Importing…" : "Import members"}
+        </Button>
+        {state.kind === "running" && <span className="text-sm text-muted-foreground">{state.status} (about a minute)</span>}
+      </div>
+
+      {state.kind === "error" && <p className="text-sm break-words text-destructive">{state.message}</p>}
+
+      {state.kind === "done" && (
+        <div className="flex flex-col gap-2 rounded-lg border px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Badge variant={state.result.failed.length ? "destructive" : "default"}>
+              {state.result.failed.length ? "Partly done" : "Done"}
+            </Badge>
+            <span className="font-medium">
+              {state.result.imported} of {state.result.total} members imported
+            </span>
+          </div>
+          <p className="text-sm break-words text-muted-foreground">
+            Website missing: {state.result.websiteMissing.length ? state.result.websiteMissing.join(", ") : "none"}
+          </p>
+          {state.result.failed.map((member) => (
+            <p key={member.slug} className="text-sm break-words text-destructive">
+              {member.slug}: {member.error}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

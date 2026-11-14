@@ -5,6 +5,7 @@ import { NVIDIA_CHECKS } from "@/lib/nvidia-checks";
 import { RESEND_CHECKS } from "@/lib/resend-checks";
 import { VOYAGE_CHECKS } from "@/lib/voyage-checks";
 import { FetchPageForm } from "./fetch-page-form";
+import { ImportMembersButton } from "./import-members-button";
 import { ServiceChecks } from "./service-checks";
 
 export const metadata = { title: "Service checks" };
@@ -56,6 +57,15 @@ export default function Page() {
           Fetches one web page in a background job and stores its clean text as a snapshot (backlog A1).
         </p>
         <FetchPageForm />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Member import</h2>
+        <p className="text-sm text-muted-foreground">
+          Reads BSP&apos;s member list and every member page into the companies table (backlog A2). Safe to run again: it
+          updates the same rows.
+        </p>
+        <ImportMembersButton />
       </div>
 
       <Suspense>

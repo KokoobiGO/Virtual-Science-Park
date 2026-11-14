@@ -19,7 +19,8 @@ export function inngestCloudProblem(): string | null {
   return null;
 }
 
-async function runsFor(eventId: string): Promise<InngestRun[]> {
+/** The runs an event started; empty until Inngest has picked the event up. */
+export async function runsFor(eventId: string): Promise<InngestRun[]> {
   const base = (process.env.INNGEST_API_BASE_URL || "https://api.inngest.com").replace(/\/+$/, "");
   const res = await fetch(`${base}/v1/events/${eventId}/runs`, {
     headers: { Authorization: `Bearer ${process.env.INNGEST_SIGNING_KEY}` },
