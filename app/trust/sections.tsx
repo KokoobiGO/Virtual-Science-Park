@@ -21,6 +21,7 @@ import {
   type FileResult,
   type MatchingResult,
   type Run,
+  type TrustReport,
 } from "@/lib/trust/report";
 import type {
   LinkCheckSummary,
@@ -161,6 +162,105 @@ export function Table({ caption, head, rows, foot }: { caption: string; head: Re
         ) : null}
       </table>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// At a glance
+// ---------------------------------------------------------------------------
+
+type Tile = { key: string; label: string; value: string; detail: string; note?: string };
+
+/** The headline number of each stored check, or "not measured yet". Pure, so it can be tested without a page. */
+export function summaryTiles(report: Pick<TrustReport, "profileAccuracy" | "quoteCheck" | "linkCheck" | "redTeam" | "privacy">, locale: Locale = DEFAULT_LOCALE): Tile[] {
+  const t = createTranslator(locale, "trust");
+  const none = t("notMeasured");
+  const tiles: Tile[] = [];
+
+  const pa = report.profileAccuracy;
+  const all = pa.status === "measured" && handCheckStarted(pa.summary) ? pa.summary.total.stated : null;
+  tiles.push(
+    all && all.checked > 0
+      ? {
+          key: "accuracy",
+          label: t("summary.accuracy.label"),
+          value: percentOf(all.right, all.checked, locale),
+          detail: t("summary.accuracy.detail", { right: all.right, checked: all.checked }),
+          note: pa.status === "measured" && automatedReviewCompanies(pa.summary).length ? t("summary.automated") : undefined,
+        }
+      : { key: "accuracy", label: t("summary.accuracy.label"), value: "-", detail: none },
+  );
+
+  const qc = report.quoteCheck;
+  tiles.push(
+    qc.status === "measured"
+      ? {
+          key: "quotes",
+          label: t("summary.quotes.label"),
+          value: percentOf(qc.summary.all.quotesFound, qc.summary.all.quotesTotal, locale),
+          detail: t("summary.quotes.detail", { found: qc.summary.all.quotesFound, total: qc.summary.all.quotesTotal }),
+        }
+      : { key: "quotes", label: t("summary.quotes.label"), value: "-", detail: none },
+  );
+
+  const lc = report.linkCheck;
+  tiles.push(
+    lc.status === "measured"
+      ? {
+          key: "links",
+          label: t("summary.links.label"),
+          value: percentOf(lc.summary.ok, lc.summary.checked, locale),
+          detail: t("summary.links.detail", { ok: lc.summary.ok, checked: lc.summary.checked, broken: lc.summary.broken }),
+        }
+      : { key: "links", label: t("summary.links.label"), value: "-", detail: none },
+  );
+
+  const rt = report.redTeam;
+  if (rt.status === "measured") {
+    const passed = rt.summary.groups.reduce((n, g) => n + g.passed, 0);
+    const total = rt.summary.groups.reduce((n, g) => n + g.total, 0);
+    tiles.push({ key: "redTeam", label: t("summary.redTeam.label"), value: percentOf(passed, total, locale), detail: t("summary.redTeam.detail", { passed, total }) });
+  } else {
+    tiles.push({ key: "redTeam", label: t("summary.redTeam.label"), value: "-", detail: none });
+  }
+
+  const pv = report.privacy;
+  tiles.push(
+    pv.status === "measured"
+      ? {
+          key: "privacy",
+          label: t("summary.privacy.label"),
+          value: percentOf(pv.summary.passed, pv.summary.total, locale),
+          detail: t("summary.privacy.detail", { passed: pv.summary.passed, total: pv.summary.total }),
+        }
+      : { key: "privacy", label: t("summary.privacy.label"), value: "-", detail: none },
+  );
+  return tiles;
+}
+
+/** The plain-language top of the report: what was checked, and the headline numbers. */
+export function TrustSummary({ report, locale = DEFAULT_LOCALE }: { report: Parameters<typeof summaryTiles>[0]; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
+  const tiles = summaryTiles(report, locale);
+  return (
+    <section aria-labelledby="trust-summary" className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-card p-4 shadow-xs sm:p-5">
+      <div className="flex flex-col gap-1">
+        <h2 id="trust-summary" className="text-heading">
+          {t("summary.title")}
+        </h2>
+        <p className="max-w-prose text-sm text-muted-foreground">{t("summary.intro")}</p>
+      </div>
+      <ul aria-label={t("summary.caption")} className="grid stagger gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {tiles.map((tile) => (
+          <li key={tile.key} className="flex flex-col gap-0.5 rounded-lg bg-muted/60 px-3 py-2.5">
+            {tile.value === "-" ? null : <span className="text-2xl font-semibold tabular-nums">{tile.value}</span>}
+            <span className="text-sm font-medium">{tile.label}</span>
+            <span className="text-xs text-muted-foreground">{tile.detail}</span>
+            {tile.note ? <span className="text-xs text-muted-foreground">{tile.note}</span> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

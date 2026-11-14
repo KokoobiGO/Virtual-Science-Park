@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type Ref } from "react";
 import { announce, Announcer } from "@/components/announcer";
 import { DataStatusLabel } from "@/components/data-status-label";
@@ -241,7 +241,7 @@ export function ScoutClient({
             </div>
           ) : null}
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" disabled={submitting || running || tooShort}>
+            <Button type="submit" className="press" disabled={submitting || running || tooShort}>
               {t(submitting ? "form.submitting" : running ? "form.working" : "form.submit")}
             </Button>
             <span id="scout-question-help" className="text-xs text-muted-foreground">
@@ -254,7 +254,7 @@ export function ScoutClient({
                 {t(cachedMode ? "form.prerun" : "form.askedBefore")}
               </span>
               {suggestions.map((s) => (
-                <Button key={s} type="button" variant="outline" size="xs" className="h-auto max-w-full py-1 text-left break-words whitespace-normal" onClick={() => setQuestion(s)}>
+                <Button key={s} type="button" variant="outline" size="xs" className="press h-auto max-w-full rounded-full px-2.5 py-1 text-left break-words whitespace-normal" onClick={() => setQuestion(s)}>
                   {s}
                 </Button>
               ))}
@@ -263,13 +263,14 @@ export function ScoutClient({
         </form>
 
         {notice ? (
-          <p role="alert" className="text-sm break-words text-destructive">
+          <p role="alert" className="animate-slide-down text-sm break-words text-destructive">
             {notice}
           </p>
         ) : null}
 
         {current ? (
-          <BriefPanel brief={current} onSave={toggleSaved} headingRef={briefHeading} />
+          // Keyed by brief, so a newly opened brief rises in.
+          <BriefPanel key={current.id} brief={current} onSave={toggleSaved} headingRef={briefHeading} />
         ) : (
           <div className="flex flex-col gap-1 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
             {briefs.length === 0 ? (
@@ -292,14 +293,14 @@ export function ScoutClient({
         {briefs.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("briefs.none")}</p>
         ) : (
-          <ul className="flex flex-col gap-1">
+          <ul className="flex stagger flex-col gap-1">
             {briefs.map((b) => (
               <li key={b.id}>
                 <button
                   type="button"
                   onClick={() => open(b.id, { focus: true })}
                   aria-current={b.id === current?.id ? "true" : undefined}
-                  className="flex w-full min-w-0 flex-col gap-1 rounded-lg border border-transparent px-3 py-2 text-left text-sm hover:bg-muted aria-[current=true]:border-border aria-[current=true]:bg-muted"
+                  className="flex w-full min-w-0 flex-col gap-1 rounded-lg border border-transparent px-3 py-2 text-left text-sm transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none aria-[current=true]:border-border aria-[current=true]:bg-muted"
                 >
                   <span className="line-clamp-2 font-medium break-words">{b.question}</span>
                   <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -336,7 +337,7 @@ function BriefPanel({
   const t = useT("scout");
   const result = brief.result;
   return (
-    <article className="flex min-w-0 flex-col gap-5" aria-labelledby="brief-heading">
+    <article className="flex min-w-0 animate-rise flex-col gap-5" aria-labelledby="brief-heading">
       <header className="flex flex-col gap-2">
         <h2 id="brief-heading" ref={headingRef} tabIndex={-1} className="text-heading break-words outline-none">
           {brief.question}
@@ -360,9 +361,14 @@ function BriefPanel({
       </header>
 
       {brief.status === "running" && (
-        <div className="flex flex-col gap-3 rounded-lg border px-4 py-3">
-          <p className="text-sm font-medium">{t("brief.working")}</p>
-          <ProgressList steps={brief.progress} />
+        <div className="flex flex-col gap-3 overflow-hidden rounded-lg border border-primary/30 bg-card px-4 py-3">
+          {/* A slow light moving along the top edge: the run is alive. Still for readers who ask for reduced motion. */}
+          <div aria-hidden className="-mx-4 -mt-3 h-1 animate-shimmer bg-[linear-gradient(90deg,transparent,var(--color-primary),transparent)] bg-size-[200%_100%]" />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium">{t("brief.working")}</p>
+            <p className="text-xs text-muted-foreground">{t("brief.takes")}</p>
+          </div>
+          <ProgressList steps={brief.progress} live />
         </div>
       )}
 
@@ -378,7 +384,10 @@ function BriefPanel({
 
       {result && (
         <>
-          <p className="max-w-prose break-words">{result.summary}</p>
+          <div className="flex max-w-prose flex-col gap-1 rounded-xl border-l-4 border-primary bg-card px-4 py-3">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("brief.summary")}</p>
+            <p className="break-words">{result.summary}</p>
+          </div>
           {result.notes.length > 0 && (
             <ul className="flex flex-col gap-2">
               {result.notes.map((note) => (
@@ -389,7 +398,7 @@ function BriefPanel({
               ))}
             </ul>
           )}
-          <ol className="flex flex-col gap-4">
+          <ol className="flex stagger flex-col gap-4">
             {result.options.map((option, i) => (
               <li key={option.citation.url}>
                 <OptionCard index={i + 1} option={option} saved={!!option.opportunityId && brief.savedOpportunityIds.includes(option.opportunityId)} onSave={onSave} />
@@ -408,26 +417,61 @@ function BriefPanel({
   );
 }
 
-/** The job's progress lines. They are stored in English; another language says so under the list. */
-function ProgressList({ steps }: { steps: ProgressStep[] }) {
+/**
+ * The job's progress lines, as a list of steps. While the run is live the last
+ * step is the current one: a pulsing dot, in bold, marked aria-current. The
+ * lines are stored in English; another language says so under the list.
+ */
+function ProgressList({ steps, live = false }: { steps: ProgressStep[]; live?: boolean }) {
   const t = useT("scout");
-  if (!steps.length) return <p className="text-sm text-muted-foreground">{t("brief.waiting")}</p>;
+  if (!steps.length) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        {live ? <PulseDot /> : null}
+        {t("brief.waiting")}
+      </p>
+    );
+  }
   const start = Date.parse(steps[0].at);
   return (
     <div className="flex flex-col gap-2">
-      <ol className="flex flex-col gap-1 text-sm">
-        {steps.map((step, i) => (
-          <li key={`${step.at}-${i}`} className="flex gap-3">
-            <span className="w-12 shrink-0 text-right text-xs text-muted-foreground tabular-nums">{Math.max(0, Math.round((Date.parse(step.at) - start) / 1000))} s</span>
-            <span className={`min-w-0 break-words ${step.kind === "error" ? "text-destructive" : ""}`}>
-              {step.kind === "error" ? <span className="font-medium">{t("brief.problem")} </span> : null}
-              {step.text}
-            </span>
-          </li>
-        ))}
+      <ol className="flex flex-col gap-1.5 text-sm">
+        {steps.map((step, i) => {
+          const current = live && i === steps.length - 1;
+          const error = step.kind === "error";
+          return (
+            <li key={`${step.at}-${i}`} aria-current={current ? "step" : undefined} className={`flex animate-rise items-start gap-3 ${current ? "font-medium" : ""}`}>
+              <span className="w-10 shrink-0 pt-px text-right text-xs text-muted-foreground tabular-nums">{Math.max(0, Math.round((Date.parse(step.at) - start) / 1000))} s</span>
+              <span aria-hidden className="flex size-4 shrink-0 items-center justify-center pt-0.5">
+                {error ? (
+                  <TriangleAlert className="size-4 text-destructive" />
+                ) : current ? (
+                  <PulseDot />
+                ) : (
+                  <CircleCheck className="size-4 text-success" />
+                )}
+              </span>
+              <span className={`min-w-0 break-words ${error ? "text-destructive" : current ? "text-foreground" : "text-muted-foreground"}`}>
+                {current ? <span className="sr-only">{t("brief.now")} </span> : null}
+                {error ? <span className="font-medium">{t("brief.problem")} </span> : null}
+                {step.text}
+              </span>
+            </li>
+          );
+        })}
       </ol>
       {t.locale === DEFAULT_LOCALE ? null : <p className="text-xs text-muted-foreground">{t("brief.stepsInEnglish")}</p>}
     </div>
+  );
+}
+
+/** A small dot that breathes: the step Scout is on now. */
+function PulseDot() {
+  return (
+    <span aria-hidden className="relative flex size-2.5">
+      <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary/60 motion-reduce:animate-none" />
+      <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+    </span>
   );
 }
 

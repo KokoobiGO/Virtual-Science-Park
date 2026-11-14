@@ -2,8 +2,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { judgeSources, type SourceStatusRow } from "@/lib/sources/health";
+import { MESSAGES } from "@/lib/i18n/translate";
 import { KNOWN_LIMITS, knownLimits } from "@/lib/trust/report";
-import { KnownLimitsSection, LinkHealthSection, MatchingSection, RedTeamSection, SourceStatusSection, Table } from "./sections";
+import { KnownLimitsSection, LinkHealthSection, MatchingSection, RedTeamSection, SourceStatusSection, summaryTiles, Table, TrustSummary } from "./sections";
 
 const render = renderToStaticMarkup;
 const NOW = new Date("2026-11-14T20:00:00Z");
@@ -114,5 +115,43 @@ describe("Trust report in Swedish (C19)", () => {
     expect(out).toMatch(/<h2>Kända begränsningar<\/h2>/);
     expect(out).toContain("nvidia/nemotron-3.5-super-vl-120b-a12b");
     expect(knownLimits("sv")).toHaveLength(KNOWN_LIMITS.length);
+  });
+});
+
+describe("the report's summary and fixed wording (polish pass)", () => {
+  const measured = <T,>(summary: T) => ({ status: "measured" as const, ranAt: NOW, summary });
+  const empty = { status: "not_measured" as const };
+
+  it("gives one headline number per check, and says plainly which are not measured yet", () => {
+    const tiles = summaryTiles({
+      profileAccuracy: empty,
+      quoteCheck: empty,
+      linkCheck: measured({ checked: 200, ok: 190, broken: 4, blocked: 3, unverifiable: 3 }),
+      redTeam: measured({ groups: [{ group: "relevant", passed: 8, total: 8 }, { group: "override", passed: 7, total: 8 }] }),
+      privacy: measured({ passed: 17, total: 17 }),
+    });
+    expect(tiles.map((t) => [t.key, t.value, t.detail])).toEqual([
+      ["accuracy", "-", "not measured yet"],
+      ["quotes", "-", "not measured yet"],
+      ["links", "95%", "190 of 200 links; 4 broken"],
+      ["redTeam", "94%", "15 of 16 prompts"],
+      ["privacy", "100%", "17 of 17 tests"],
+    ]);
+    const out = render(createElement(TrustSummary, { report: { profileAccuracy: empty, quoteCheck: empty, linkCheck: empty, redTeam: empty, privacy: empty }, locale: "sv" }));
+    expect(out).toMatch(/<h2 id="trust-summary"[^>]*>I korthet<\/h2>/);
+    expect(out).toContain("inte mätt än");
+  });
+
+  it("says the gold claims were checked by an automated reviewer, not by the team, and that EU links go through the portal's API", () => {
+    for (const locale of ["en", "sv"] as const) {
+      const limits = knownLimits(locale).join(" ");
+      expect(limits).toMatch(locale === "en" ? /portal's API/ : /portalens API/);
+      expect(limits).not.toMatch(/only means the portal is up|betyder bara att portalen är uppe/);
+    }
+    const en = render(createElement(KnownLimitsSection));
+    expect(en).not.toContain("team&#x27;s hand-check");
+    // Who gave the verdicts is said by the note next to the numbers (profile-accuracy-section.test.ts); the description no longer claims it was the team.
+    expect(MESSAGES.en.trust.profileAccuracy.description).not.toMatch(/The team checks/);
+    expect(MESSAGES.sv.trust.profileAccuracy.description).not.toMatch(/Teamet kontrollerar/);
   });
 });

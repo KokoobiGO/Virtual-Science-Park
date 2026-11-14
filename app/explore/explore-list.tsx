@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/translate";
 import { tagChip } from "./labels";
 import { ItemStatusLabel, MatchNote, NoResults, SourceLink } from "./opportunity-bits";
+import { ScrollToRow } from "./scroll-to-row";
 
 /** The list view: every opportunity that passes the filters, coming dates first. Words in the reader's language (C19); titles, sources and descriptions as stored. */
 export function ExploreList({
@@ -35,11 +36,11 @@ export function ExploreList({
         : t("list.countSome", { shown, total });
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground" aria-live="polite">
+      <p className="text-sm font-medium" aria-live="polite">
         {count}
       </p>
       {items.length ? (
-        <ul className="divide-y rounded-xl border">
+        <ul className="stagger flex flex-col gap-2">
           {items.map((item) => (
             <ExploreRow key={item.id} item={item} match={matches?.get(item.id) ?? null} now={now} locale={locale} />
           ))}
@@ -47,6 +48,7 @@ export function ExploreList({
       ) : (
         <NoResults filters={filters} filtered={t("list.emptyFiltered")} empty={t("list.empty")} locale={locale} />
       )}
+      <ScrollToRow />
     </div>
   );
 }
@@ -56,7 +58,12 @@ function ExploreRow({ item, match, now, locale }: { item: ExploreItem; match: Ma
   const tc = createTranslator(locale, "common");
   const status = dateStatus(item, now);
   return (
-    <li id={`opportunity-${item.id}`} className="flex scroll-mt-24 flex-col gap-2 px-4 py-3 target:bg-muted" data-kind={item.kind}>
+    // `target:` styles: "Show it in the list" on the map lands here with a plain link, so the row is :target and stays marked; <ScrollToRow> flashes it once.
+    <li
+      id={`opportunity-${item.id}`}
+      className="lift flex scroll-mt-24 flex-col gap-2 rounded-xl border bg-card px-4 py-3 shadow-card target:border-primary target:bg-primary/5 target:ring-2 target:ring-primary/30"
+      data-kind={item.kind}
+    >
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <Badge variant="secondary">{tc(`kinds.${item.kind}`)}</Badge>
         <ItemStatusLabel item={item} locale={locale} />

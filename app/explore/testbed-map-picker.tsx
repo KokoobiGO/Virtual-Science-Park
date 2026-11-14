@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { MousePointerClick } from "lucide-react";
 import { useT } from "@/lib/i18n/client";
 
 /** One pin, placed in percent of the map's width and height. */
@@ -63,7 +64,7 @@ export function TestbedMapPicker({
             >
               <span
                 aria-hidden
-                className={`block rounded-full border-2 border-primary shadow-sm transition-[width,height] group-hover:size-5 ${
+                className={`block rounded-full border-2 border-primary shadow-sm transition-[width,height] duration-200 group-hover:size-5 group-focus-visible:size-5 group-focus-visible:ring-2 group-focus-visible:ring-ring ${
                   pin.verified ? "bg-primary" : "bg-background"
                 } ${current ? "size-5 ring-2 ring-ring ring-offset-2 ring-offset-background" : "size-4"}`}
               />
@@ -72,9 +73,15 @@ export function TestbedMapPicker({
         })}
       </div>
       <div ref={panel} id={CARD_ID} aria-live="polite" className="scroll-mt-24">
-        {card ?? (
-          <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">{t("map.pickHint")}</p>
-        )}
+        {/* Keyed by the pin, so each new choice slides in. */}
+        <div key={card ? selected : "hint"} className="animate-slide-down">
+          {card ?? (
+            <p className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+              <MousePointerClick aria-hidden className="size-4 shrink-0" />
+              {t("map.pickHint")}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

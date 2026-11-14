@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { LoadingState, PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
+import { buttonVariants } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth";
+import { FileText } from "lucide-react";
+import { StaffPageIntro } from "../page-intro";
 import type { Locale } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
@@ -33,19 +36,23 @@ async function InjectionFrame() {
   const t = createTranslator(locale, "injection");
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-title">{t("title")}</h1>
-        <p className="max-w-prose text-muted-foreground">
-          {t.rich("intro", {
-            link: (chunk) => (
-              <Link href={DEMO_PAGE_PATH} className="text-primary underline-offset-4 hover:underline">
-                {chunk}
-              </Link>
-            ),
-            code: (chunk) => <code className="font-mono text-sm">{chunk}</code>,
-          })}
-        </p>
-      </div>
+      <StaffPageIntro
+        title={t("title")}
+        intro={t.rich("intro", {
+          link: (chunk) => (
+            <Link href={DEMO_PAGE_PATH} className="text-primary underline-offset-4 hover:underline">
+              {chunk}
+            </Link>
+          ),
+          code: (chunk) => <code className="font-mono text-sm">{chunk}</code>,
+        })}
+        todo={t("todo")}
+      >
+        <Link href={DEMO_PAGE_PATH} className={buttonVariants({ variant: "outline", className: "press w-fit" })}>
+          <FileText aria-hidden />
+          {t("openTestPage")}
+        </Link>
+      </StaffPageIntro>
       <Suspense
         fallback={
           <LoadingState label={t("loading")}>

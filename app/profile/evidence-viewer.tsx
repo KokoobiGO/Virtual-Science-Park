@@ -1,3 +1,4 @@
+import { ChevronRight, Quote } from "lucide-react";
 import { DataStatusLabel } from "@/components/data-status-label";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/translate";
@@ -20,8 +21,10 @@ export function EvidenceViewer({ quotes, locale = DEFAULT_LOCALE }: { quotes: Ev
   const newTab = createTranslator(locale, "common")("opensInNewTab");
   const simulated = quotes.filter((q) => q.simulated).length;
   return (
-    <details className="group rounded-lg border bg-muted/30 text-sm">
-      <summary className="cursor-pointer rounded-lg px-3 py-2 font-medium select-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+    <details className="group rounded-lg border bg-muted/30 text-sm transition-colors open:border-primary/30 open:bg-card">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-3 py-2 font-medium transition-colors select-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-90" />
+        <Quote aria-hidden className="size-3.5 shrink-0 text-primary" />
         {t("evidence.summary", { count: quotes.length })}
         {simulated ? (
           <span className="font-normal text-muted-foreground">
@@ -30,7 +33,8 @@ export function EvidenceViewer({ quotes, locale = DEFAULT_LOCALE }: { quotes: Ev
           </span>
         ) : null}
       </summary>
-      <ol className="flex flex-col gap-3 px-3 pt-1 pb-3">
+      {/* Hidden while closed; the animation runs each time it is shown, so opening slides the quotes in. */}
+      <ol className="flex animate-slide-down flex-col gap-3 px-3 pt-1 pb-3">
         {quotes.map((q) => (
           <li key={q.id} className="flex flex-col gap-1.5 border-t pt-3 first:border-t-0 first:pt-1">
             <blockquote lang={q.quoteLang === "other" ? undefined : q.quoteLang} className="leading-relaxed break-words">

@@ -18,6 +18,7 @@ import {
   SourceStatusSection,
   StaffSessionSection,
   TimedTestSection,
+  TrustSummary,
 } from "./sections";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,7 +45,7 @@ async function TrustFrame() {
   const t = createTranslator(locale, "trust");
   return (
     <>
-      <div className="flex flex-col gap-1">
+      <div className="flex animate-fade flex-col gap-1">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
       </div>
@@ -75,7 +76,8 @@ async function Report({ locale }: { locale: Locale }) {
   if (!viewer) redirect("/sign-in?next=/trust");
   const report = await loadTrustReport(viewer);
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="flex min-w-0 stagger flex-col gap-6">
+      <TrustSummary report={report} locale={locale} />
       <ProfileAccuracySection run={report.profileAccuracy} locale={locale} />
       <QuoteCheckSection run={report.quoteCheck} locale={locale} />
       <LinkHealthSection run={report.linkCheck} locale={locale} />

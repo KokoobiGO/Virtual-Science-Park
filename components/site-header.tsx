@@ -19,9 +19,12 @@ import { createClient } from "@/lib/supabase/server";
  */
 export function SiteHeader() {
   return (
-    <header className="border-b bg-card/70">
+    <header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md supports-[backdrop-filter]:bg-card/70">
       <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2">
-        <Link href="/" className="-mx-1 flex items-center gap-2.5 rounded-md px-1 py-1">
+        <Link
+          href="/"
+          className="group/brand -mx-1 flex items-center gap-2.5 rounded-md px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <LogoMark />
           <span className="flex flex-col leading-tight">
             <span className="font-heading text-[0.95rem] font-semibold tracking-tight">Virtual Science Park</span>
@@ -131,7 +134,12 @@ async function FooterNav() {
 /** A plain mark: a rounded square in the brand blue with a wave. Decorative. */
 function LogoMark() {
   return (
-    <svg viewBox="0 0 32 32" className="size-8 shrink-0" aria-hidden focusable="false">
+    <svg
+      viewBox="0 0 32 32"
+      className="size-8 shrink-0 transition-transform duration-300 ease-(--ease-out-soft) group-hover/brand:-rotate-6"
+      aria-hidden
+      focusable="false"
+    >
       <rect width="32" height="32" rx="8" className="fill-primary" />
       <path
         d="M6 19c2.5 0 3.5-3 6-3s3.5 3 6 3 3.5-3 6-3 2 1 2 1"

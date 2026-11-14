@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, LoaderCircle, SendHorizontal, TriangleAlert } from "lucide-react";
+import { CircleAlert, Info, LoaderCircle, MessageCircleQuestion, SendHorizontal, TriangleAlert } from "lucide-react";
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DataStatusLabel } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ const SUGGESTIONS = [
   "Which test facilities could we use for an underwater sensor?",
   "Which funding calls close in the next month?",
   "Why is the first item in our list a match?",
+  "What does our company profile say we work on?",
 ];
 
 /** The look of each scope chip; its words are in messages/*.json (`copilot.scope`). */
@@ -137,8 +138,8 @@ export function Sources({ citations }: { citations: Citation[] }) {
   const t = useT("copilot");
   if (!citations.length) return null;
   return (
-    <div className="flex flex-col gap-1 border-t pt-2">
-      <p id={heading} className="text-xs font-medium text-muted-foreground">
+    <div className="flex flex-col gap-1.5 rounded-md bg-muted/60 px-2.5 py-2">
+      <p id={heading} className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         {t("sources")}
       </p>
       <ol aria-labelledby={heading} className="flex flex-col gap-1.5 text-xs">
@@ -162,29 +163,37 @@ export function Sources({ citations }: { citations: Citation[] }) {
   );
 }
 
-/** What an empty conversation shows: what the Copilot answers, and three questions to start with. */
+/** What an empty conversation shows: what the Copilot answers, what it will not do, and questions to start with. */
 export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, event: MouseEvent) => void; busy: boolean }) {
   const tryId = useId();
   const t = useT("copilot");
   return (
-    <div className="flex flex-col gap-3 text-sm">
-      <div className="flex flex-col gap-1">
+    <div className="flex animate-fade flex-col gap-4 text-sm">
+      <div className="flex flex-col gap-2">
         <p className="font-medium">{t("empty.title")}</p>
-        <ul className="flex list-disc flex-col gap-0.5 pl-5 text-muted-foreground">
-          <li>{t("empty.items.store")}</li>
-          <li>{t("empty.items.profile")}</li>
-          <li>{t("empty.items.actions")}</li>
-        </ul>
-        <p className="text-muted-foreground">{t("empty.note")}</p>
+        <p className="flex items-start gap-2 text-muted-foreground">
+          <MessageCircleQuestion aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{t("empty.can")}</span>
+        </p>
+        <p className="flex items-start gap-2 text-muted-foreground">
+          <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{t("empty.note")}</span>
+        </p>
       </div>
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col gap-2">
         <p id={tryId} className="text-muted-foreground">
           {t("empty.try")}
         </p>
-        <ul aria-labelledby={tryId} className="flex flex-col items-start">
+        <ul aria-labelledby={tryId} className="flex stagger flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
-            <li key={s}>
-              <Button variant="ghost" size="sm" className="h-auto text-left whitespace-normal" onClick={(event) => onAsk(s, event)} disabled={busy}>
+            <li key={s} className="max-w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                className="press h-auto max-w-full rounded-full px-3 py-1.5 text-left whitespace-normal"
+                onClick={(event) => onAsk(s, event)}
+                disabled={busy}
+              >
                 {s}
               </Button>
             </li>
@@ -192,6 +201,17 @@ export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, e
         </ul>
       </div>
     </div>
+  );
+}
+
+/** Three dots that pulse one after another while the Copilot works. Still for readers who ask for reduced motion. */
+function ThinkingDots() {
+  return (
+    <span aria-hidden className="flex items-center gap-1">
+      {[0, 150, 300].map((delay) => (
+        <span key={delay} className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" style={{ animationDelay: `${delay}ms` }} />
+      ))}
+    </span>
   );
 }
 
@@ -350,7 +370,7 @@ export function CopilotPanel({ className }: { className?: string }) {
                 return (
                   <li
                     key={entry.id}
-                    className="max-w-[85%] self-end rounded-lg bg-secondary px-3 py-2 text-sm wrap-anywhere whitespace-pre-wrap text-secondary-foreground"
+                    className="max-w-[85%] animate-rise self-end rounded-lg bg-secondary px-3 py-2 text-sm wrap-anywhere whitespace-pre-wrap text-secondary-foreground"
                   >
                     <span className="sr-only">{`${t("youAsked")} `}</span>
                     {entry.text}
@@ -359,7 +379,7 @@ export function CopilotPanel({ className }: { className?: string }) {
               }
               if (entry.role === "error") {
                 return (
-                  <li key={entry.id} className="flex items-start gap-1.5">
+                  <li key={entry.id} className="flex animate-rise items-start gap-1.5">
                     <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
                     <p className="text-sm text-destructive">{entry.text}</p>
                   </li>
@@ -367,7 +387,7 @@ export function CopilotPanel({ className }: { className?: string }) {
               }
               const { reply } = entry;
               return (
-                <li key={entry.id} className="flex max-w-[95%] min-w-0 flex-col gap-2 rounded-lg border px-3 py-2">
+                <li key={entry.id} className="flex max-w-[95%] min-w-0 animate-rise flex-col gap-2 rounded-lg border bg-card px-3 py-2.5 shadow-xs">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="sr-only">{t("answered")}</span>
                     <Badge variant={SCOPE_VARIANT[reply.label]} title={t(`scope.${reply.label}.title`)} data-testid="scope-chip">
@@ -403,10 +423,13 @@ export function CopilotPanel({ className }: { className?: string }) {
         )}
 
         {status && (
-          <p id={statusId} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <LoaderCircle aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />
-            {statusText(status, locale)}…
-          </p>
+          <div className="flex w-fit max-w-[95%] animate-fade flex-col gap-1 rounded-lg border border-dashed px-3 py-2">
+            <p id={statusId} className="flex items-center gap-2 text-sm text-foreground">
+              <ThinkingDots />
+              {statusText(status, locale)}…
+            </p>
+            <p className="text-xs text-muted-foreground">{t("thinking")}</p>
+          </div>
         )}
         <div ref={endRef} />
       </div>
@@ -428,7 +451,7 @@ export function CopilotPanel({ className }: { className?: string }) {
           readOnly={busy}
           aria-describedby={status ? statusId : undefined}
         />
-        <Button type="submit" disabled={!canSend} focusableWhenDisabled aria-busy={busy || undefined} className="data-disabled:opacity-50">
+        <Button type="submit" disabled={!canSend} focusableWhenDisabled aria-busy={busy || undefined} className="press data-disabled:opacity-50">
           {busy ? <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" /> : <SendHorizontal aria-hidden />}
           {t("ask")}
         </Button>

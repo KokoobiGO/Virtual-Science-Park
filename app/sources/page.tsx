@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { DataStatusLegend, DataStatusPanel, DataStatusPanelSkeleton } from "@/components/data-status-panel";
+import { DataStatusLabel, type DataStatusKind } from "@/components/data-status-label";
+import { DataStatusPanel, DataStatusPanelSkeleton } from "@/components/data-status-panel";
 import { PageShellSkeleton } from "@/components/loading-skeleton";
 import { getViewer } from "@/lib/auth";
 import { sourceStatus } from "@/lib/db/schema";
@@ -34,22 +35,47 @@ async function SourcesFrame() {
   const t = createTranslator(locale, "sources");
   return (
     <>
-      <div className="flex flex-col gap-2">
+      <div className="flex animate-rise flex-col gap-2">
         <h1 className="text-title">{t("title")}</h1>
         <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
       </div>
-      <Suspense fallback={<DataStatusPanelSkeleton locale={locale} />}>
-        <Sources locale={locale} />
-      </Suspense>
-      <section aria-labelledby="legend" className="flex flex-col gap-3">
-        <h2 id="legend" className="text-heading">
-          {t("legendTitle")}
-        </h2>
-        <DataStatusLegend locale={locale} />
+      {/* The meanings come first, so the labels in the table below already read as words the reader knows. */}
+      <section aria-labelledby="legend" className="flex animate-rise flex-col gap-3 rounded-xl border bg-card p-4 shadow-card sm:p-5">
+        <div className="flex flex-col gap-1">
+          <h2 id="legend" className="text-heading">
+            {t("legendTitle")}
+          </h2>
+          <p className="max-w-prose text-sm text-muted-foreground">{t("legendIntro")}</p>
+        </div>
+        <StateMeanings locale={locale} />
       </section>
+      <Suspense fallback={<DataStatusPanelSkeleton locale={locale} />}>
+        <div className="animate-fade">
+          <Sources locale={locale} />
+        </div>
+      </Suspense>
     </>
   );
 }
+
+/** Each label, with what it means for the reader in a plain sentence: the label's own text carries the state, never its colour alone. */
+function StateMeanings({ locale }: { locale: Locale }) {
+  const t = createTranslator(locale, "sources");
+  return (
+    <dl className="stagger grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+      {STATE_ORDER.map((kind) => (
+        <div key={kind} className="flex flex-col items-start gap-1.5">
+          <dt>
+            <DataStatusLabel kind={kind} nameOnly locale={locale} />
+          </dt>
+          <dd className="text-muted-foreground">{t(`states.${kind}`)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+const STATE_ORDER = ["live", "stale", "cached", "hand_entered", "simulated"] as const satisfies readonly DataStatusKind[];
 
 async function Sources({ locale }: { locale: Locale }) {
   const viewer = await getViewer();

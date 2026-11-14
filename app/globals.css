@@ -92,6 +92,113 @@
   --text-heading--line-height: 1.4;
   --text-heading--letter-spacing: -0.01em;
   --text-heading--font-weight: 600;
+
+  /*
+   * Motion (polish pass). Short and calm: things arrive, they do not perform.
+   *   animate-rise   content entering (cards, sections, list rows)
+   *   animate-fade   a whole page or panel appearing
+   *   animate-pop    something small the reader just caused (a badge, a saved tick)
+   *   animate-slide-down  a menu, a notice, an expanding panel
+   * Group entrances: put `stagger` on the parent; its children rise one after another.
+   * Everything stops for readers who ask for reduced motion (see the base layer).
+   */
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --animate-rise: rise 420ms var(--ease-out-soft) both;
+  --animate-fade: fade 280ms ease-out both;
+  --animate-pop: pop 240ms var(--ease-out-soft) both;
+  --animate-slide-down: slide-down 220ms var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.03);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+}
+
+/* Children rise one after another (first ten staggered, the rest with the tenth). */
+@utility stagger {
+  & > * {
+    animation: var(--animate-rise);
+  }
+  & > :nth-child(2) { animation-delay: 45ms; }
+  & > :nth-child(3) { animation-delay: 90ms; }
+  & > :nth-child(4) { animation-delay: 135ms; }
+  & > :nth-child(5) { animation-delay: 180ms; }
+  & > :nth-child(6) { animation-delay: 225ms; }
+  & > :nth-child(7) { animation-delay: 270ms; }
+  & > :nth-child(8) { animation-delay: 315ms; }
+  & > :nth-child(9) { animation-delay: 360ms; }
+  & > :nth-child(n + 10) { animation-delay: 405ms; }
+}
+
+/* A card or row that can be clicked: lifts a little on hover and keyboard focus. */
+@utility lift {
+  transition:
+    transform 180ms var(--ease-out-soft),
+    box-shadow 180ms var(--ease-out-soft),
+    border-color 180ms ease-out;
+  &:hover,
+  &:focus-within {
+    transform: translateY(-2px);
+    /* Added to Tailwind's ring shadows, so a ring or focus ring survives the lift. */
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000), 0 6px 20px -8px oklch(0.3 0.08 260 / 0.25);
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+  }
+}
+
+/* A press feels like a press. */
+@utility press {
+  transition: transform 120ms ease-out;
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
 :root,
@@ -222,5 +329,24 @@
   }
   ::selection {
     background: color-mix(in oklab, var(--primary) 22%, transparent);
+  }
+  html {
+    scroll-behavior: smooth;
+    /* The header is sticky: jump links land below it. */
+    scroll-padding-top: 6.5rem;
+  }
+  /* Readers who ask for less motion get none: no entrances, no lifts, no smooth scroll. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

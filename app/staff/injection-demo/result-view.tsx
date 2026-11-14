@@ -1,3 +1,5 @@
+import { Eye, ShieldAlert, ShieldCheck } from "lucide-react";
+import type { ReactNode } from "react";
 import { DataStatusLabel } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +23,11 @@ function places(locations: readonly InjectionLocation[], t: Translator<"injectio
 export function InjectionDemoView({ result, locale = DEFAULT_LOCALE }: { result: InjectionDemoResult; locale?: Locale }) {
   const t = createTranslator(locale, "injection");
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 stagger">
       <Summary result={result} t={t} />
       <Hidden result={result} t={t} />
-      {result.steps.map((step) => (
-        <StepCard key={`${step.step}-${step.input}`} step={step} t={t} />
+      {result.steps.map((step, i) => (
+        <StepCard key={`${step.step}-${step.input}`} step={step} number={i + 2} t={t} />
       ))}
       {result.notes.length ? (
         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -42,7 +44,17 @@ export function InjectionDemoView({ result, locale = DEFAULT_LOCALE }: { result:
 }
 
 function PassBadge({ pass, t }: { pass: boolean; t: Translator<"injection"> }) {
-  return <Badge variant={pass ? "success" : "destructive"}>{pass ? t("pass") : t("fail")}</Badge>;
+  return (
+    <Badge variant={pass ? "success" : "destructive"}>
+      {pass ? <ShieldCheck aria-hidden /> : <ShieldAlert aria-hidden />}
+      {pass ? t("pass") : t("fail")}
+    </Badge>
+  );
+}
+
+/** A small label above a card's title, so a viewer can follow the story in order. */
+function Eyebrow({ children }: { children: ReactNode }) {
+  return <p className="text-xs font-medium tracking-wide text-primary uppercase">{children}</p>;
 }
 
 function Summary({ result, t }: { result: InjectionDemoResult; t: Translator<"injection"> }) {
@@ -50,8 +62,9 @@ function Summary({ result, t }: { result: InjectionDemoResult; t: Translator<"in
   // The detector's label is our own fixed text; show it in the reader's language when it is that text.
   const label = result.detector.label === INJECTION_LABEL ? t("detectorLabel") : result.detector.label;
   return (
-    <Card>
+    <Card className="border-primary/30">
       <CardHeader>
+        <Eyebrow>{t("eyebrow.result")}</Eyebrow>
         <CardTitle>
           <h2 className="flex flex-wrap items-center gap-2">
             <PassBadge pass={result.pass} t={t} />
@@ -76,6 +89,10 @@ function Summary({ result, t }: { result: InjectionDemoResult; t: Translator<"in
         {result.detector.locations.length ? (
           <p className="text-muted-foreground">{t("foundIn", { locations: places(result.detector.locations, t) })}</p>
         ) : null}
+        <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2">
+          <Eye aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{t("lookAt")}</span>
+        </p>
       </CardContent>
     </Card>
   );
@@ -85,6 +102,9 @@ function Hidden({ result, t }: { result: InjectionDemoResult; t: Translator<"inj
   return (
     <Card>
       <CardHeader>
+        <Eyebrow>
+          {t("stepNumber", { n: 1 })} · {t("eyebrow.trap")}
+        </Eyebrow>
         <CardTitle>
           <h2>{t("hiddenTitle")}</h2>
         </CardTitle>
@@ -108,11 +128,14 @@ function Hidden({ result, t }: { result: InjectionDemoResult; t: Translator<"inj
   );
 }
 
-function StepCard({ step, t }: { step: InjectionDemoStep; t: Translator<"injection"> }) {
+function StepCard({ step, number, t }: { step: InjectionDemoStep; number: number; t: Translator<"injection"> }) {
   const none = createTranslator(t.locale, "common")("none");
   return (
     <Card>
       <CardHeader>
+        <Eyebrow>
+          {t("stepNumber", { n: number })} · {t("eyebrow.model")}
+        </Eyebrow>
         <CardTitle>
           <h2 className="flex flex-wrap items-center gap-2">
             <PassBadge pass={step.pass} t={t} />
@@ -142,7 +165,7 @@ function StepCard({ step, t }: { step: InjectionDemoStep; t: Translator<"injecti
           <span className="font-medium">{t("checks")}</span>
           {step.checks}
         </p>
-        <p>
+        <p className={`rounded-lg border px-3 py-2 ${step.stored.length ? "border-destructive/40 bg-destructive/10" : "border-success/35 bg-success-soft"}`}>
           <span className="font-medium">{t("stored")}</span>
           {step.stored.length ? step.stored.join(", ") : none}
         </p>

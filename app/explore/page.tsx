@@ -45,7 +45,7 @@ async function ExploreFrame({ searchParams }: Pick<PageProps<"/explore">, "searc
     <LocaleProvider locale={locale}>
       <div className="flex flex-col gap-1">
         <h1 className="text-title">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("intro")}</p>
+        <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
       </div>
       <Suspense fallback={<ExploreSkeleton label={t("loading")} />}>
         <Explorer searchParams={searchParams} locale={locale} />
@@ -98,13 +98,16 @@ async function Explorer({ searchParams, locale }: Pick<PageProps<"/explore">, "s
     <div className="flex flex-col gap-5">
       <ViewTabs filters={filters} locale={locale} />
       <FilterForm filters={filters} locale={locale} />
-      {filters.view === "timeline" ? (
-        <ExploreTimeline timeline={buildTimeline(items, filters, now)} matches={matches} filters={filters} now={now} locale={locale} />
-      ) : filters.view === "map" ? (
-        <ExploreMap map={buildTestbedMap(items, filters, SOUTHERN_SWEDEN, locale)} matches={matches} filters={filters} locale={locale} />
-      ) : (
-        <ExploreList items={filterItems(items, filters, now)} total={items.length} matches={matches} filters={filters} now={now} locale={locale} />
-      )}
+      {/* Keyed by the view, so switching views fades the new one in. */}
+      <div key={filters.view} className="animate-fade">
+        {filters.view === "timeline" ? (
+          <ExploreTimeline timeline={buildTimeline(items, filters, now)} matches={matches} filters={filters} now={now} locale={locale} />
+        ) : filters.view === "map" ? (
+          <ExploreMap map={buildTestbedMap(items, filters, SOUTHERN_SWEDEN, locale)} matches={matches} filters={filters} locale={locale} />
+        ) : (
+          <ExploreList items={filterItems(items, filters, now)} total={items.length} matches={matches} filters={filters} now={now} locale={locale} />
+        )}
+      </div>
     </div>
   );
 }

@@ -46,6 +46,8 @@
     "title": "Each week, the opportunities that may fit your company",
     "intro": "Virtual Science Park gives every Blue Science Park member a short list of funding calls, testbeds, events and partners. Every line shows where it came from, so you can check it yourself.",
     "howTitle": "How it works",
+    "howIntro": "Three steps, every week. You stay in charge of what happens next.",
+    "stepNumber": "Step {n}",
     "steps": {
       "profile": {
         "title": "A profile from your own pages",
@@ -64,11 +66,18 @@
     "openStaff": "Open the staff tools",
     "openWeek": "Open your week",
     "staffTools": "Staff tools",
-    "yourScreens": "Your screens"
+    "yourScreens": "Your screens",
+    "yourScreensIntro": "Pick where to go. The menu at the top has the same screens."
   },
   "signIn": {
     "title": "Sign in",
-    "intro": "Members see their own week. BSP staff see the staff tools.",
+    "intro": "For Blue Science Park members and BSP staff.",
+    "nextTitle": "What happens after you sign in",
+    "nextMember": "You go straight to your week: this week's potential matches for your company, each with its source.",
+    "nextStaff": "You go to the staff tools: compare members, the ecosystem map and the handoffs.",
+    "noAccountTitle": "No account yet?",
+    "noAccount": "Ask BSP staff. Accounts are only for Blue Science Park members.",
+    "emailPlaceholder": "name@company.se",
     "cardTitle": "Your account",
     "cardDescription": "Use the email address BSP staff set up for you.",
     "loadingForm": "Loading the sign-in form…",
@@ -80,13 +89,13 @@
     "submitting": "Signing in…",
     "errors": {
       "missing": "Enter your email and password.",
-      "wrong": "Wrong email or password.",
+      "wrong": "That email and password do not match. Check for typos and try again.",
       "noRole": "This account has no role yet. Ask BSP staff to set it up."
     }
   },
   "notFound": {
     "title": "Page not found",
-    "text": "There is no page at this address. The link may be old or mistyped. Start again from the start page, or use the menu at the top.",
+    "text": "We could not find a page at this address. The link may be old or have a typo. Go back to the start page, or pick a screen from the menu at the top.",
     "back": "Go to the start page",
     "profileTitle": "No company with this address",
     "profileText": "No Blue Science Park member has a profile at this address. The link may be old, or the company may have left the member list.",
@@ -205,14 +214,28 @@
   "sources": {
     "title": "Data status",
     "intro": "Where the funding calls, testbeds, events and news on this site come from, and how fresh each source is. Live sources are read every night. When a source cannot be read, the site shows a recorded copy and says so, with the date of the copy.",
-    "legendTitle": "What the labels mean"
+    "legendTitle": "What the labels mean",
+    "legendIntro": "Every source and every item on the site carries one of these labels, written out in words, so you always know how far to trust what you read.",
+    "states": {
+      "live": "Read from the source itself, most recently on the date shown. What you see is what the source says.",
+      "stale": "A live source that has not been read for more than two days. It may have changed since; check the source before you act.",
+      "cached": "The source could not be read, so the site shows a recorded copy from the date shown. Newer calls or changes may be missing.",
+      "hand_entered": "The team typed this in from the source; it is not read automatically. It is updated by hand, so check the source for the latest.",
+      "simulated": "Sample data written by the team for the demo. It is not real; never act on it."
+    }
   },
   "profile": {
     "title": "Company profile",
     "publicDocumentTitle": "Public company profile",
     "notLinked": "Your account is not linked to a member company yet, so there is no profile to show. Ask BSP staff to link your account to your company.",
     "prioritiesTitle": "Your priorities",
-    "prioritiesIntro": "What you want from BSP right now. They steer your own ranking only; nobody outside your company sees them.",
+    "prioritiesIntro": "Switch on what you want from BSP right now. Your week re-ranks your matches to put these first. Only your company sees them.",
+    "about": {
+      "title": "How this profile works",
+      "built": "We built it from your company's own public pages, such as your website and your BSP member page.",
+      "evidence": "Every field shows the quote it rests on: open \"Evidence\" under it to see the words and a link to the page.",
+      "correct": "Something wrong or missing? Press Edit and write it in your own words. Your version replaces ours, and you choose whether it is public or private."
+    },
     "profileTitle": "Profile",
     "seePublic": "See your public profile",
     "profileIntro": "Read from your public pages. Open the evidence under a field to see the quote it rests on. Edit a field to put it in your own words: your value replaces ours, and you choose whether it is public or private.",
@@ -279,7 +302,8 @@
       "reject": "Reject",
       "acceptLabel": "Accept the suggested {field}",
       "rejectLabel": "Reject the suggested {field}",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "explain": "Your pages say something new here. Accept to use it, or reject to keep what is shown above."
     },
     "editor": {
       "edit": "Edit",
@@ -298,6 +322,7 @@
       "off": "Off:",
       "savedOn": "{label}: on. Saved.",
       "savedOff": "{label}: off. Saved.",
+      "savedVisible": "Saved. Your week will re-rank your matches with this in a moment.",
       "names": {
         "funding": "Funding",
         "testing": "Testing and testbeds",
@@ -342,6 +367,7 @@
     "title": "Compare members",
     "intro": "Two members' top five from the public ranking, side by side. The public ranking uses public profile information only, never what a member entered privately. Every line is a potential match, not a decision.",
     "loading": "Loading the members…",
+    "todo": "Choose two members and press Compare. Lines marked \"In both\" are in both top fives: a natural topic for a joint conversation.",
     "tooFew": {
       "one": "Comparing needs at least two member companies, and there is one yet. Run the member import under Service checks first.",
       "other": "Comparing needs at least two member companies, and there are none yet. Run the member import under Service checks first."
@@ -375,7 +401,9 @@
   },
   "ecosystem": {
     "title": "Ecosystem map",
-    "intro": "Members that may have a reason to talk, found from their public profiles: each line is one possible collaboration with a stated basis. {disclaimer}",
+    "intro": "Suggested introductions between members, found from their public profiles: each line is one possible collaboration with a stated basis.",
+    "todo": "Click a line in the map, or a pair in the list, to read why the two members might talk. Then decide whether an introduction is worth making.",
+    "suggestionLabel": "Suggested introduction",
     "disclaimer": "Neither company has expressed interest. This is a suggestion from public profile information only.",
     "loading": "Loading the map…",
     "empty": "No possible collaborations are stored yet. They appear after the connection finder has run; the team starts it with <code>npm run connections</code>.",
@@ -410,7 +438,15 @@
     "intro": "Questions members sent to BSP staff from the Copilot, newest first. Members send these on purpose; their chats stay private.",
     "contact": "Contact route on new handoffs: {contact}. This is not a real address yet: BSP has not chosen the route.",
     "loading": "Loading the handoffs…",
-    "empty": "No handoffs yet. When a member presses \"Send to BSP staff\" under a Copilot answer, the question appears here.",
+    "todo": "Read each open question and contact the member by the route shown. Open means nobody at BSP has picked it up yet.",
+    "emptyTitle": "No handoffs yet",
+    "empty": "When a member presses \"Send to BSP staff\" under a Copilot answer, the question appears here.",
+    "counts": {
+      "one": "{open} open of {count} handoff.",
+      "other": "{open} open of {count} handoffs."
+    },
+    "openHint": "Waiting for BSP staff to get in touch.",
+    "closedHint": "Handled: no action needed.",
     "open": "Open",
     "closed": "Closed",
     "answer": "The Copilot's answer",
@@ -464,7 +500,16 @@
       "one": "{count} model call, {seconds} s",
       "other": "{count} model calls, {seconds} s"
     },
-    "setupTitle": "How the run was set up"
+    "setupTitle": "How the run was set up",
+    "todo": "Read the cards from top to bottom: the result, then step 1 (what the test page hid), then each model step. PASS means the hidden instruction did not get through.",
+    "openTestPage": "Open the test page",
+    "lookAt": "What to look at: each model step below ends with \"In what would be stored\". If it says none, the planted instruction never reached the data.",
+    "stepNumber": "Step {n}",
+    "eyebrow": {
+      "result": "The result",
+      "trap": "The trap on the test page",
+      "model": "An AI model reads the page"
+    }
   },
   "checks": {
     "title": "Service checks",
@@ -493,15 +538,22 @@
     "fetcherText": "Fetches one web page in a background job and stores its clean text as a snapshot.",
     "importTitle": "Member import",
     "importText": "Reads BSP's member list and every member page into the companies table. Safe to run again: it updates the same rows.",
+    "todo": "Press a service's button to test it. Each check answers OK or Problem in words, with the service's own message under it.",
+    "writesData": "Stores data",
     "service": {
       "running": "Running…",
       "progress": "{done} of {total} checks done.",
       "badgeRunning": "Running",
       "notRun": "Not run",
       "statuses": {
-        "PASS": "PASS",
-        "FAIL": "FAIL",
-        "NOTE": "NOTE"
+        "PASS": "OK",
+        "FAIL": "Problem",
+        "NOTE": "Note"
+      },
+      "summaryOk": "All checks OK.",
+      "summaryProblems": {
+        "one": "{count} of {total} checks has a problem.",
+        "other": "{count} of {total} checks have a problem."
       }
     },
     "fetch": {
@@ -510,6 +562,7 @@
       "running": "Fetching…",
       "statusRunning": "Fetching the page…",
       "statusDone": "Page fetched.",
+      "problem": "Problem:",
       "unchanged": "Unchanged",
       "stored": "Stored",
       "noTitle": "(no title)",
@@ -552,14 +605,11 @@
     "sources": "Sources",
     "empty": {
       "title": "What you can ask",
-      "items": {
-        "store": "About funding calls, test facilities, events and BSP news in the Virtual Science Park store.",
-        "profile": "About your own company profile, and why an opportunity is in your matches.",
-        "actions": "To save an opportunity to your list, or to send your question to BSP staff."
-      },
-      "note": "Every fact comes with its source. The Copilot does not search the web, and it never decides whether you can apply: a match is a potential match, and BSP staff can help you check.",
+      "can": "Questions about your matches, your company profile, and the funding calls, test facilities and events in the Virtual Science Park store. Every answer is built only from stored sources, with a link to each one. It can also save an opportunity to your list or pass your question to BSP staff.",
+      "note": "It does not search the web, and it never decides whether you can apply: a match is a potential match, and BSP staff can help you check.",
       "try": "Try one of these:"
     },
+    "thinking": "The Copilot is working on your answer. This can take up to 30 seconds.",
     "scope": {
       "in_scope": {
         "label": "In scope",
@@ -616,6 +666,155 @@
       "checkingAnswer": "Checking the answer",
       "addingSources": "Adding sources to the answer",
       "saving": "Saving the conversation"
+    }
+  },
+  "week": {
+    "title": "Your week",
+    "intro": "Potential matches picked for your company this week from public sources: funding calls, testbeds and events. Every card is a potential match, not a decision: check the source or ask BSP staff.",
+    "loading": "Loading your cards\u2026",
+    "guide": {
+      "title": "How this page works",
+      "read": {
+        "title": "Read why it fits",
+        "text": "Each card says why it could suit your company and links to its public source, so you can check it yourself."
+      },
+      "act": {
+        "title": "Act on it",
+        "text": "Save it for later, add the date to your calendar, or ask BSP staff to help you with it."
+      },
+      "teach": {
+        "title": "Tell us what fits",
+        "text": "Mark a card Useful or Not relevant. Your next cards are ranked with your answers."
+      }
+    },
+    "legend": {
+      "title": "What the labels mean",
+      "match": "Something that could fit your company. It is a suggestion from public data, not a decision about your company.",
+      "trend": "A short note on what changed this week in one of your areas, with its sources.",
+      "notOpen": "The call has not opened yet. The date says when it opens.",
+      "deadline": "How much time is left. The icon and the words say the same as the colour.",
+      "data": "Data not read live from the source is always labelled: hand-entered, simulated or a cached copy."
+    },
+    "weekOf": "Week of {date}",
+    "olderWeek": "This week's cards are not ready yet, so these are the latest ones, from the week of {date}.",
+    "cardCount": {
+      "one": "{count} card",
+      "other": "{count} cards"
+    },
+    "empty": {
+      "title": "No cards yet",
+      "text": "Your cards are built every Monday morning, and again after your profile changes, from the opportunities ranked for your company. None have been built for your company yet.",
+      "next": "While you wait, you can:",
+      "profile": "Check your company profile",
+      "explore": "Explore opportunities"
+    },
+    "staff": {
+      "title": "No company on a staff account",
+      "text": "\"Your week\" shows one member company's cards. BSP staff accounts have no company, so there is nothing to show here. Use the staff tools instead."
+    },
+    "card": {
+      "potentialMatch": "Potential match",
+      "trendNote": "Trend note",
+      "whyItFits": "Why it fits",
+      "whatChanged": "What changed this week",
+      "nextStep": "Next step",
+      "uncertain": "What is uncertain",
+      "source": "Source",
+      "sources": "Sources",
+      "deadline": "Deadline",
+      "eventDate": "Event date",
+      "notOpenYet": "Not open yet: opens {date}"
+    },
+    "kinds": {
+      "funding": "Funding call",
+      "testbed": "Testbed",
+      "event": "Event",
+      "news": "News"
+    },
+    "areas": {
+      "marine": "Marine",
+      "defence": "Defence",
+      "sensor": "Sensors",
+      "cyber": "Cyber security",
+      "ai": "AI",
+      "energy": "Energy"
+    },
+    "urgency": {
+      "deadline": {
+        "passed": "Deadline passed",
+        "today": "Closes today",
+        "tomorrow": "Closes tomorrow",
+        "days": {
+          "one": "Closes in {count} day",
+          "other": "Closes in {count} days"
+        },
+        "weeks": {
+          "one": "Closes in {count} week",
+          "other": "Closes in {count} weeks"
+        }
+      },
+      "event": {
+        "passed": "Has taken place",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "days": {
+          "one": "In {count} day",
+          "other": "In {count} days"
+        },
+        "weeks": {
+          "one": "In {count} week",
+          "other": "In {count} weeks"
+        }
+      }
+    },
+    "actions": {
+      "groupLabel": "Actions for {title}",
+      "save": "Save",
+      "saved": "Saved",
+      "useful": "Useful",
+      "notRelevant": "Not relevant",
+      "feedbackPrompt": "Good match?",
+      "addToCalendar": "Add to calendar",
+      "askBsp": "Ask BSP",
+      "sentToBsp": "Sent to BSP staff",
+      "openSource": "Open source",
+      "savedStatus": "Saved for your company.",
+      "unsavedStatus": "Removed from saved.",
+      "rankingNow": "Your ranking is being updated.",
+      "rankingTonight": "Your ranking updates tonight.",
+      "markedUseful": "Thanks: marked as useful. {ranking}",
+      "markedNotRelevant": "Thanks: marked as not relevant, so it leaves your matches. {ranking}",
+      "feedbackRemoved": "Feedback removed. {ranking}",
+      "sentStatus": "Sent to BSP staff.",
+      "alreadySent": "Already sent to BSP staff.",
+      "notMember": "Sign in with a member account first.",
+      "notFound": "That opportunity was not found.",
+      "failed": "That did not work. Try again in a moment.",
+      "chooseFeedback": "Choose useful or not relevant."
+    },
+    "live": {
+      "pending": "Your profile changed: your cards are being re-ranked. This page updates by itself.",
+      "byProfile": "Re-ranked after your profile change",
+      "byOther": "Your cards were re-ranked",
+      "line": "{head}: {parts}.",
+      "same": "the same cards in the same order",
+      "added": {
+        "one": "{count} new card",
+        "other": "{count} new cards"
+      },
+      "dropped": {
+        "one": "{count} dropped",
+        "other": "{count} dropped"
+      },
+      "moved": {
+        "one": "{count} moved",
+        "other": "{count} moved"
+      }
+    },
+    "error": {
+      "title": "Your cards could not be loaded",
+      "what": "Something went wrong on our side while reading this week's cards. What you saved and the feedback you gave are not lost.",
+      "back": "Explore opportunities"
     }
   },
   "digest": {
@@ -684,6 +883,17 @@
     "description": "What has been measured about the Virtual Science Park, and when: profile accuracy, quotes, links, sources, matching and red-team tests.",
     "intro": "What we have measured about this system, and when. Every number comes from a stored run and carries its date. Where nothing has been measured yet, the report says so.",
     "loading": "Loading the measurements…",
+    "summary": {
+      "title": "At a glance",
+      "intro": "We checked the company profiles against the companies' own web pages, every source link, and how the Copilot handles tricky and hostile questions. These are the latest numbers; each section below says how and when it was measured.",
+      "caption": "The latest result of each check",
+      "accuracy": { "label": "Stated profile claims right", "detail": "{right} of {checked} checked claims" },
+      "automated": "Checked by an automated reviewer (AI), not by people.",
+      "quotes": { "label": "Profile quotes found word for word", "detail": "{found} of {total} quotes, on the stored page" },
+      "links": { "label": "Source links working", "detail": "{ok} of {checked} links; {broken} broken" },
+      "redTeam": { "label": "Red-team prompts handled safely", "detail": "{passed} of {total} prompts" },
+      "privacy": { "label": "Privacy tests passed", "detail": "{passed} of {total} tests" }
+    },
     "error": {
       "title": "The Trust report could not be loaded",
       "what": "Something went wrong on our side while reading the stored measurements.",
@@ -706,7 +916,7 @@
     "allGoldProfiles": "All gold profiles",
     "profileAccuracy": {
       "title": "Profile accuracy",
-      "description": "The team checks every claim of the three gold profiles against the company's own pages. Accuracy is right claims out of checked claims; an unchecked claim never counts as right.",
+      "description": "Every claim of the three gold profiles is checked against the company's own pages. Where the verdicts come from AI rather than from people, a note next to the numbers says so. Accuracy is right claims out of checked claims; an unchecked claim never counts as right.",
       "unreadable": "An accuracy run is stored",
       "latestRun": "The latest run found 0 of {claims} claims checked, over {profiles} gold profiles.",
       "caption": "Profile accuracy per gold profile: right claims out of checked claims",
@@ -716,7 +926,7 @@
         "inferred": "Inferred claims",
         "missing": "Missing (page says nothing)"
       },
-      "notFinished": "The hand-check is not finished: {checked} of {claims} claims checked so far.",
+      "notFinished": "The claim check is not finished: {checked} of {claims} claims checked so far.",
       "automatedReview": "The verdicts for {profiles} come from an automated reviewer (AI), not from people. No team member has confirmed them yet."
     },
     "quoteCheck": {
@@ -868,8 +1078,8 @@
       "title": "Known limits",
       "description": "What the numbers above do not prove.",
       "items": {
-        "quotes": "A profile quote proves that the quote is on the company's page, word for word. It does not prove that the quote supports the value shown next to it: that is what the team's hand-check is for.",
-        "euPortal": "The EU Funding & Tenders portal answers 200 for any topic id, so a working EU link only means the portal is up. Energimyndigheten also answers 200 for a missing page.",
+        "quotes": "A profile quote proves that the quote is on the company's page, word for word. It does not prove that the quote supports the value shown next to it: that is what the claim check is for.",
+        "euPortal": "The EU Funding & Tenders portal page answers 200 for any topic id, so the link check looks each EU topic up in the portal's API instead; when the API cannot be reached, the link is marked for a person to check. Energimyndigheten and ri.se answer 200 for a missing page, so their links are counted as \"cannot verify by script\", not as working.",
         "model": "Every model step (profiles, tags, the judge, trend notes, connections, Scout and the Copilot) runs on a free NVIDIA test model, nvidia/nemotron-3.5-super-vl-120b-a12b, not on Claude. Until the evening of 14 Nov 2026 it was the smaller nvidia/nemotron-3.5-lightning-30b-a3b, so a run dated before then measured that model. Answers that fail the checks are asked again or dropped, never shown.",
         "handEntered": "Some sources are entered by hand by the team: regional funding, the curated testbed list and BSP's recurring events. They carry the Hand-entered label and change only when the team edits them.",
         "redTeam": "The red-team tests are the cases written in eval/redteam-prompts.json, each run once against the live model. Passing them does not prove the Copilot withstands every attack, and a new run can differ because the model's answers vary.",
@@ -879,7 +1089,7 @@
   },
   "explore": {
     "title": "Explore",
-    "intro": "Every funding call, test facility, event and news item collected so far, each linked to its source. Filter by kind, tag or deadline, or search the titles.",
+    "intro": "Every funding call, test facility, event and news item collected so far, each linked to its source. Pick a view, narrow it with the filters, and open a title to read it at the source.",
     "loading": "Loading the opportunities…",
     "titles": {
       "list": "Explore",
@@ -903,7 +1113,12 @@
       "anyDate": "Any date",
       "submit": "Filter",
       "clear": "Clear",
-      "clearAll": "Clear the filters"
+      "clearAll": "Clear the filters",
+      "hintList": "Search the titles or pick a kind, tag or deadline, then press Filter. Each filter narrows the list further.",
+      "hintOther": "This view chooses its own kinds and dates, so only the search and the tag apply here. Press Filter to apply them.",
+      "active": "Active filters",
+      "chip": "{name}: {value}",
+      "remove": "Remove filter: {value}"
     },
     "due": {
       "open": "Open now",
@@ -934,7 +1149,7 @@
       "countSome": "{shown} of {total} opportunities.",
       "countAllMatched": "All {total} opportunities, {matched} of them in your ranked matches.",
       "countSomeMatched": "{shown} of {total} opportunities, {matched} of them in your ranked matches.",
-      "emptyFiltered": "No opportunity fits these filters. Clear them, or search for fewer or other words.",
+      "emptyFiltered": "No opportunity fits these filters. Try removing a filter above, or search for fewer or other words.",
       "empty": "No opportunities have been collected yet. They appear here after the nightly collection has run; if this stays empty, tell BSP staff.",
       "closingSoon": "Closing soon",
       "closed": "Closed",
@@ -1033,6 +1248,12 @@
     "titleWithQuestion": "{question} · Scout",
     "intro": "Ask about funding, test facilities or events. Scout searches Blue Science Park's store of current opportunities, reads the pages it needs and writes a short brief in which every option cites its source. Each option is a potential match for you to check: whether you may take part is for the funder or the facility to decide.",
     "loading": "Loading your briefs…",
+    "how": {
+      "title": "How Scout works",
+      "ask": "Ask one question about funding, test facilities or events.",
+      "search": "Scout searches the store of current opportunities for your company and reads the pages it needs. This takes one to four minutes.",
+      "read": "Read the brief: each option is a potential match with its source, requirements and who to contact."
+    },
     "notLinked": "Your account is not linked to a member company yet, so Scout has no profile to search for. Ask BSP staff to link your account to your company.",
     "form": {
       "label": "Your question",
@@ -1081,6 +1302,9 @@
       "stats": "· {seconds} s, {modelCalls} model calls, {searches} searches, {pagesRead} pages read",
       "recorded": "A recorded copy of an earlier Scout run from {day}, shown at once instead of a new run. The sources may have changed since: check each source page before you act on it.",
       "working": "Scout is working on it. This page updates by itself, and each step is read out to screen readers.",
+      "takes": "A brief usually takes one to four minutes. You can leave this page; the brief is kept under Your briefs.",
+      "summary": "In short",
+      "now": "Now:",
       "failed": "Failed:",
       "failedDefault": "Scout could not finish this brief.",
       "askAgain": "Ask again to start a new brief.",

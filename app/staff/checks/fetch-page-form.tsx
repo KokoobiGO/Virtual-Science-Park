@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleAlert, CircleCheck, Download, LoaderCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,15 +55,19 @@ export function FetchPageForm() {
             aria-invalid={state.kind === "error" || undefined}
             aria-describedby={state.kind === "error" ? "snapshot-error" : undefined}
           />
-          <Button type="submit" aria-disabled={state.kind === "running" || undefined} className="aria-disabled:opacity-60">
+          <Button type="submit" aria-disabled={state.kind === "running" || undefined} className="press aria-disabled:opacity-60">
+            {state.kind === "running" ? <LoaderCircle aria-hidden className="animate-spin" /> : <Download aria-hidden />}
             {state.kind === "running" ? t("fetch.running") : t("fetch.submit")}
           </Button>
         </div>
       </form>
 
       {state.kind === "error" && (
-        <p id="snapshot-error" role="alert" className="text-sm break-words text-destructive">
-          {state.message}
+        <p id="snapshot-error" role="alert" className="flex animate-fade items-start gap-1.5 text-sm break-words text-destructive">
+          <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span className="min-w-0">
+            <span className="font-medium">{t("fetch.problem")}</span> {state.message}
+          </span>
         </p>
       )}
       <p role="status" className="sr-only">
@@ -70,9 +75,12 @@ export function FetchPageForm() {
       </p>
 
       {state.kind === "done" && (
-        <div className="flex flex-col gap-2 rounded-lg border px-4 py-3">
+        <div className="flex animate-rise flex-col gap-2 rounded-lg border bg-card px-4 py-3 shadow-card">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge>{state.snapshot.unchanged ? t("fetch.unchanged") : t("fetch.stored")}</Badge>
+            <Badge variant="success" className="animate-pop">
+              <CircleCheck aria-hidden />
+              {state.snapshot.unchanged ? t("fetch.unchanged") : t("fetch.stored")}
+            </Badge>
             <span className="font-medium break-words">{state.snapshot.title ?? t("fetch.noTitle")}</span>
           </div>
           <p className="text-sm break-words text-muted-foreground">

@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { getViewer, type Viewer } from "@/lib/auth";
 import { withUserDb } from "@/lib/db/user";
+import { getT } from "@/lib/i18n/server";
 import { inngest } from "@/lib/inngest/client";
 import { askBspAboutOpportunity } from "@/lib/week/handoff";
 import { companySlug, setFeedback, setSaved } from "@/lib/week/store";
@@ -29,19 +30,25 @@ async function signedInMember(): Promise<Member | null> {
   return viewer?.role === "member" && viewer.companyId ? (viewer as Member) : null;
 }
 
-const NOT_A_MEMBER: ActionFailure = { ok: false, error: "Sign in with a member account first." };
-const UNKNOWN: ActionFailure = { ok: false, error: "That opportunity was not found." };
+/** A failure in the reader's language (C19); the action reads the language cookie itself. */
+async function failure(key: "notMember" | "notFound" | "failed" | "chooseFeedback"): Promise<ActionFailure> {
+  const t = await getT("week");
+  return { ok: false, error: t(`actions.${key}`) };
+}
 
-function failed(what: string, error: unknown): ActionFailure {
+const NOT_A_MEMBER = () => failure("notMember");
+const UNKNOWN = () => failure("notFound");
+
+function failed(what: string, error: unknown): Promise<ActionFailure> {
   console.error(`[week] ${what} failed:`, error);
-  return { ok: false, error: "That did not work. Try again in a moment." };
+  return failure("failed");
 }
 
 export async function saveOpportunity(opportunityId: string, saved: boolean): Promise<SaveResult> {
   const member = await signedInMember();
-  if (!member) return NOT_A_MEMBER;
+  if (!member) return NOT_A_MEMBER();
   const id = OpportunityId.safeParse(opportunityId);
-  if (!id.success || typeof saved !== "boolean") return UNKNOWN;
+  if (!id.success || typeof saved !== "boolean") return UNKNOWN();
   try {
     const now = await withUserDb(member.claims, (tx) =>
       setSaved(tx, { companyId: member.companyId, userId: member.userId, opportunityId: id.data, saved }),
@@ -54,11 +61,11 @@ export async function saveOpportunity(opportunityId: string, saved: boolean): Pr
 
 export async function giveFeedback(opportunityId: string, kind: "useful" | "not_relevant" | null): Promise<FeedbackResult> {
   const member = await signedInMember();
-  if (!member) return NOT_A_MEMBER;
+  if (!member) return NOT_A_MEMBER();
   const id = OpportunityId.safeParse(opportunityId);
   const choice = FeedbackChoice.safeParse(kind);
-  if (!id.success) return UNKNOWN;
-  if (!choice.success) return { ok: false, error: "Choose useful or not relevant." };
+  if (!id.success) return UNKNOWN();
+  if (!choice.success) return failure("chooseFeedback");
   let stored: { feedback: "useful" | "not_relevant" | null; slug: string | null };
   try {
     stored = await withUserDb(member.claims, async (tx) => ({
@@ -85,14 +92,14 @@ export async function giveFeedback(opportunityId: string, kind: "useful" | "not_
 
 export async function askBsp(opportunityId: string): Promise<AskBspResult> {
   const member = await signedInMember();
-  if (!member) return NOT_A_MEMBER;
+  if (!member) return NOT_A_MEMBER();
   const id = OpportunityId.safeParse(opportunityId);
-  if (!id.success) return UNKNOWN;
+  if (!id.success) return UNKNOWN();
   try {
     const result = await withUserDb(member.claims, (tx) =>
       askBspAboutOpportunity(tx, { companyId: member.companyId, userId: member.userId, opportunityId: id.data }),
     );
-    return result ? { ok: true, created: result.created } : UNKNOWN;
+    return result ? { ok: true, created: result.created } : UNKNOWN();
   } catch (error) {
     return failed("ask BSP", error);
   }

@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import { ClaimBadge } from "@/components/claim-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +30,7 @@ export function FieldList({
   locale?: Locale;
 }) {
   return (
-    <ol className="flex flex-col gap-4">
+    <ol className="stagger flex flex-col gap-4">
       {fields.map((view) => (
         <li key={view.field}>
           <FieldCard view={view} evidence={evidence} editable={editable} locale={locale} />
@@ -158,9 +159,12 @@ function Suggestion({
 }) {
   const t = createTranslator(locale, "profile");
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3">
+    <div className="flex animate-rise flex-col gap-2 rounded-lg border border-dashed border-primary/50 bg-info-soft/50 p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">{t("suggestion.title")}</span>
+        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+          <Sparkles aria-hidden className="size-3.5 text-primary" />
+          {t("suggestion.title")}
+        </span>
         <ClaimBadge status={suggestion.status} locale={locale} />
         <span>
           {t.rich("suggestion.found", {
@@ -168,6 +172,7 @@ function Suggestion({
           })}
         </span>
       </div>
+      <p className="text-sm text-muted-foreground">{t("suggestion.explain")}</p>
       <ClaimValue field={field} claim={suggestion} locale={locale} />
       <EvidenceViewer quotes={evidence[suggestion.id] ?? []} locale={locale} />
       <SuggestionReview claimId={suggestion.id} fieldLabel={label} returnFocusTo={headingId} />

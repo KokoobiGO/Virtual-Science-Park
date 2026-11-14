@@ -1,3 +1,4 @@
+import { Inbox, SearchX } from "lucide-react";
 import Link from "next/link";
 import { DataStatusLabel, itemDataStatus } from "@/components/data-status-label";
 import { clearFiltersHref, hasActiveFilters, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
@@ -58,13 +59,16 @@ export function NoResults({
 }) {
   const active = hasActiveFilters(filters);
   return (
-    <div className="flex flex-col items-start gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-      <p>{active ? filtered : empty}</p>
-      {active ? (
-        <Link href={clearFiltersHref(filters)} className="font-medium text-primary underline-offset-4 hover:underline">
-          {createTranslator(locale, "explore")("filters.clearAll")}
-        </Link>
-      ) : null}
+    <div className="flex animate-rise items-start gap-3 rounded-xl border border-dashed bg-card/50 p-6 text-sm text-muted-foreground">
+      {active ? <SearchX aria-hidden className="mt-0.5 size-5 shrink-0" /> : <Inbox aria-hidden className="mt-0.5 size-5 shrink-0" />}
+      <div className="flex flex-col items-start gap-2">
+        <p>{active ? filtered : empty}</p>
+        {active ? (
+          <Link href={clearFiltersHref(filters)} className="press font-medium text-primary underline-offset-4 hover:underline">
+            {createTranslator(locale, "explore")("filters.clearAll")}
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }

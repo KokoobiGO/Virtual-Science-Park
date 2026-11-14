@@ -1,13 +1,16 @@
 "use client";
 
+import { cn } from "cn";
+import { ArrowDownUp, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLocale } from "@/lib/i18n/client";
 import {
   changedByProfile,
   changeLine,
   orderChange,
   parseSeen,
-  PENDING_TEXT,
+  pendingText,
   POLL_IDLE_MS,
   POLL_PENDING_MS,
   previousTops,
@@ -26,7 +29,15 @@ export type WeekLiveProps = {
   empty?: ReactNode;
 };
 
-const MOVE = "transform 700ms cubic-bezier(0.2, 0, 0, 1), opacity 700ms ease";
+/** The re-rank move: a calm ease-out, each card a little after the one above it (capped, so a long list does not drag). */
+const MOVE_MS = 650;
+const MOVE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const moveTransition = (index: number) => {
+  const delay = Math.min(index, 8) * 30;
+  return `transform ${MOVE_MS}ms ${MOVE_EASE} ${delay}ms, opacity ${MOVE_MS}ms ease ${delay}ms`;
+};
+/** Entrance: each card rises a little after the one above it (the first ten). */
+const riseDelay = (index: number) => `${Math.min(index, 9) * 45}ms`;
 
 function readSeen(companyId: string): SeenOrder | null {
   try {
@@ -54,6 +65,7 @@ function writeSeen(companyId: string, seen: SeenOrder) {
  */
 export function WeekLive({ companyId, status, items, empty }: WeekLiveProps) {
   const router = useRouter();
+  const locale = useLocale();
   const listRef = useRef<HTMLOListElement>(null);
   const seenRef = useRef<SeenOrder | null>(null);
   const [polled, setPolled] = useState<{ against: string | null; value: WeekStatusJson } | null>(null);
@@ -112,7 +124,7 @@ export function WeekLive({ companyId, status, items, empty }: WeekLiveProps) {
     writeSeen(companyId, shown);
     if (!rebuiltSince(before, shown)) return;
 
-    const text = changeLine(changedByProfile(status.profileChangedAt, before.builtAt), orderChange(before.keys, shown.keys));
+    const text = changeLine(changedByProfile(status.profileChangedAt, before.builtAt), orderChange(before.keys, shown.keys), locale);
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const rows = Array.from(list.children) as HTMLElement[];
       const gap = Number.parseFloat(getComputedStyle(list).rowGap) || 0;
@@ -125,37 +137,65 @@ export function WeekLive({ companyId, status, items, empty }: WeekLiveProps) {
       for (const row of rows) {
         const top = from.get(row.dataset.key ?? "");
         row.style.transition = "none";
-        if (top === undefined) row.style.opacity = "0";
-        else row.style.transform = `translateY(${top - row.offsetTop}px)`;
+        if (top === undefined) {
+          // A new card: it fades in where it lands, slightly smaller at first.
+          row.style.opacity = "0";
+          row.style.transform = "scale(0.98)";
+        } else {
+          row.style.transform = `translateY(${top - row.offsetTop}px)`;
+        }
       }
       list.getBoundingClientRect(); // apply the old places before the move starts
-      for (const row of rows) {
-        row.style.transition = MOVE;
+      rows.forEach((row, index) => {
+        row.style.transition = moveTransition(index);
         row.style.transform = "";
         row.style.opacity = "";
-        row.addEventListener(
-          "transitionend",
-          () => {
-            row.style.transition = "";
-          },
-          { once: true },
-        );
-      }
+        const done = (event: TransitionEvent) => {
+          if (event.target !== row) return; // a button's own transition inside the card
+          row.style.transition = "";
+          row.removeEventListener("transitionend", done);
+        };
+        row.addEventListener("transitionend", done);
+      });
     }
     // Not cancelled on cleanup: a second run in development finds nothing new and must not drop the line.
     requestAnimationFrame(() => setLine(text));
-  }, [companyId, order, status.weekOf, status.builtAt, status.profileChangedAt]);
+  }, [companyId, order, status.weekOf, status.builtAt, status.profileChangedAt, locale]);
+
+  const message = pending ? pendingText(locale) : line;
 
   return (
     <div className="flex flex-col gap-4">
-      <p role="status" className={pending || line ? "text-sm font-medium text-foreground" : "sr-only"}>
-        {pending ? PENDING_TEXT : (line ?? "")}
+      <p
+        role="status"
+        className={
+          message
+            ? cn(
+                "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-foreground",
+                pending ? "border-info/35 bg-info-soft" : "border-success/35 bg-success-soft",
+              )
+            : "sr-only"
+        }
+      >
+        {message ? (
+          <span key={message} className="inline-flex animate-slide-down items-start gap-2">
+            {pending ? (
+              <LoaderCircle aria-hidden className="mt-0.5 size-4 shrink-0 animate-spin text-info motion-reduce:animate-none" />
+            ) : (
+              <ArrowDownUp aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
+            )}
+            <span>{message}</span>
+          </span>
+        ) : null}
       </p>
       {items.length ? (
         <ol ref={listRef} className="flex flex-col gap-4">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <li key={item.key} data-key={item.key}>
-              {item.card}
+              {/* The entrance runs on this wrapper: the li carries the re-rank move and the card its hover lift. */}
+              <div className="animate-rise" style={{ animationDelay: riseDelay(index) }}>
+                {item.card}
+              </div>
             </li>
           ))}
         </ol>

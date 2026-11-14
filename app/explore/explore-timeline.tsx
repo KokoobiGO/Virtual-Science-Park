@@ -95,8 +95,8 @@ function MonthBars({ groups, t }: { groups: MonthGroup<ExploreItem>[]; t: T }) {
   const max = Math.max(...counts.map((c) => c.count));
   return (
     // `relative`, so the screen-reader-only month labels (absolutely placed) stay inside the scrolling box on a phone.
-    <div className="relative overflow-x-auto rounded-xl border p-4">
-      <ol className="flex min-w-max items-end gap-1.5" aria-label={t("timeline.barsLabel")}>
+    <div className="relative overflow-x-auto rounded-xl border bg-card p-4 shadow-card">
+      <ol className="stagger flex min-w-max items-end gap-1.5" aria-label={t("timeline.barsLabel")}>
         {counts.map((c, i) => {
           const [year, month] = c.key.split("-");
           const label = t("timeline.bar", { month: monthLabel(c.key, t.locale), count: c.count });
@@ -111,7 +111,7 @@ function MonthBars({ groups, t }: { groups: MonthGroup<ExploreItem>[]; t: T }) {
                     href={`#calls-${c.key}`}
                     title={label}
                     aria-label={label}
-                    className="block w-6 rounded-t-md bg-primary hover:bg-primary/80"
+                    className="block w-6 rounded-t-md bg-primary transition-colors hover:bg-primary/75 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                     style={{ height: `${Math.max(6, (c.count / max) * 100)}%` }}
                   />
                 ) : (
@@ -138,12 +138,12 @@ function MonthBars({ groups, t }: { groups: MonthGroup<ExploreItem>[]; t: T }) {
 function MonthSection({ group, idPrefix, t, children }: { group: MonthGroup<ExploreItem>; idPrefix: "calls" | "events"; t: T; children: ReactNode }) {
   const count = group.items.length;
   return (
-    <div id={`${idPrefix}-${group.key}`} className="flex scroll-mt-24 flex-col gap-2">
+    <div id={`${idPrefix}-${group.key}`} className="flex scroll-mt-24 flex-col gap-2 rounded-xl target:animate-pop">
       <h3 className="font-medium">
         {monthLabel(group.key, t.locale)}{" "}
         <span className="font-normal text-muted-foreground">({t(idPrefix === "calls" ? "timeline.monthCalls" : "timeline.monthEvents", { count })})</span>
       </h3>
-      <ul className="divide-y rounded-xl border">{children}</ul>
+      <ul className="stagger divide-y rounded-xl border bg-card shadow-card">{children}</ul>
     </div>
   );
 }
@@ -151,7 +151,7 @@ function MonthSection({ group, idPrefix, t, children }: { group: MonthGroup<Expl
 function TimelineRow({ item, date, match, now, t }: { item: ExploreItem; date: Date; match: MatchInfo | null; now: Date; t: T }) {
   const status = dateStatus(item, now);
   return (
-    <li className="flex gap-3 px-4 py-2.5 sm:gap-4">
+    <li className="flex gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50 sm:gap-4">
       <span className={`w-24 shrink-0 text-sm tabular-nums ${status === "closing_soon" ? "font-medium" : "text-muted-foreground"}`}>
         {formatDay(date, t.locale)}
       </span>

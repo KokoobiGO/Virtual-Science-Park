@@ -6,7 +6,7 @@ import { isCachedMode } from "@/lib/collectors/cache";
 import { LocaleProvider } from "@/lib/i18n/client";
 import type { Locale } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { createTranslator } from "@/lib/i18n/translate";
+import { createTranslator, type Translator } from "@/lib/i18n/translate";
 import { prerunQuestions } from "@/lib/scout/prerun";
 import { briefQuestion, companySlug, getBrief, isUuid, listBriefs, prerunRows, type Member } from "@/lib/scout/queries";
 import { scoutTitle } from "./labels";
@@ -47,14 +47,37 @@ async function ScoutFrame({ searchParams }: { searchParams: PageProps<"/scout">[
   const t = createTranslator(locale, "scout");
   return (
     <LocaleProvider locale={locale}>
-      <div className="flex max-w-3xl flex-col gap-2">
+      <div className="flex max-w-3xl animate-fade flex-col gap-2">
         <h1 className="text-title">{t("title")}</h1>
         <p className="text-muted-foreground">{t("intro")}</p>
       </div>
+      <HowScoutWorks t={t} />
       <Suspense fallback={<ScoutSkeleton label={t("loading")} />}>
         <ScoutScreen searchParams={searchParams} locale={locale} />
       </Suspense>
     </LocaleProvider>
+  );
+}
+
+/** Three numbered steps: what to do, what Scout does and how long it takes, what comes back. */
+function HowScoutWorks({ t }: { t: Translator<"scout"> }) {
+  const steps = [t("how.ask"), t("how.search"), t("how.read")];
+  return (
+    <section aria-labelledby="how-scout-works" className="flex flex-col gap-2">
+      <h2 id="how-scout-works" className="text-sm font-semibold">
+        {t("how.title")}
+      </h2>
+      <ol className="grid stagger gap-2 sm:grid-cols-3">
+        {steps.map((step, i) => (
+          <li key={i} className="flex items-start gap-3 rounded-xl border bg-card px-3 py-2.5 text-sm">
+            <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+              {i + 1}
+            </span>
+            <span className="text-muted-foreground">{step}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

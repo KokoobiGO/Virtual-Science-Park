@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, RotateCw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,10 @@ export function RouteError({
   }, [error]);
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-12">
+    <section className="stagger mx-auto flex w-full max-w-3xl flex-col items-start gap-4 px-4 py-12 md:py-20">
+      <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive" aria-hidden>
+        <TriangleAlert className="size-6" />
+      </span>
       <h1 ref={heading} tabIndex={-1} className="text-title outline-none">
         {title ?? t(`pages.${page}.title`)}
       </h1>
@@ -65,10 +69,12 @@ export function RouteError({
           : t("advice")}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" onClick={() => retry()}>
+        <Button type="button" size="lg" className="px-4" onClick={() => retry()}>
+          <RotateCw aria-hidden data-icon="inline-start" />
           {t("tryAgain")}
         </Button>
-        <Button variant="outline" render={<Link href={back?.href ?? "/"} />} nativeButton={false}>
+        <Button variant="outline" size="lg" className="px-4" render={<Link href={back?.href ?? "/"} />} nativeButton={false}>
+          <ArrowLeft aria-hidden data-icon="inline-start" />
           {back?.label ?? t(`pages.${page}.back`)}
         </Button>
       </div>

@@ -1,9 +1,20 @@
 import { cn } from "cn";
 import type { ReactNode } from "react";
 
-/** A grey placeholder block for a loading state. Decorative: the wrapping LoadingState says what is loading. */
+/**
+ * A grey placeholder block for a loading state, with a soft light passing
+ * over it. Decorative: the wrapping LoadingState says what is loading.
+ */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cn("animate-pulse rounded-md bg-muted", className)} />;
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "animate-shimmer rounded-md bg-muted bg-[linear-gradient(90deg,var(--muted)_0%,color-mix(in_oklab,var(--muted),var(--background)_55%)_50%,var(--muted)_100%)] bg-size-[200%_100%]",
+        className,
+      )}
+    />
+  );
 }
 
 /**

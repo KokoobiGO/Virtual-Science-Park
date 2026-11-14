@@ -20,6 +20,13 @@ describe("CopilotPanel (C20)", () => {
     expect(html).not.toMatch(/eligib/i);
   });
 
+  it("says in plain words what it answers from and what it will not do, and offers four starter questions as buttons", () => {
+    expect(html).toContain("built only from stored sources");
+    expect(html).toContain("does not search the web");
+    const list = html.slice(html.indexOf('<ul aria-labelledby'), html.indexOf("</ul>", html.indexOf('<ul aria-labelledby')));
+    expect(list.match(/<button/g)).toHaveLength(4);
+  });
+
   it("keeps a live region in the page for answers, and names the question field and the Ask button", () => {
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-label="Your question"');

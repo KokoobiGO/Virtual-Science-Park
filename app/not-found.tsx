@@ -1,3 +1,4 @@
+import { ArrowLeft, Compass } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 /** Unknown addresses, and notFound() anywhere without a not-found page of its own (C20). */
 export default function NotFound() {
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-12">
+    <section className="mx-auto flex w-full max-w-3xl flex-col items-start gap-4 px-4 py-12 md:py-20">
       <Suspense fallback={<PageShellSkeleton />}>
         <NotFoundText />
       </Suspense>
@@ -24,14 +25,18 @@ export default function NotFound() {
 async function NotFoundText() {
   const t = await getT("notFound");
   return (
-    <>
+    <div className="stagger flex flex-col items-start gap-4">
+      <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground" aria-hidden>
+        <Compass className="size-6" />
+      </span>
       <h1 className="text-title">{t("title")}</h1>
       <p className="max-w-prose text-muted-foreground">{t("text")}</p>
       <div>
-        <Button render={<Link href="/" />} nativeButton={false}>
+        <Button size="lg" className="px-4" render={<Link href="/" />} nativeButton={false}>
+          <ArrowLeft aria-hidden data-icon="inline-start" />
           {t("back")}
         </Button>
       </div>
-    </>
+    </div>
   );
 }

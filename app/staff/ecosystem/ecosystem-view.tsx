@@ -1,5 +1,6 @@
 "use client";
 
+import { MousePointerClick } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,14 +101,15 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
         </Card>
 
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">{t("listTitle", { count: connections.length })}</h2>          <ul className="flex flex-col gap-1.5">
+          <h2 className="text-sm font-medium">{t("listTitle", { count: connections.length })}</h2>
+          <ul className="flex flex-col gap-1.5 stagger">
             {connections.map((c) => (
               <li key={c.id}>
                 <button
                   type="button"
                   aria-pressed={c.id === selectedId}
                   onClick={() => setSelectedId(c.id)}
-                  className={`flex w-full flex-col items-start gap-0.5 rounded-lg border px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${c.id === selectedId ? "border-primary bg-muted" : ""}`}
+                  className={`lift flex w-full flex-col items-start gap-0.5 rounded-lg border bg-card px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${c.id === selectedId ? "border-primary bg-muted" : ""}`}
                 >
                   <span className="font-medium break-words">{t("pair", { a: c.aName, b: c.bName })}</span>
                   <span className="text-xs break-words text-muted-foreground">{c.sharedOn.join(", ")}</span>
@@ -124,9 +126,12 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
         {selected ? t("showing", { a: selected.aName, b: selected.bName }) : ""}
       </p>
       {selected ? (
-        <PairDetail connection={selected} />
+        <PairDetail key={selected.id} connection={selected} />
       ) : (
-        <p className="rounded-xl border p-4 text-sm text-muted-foreground">{t("pickHint")}</p>
+        <p className="flex animate-fade items-start gap-2 rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+          <MousePointerClick aria-hidden className="mt-0.5 size-4 shrink-0" />
+          {t("pickHint")}
+        </p>
       )}
     </div>
   );
@@ -139,8 +144,11 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
     { id: connection.bId, name: connection.bName },
   ];
   return (
-    <Card>
+    <Card className="animate-rise">
       <CardHeader>
+        <Badge variant="warning" className="mb-1">
+          {t("suggestionLabel")}
+        </Badge>
         <CardTitle>
           <h2 className="text-heading break-words">{t("pair", { a: connection.aName, b: connection.bName })}</h2>
         </CardTitle>

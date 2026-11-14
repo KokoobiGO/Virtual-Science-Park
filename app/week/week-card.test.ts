@@ -66,6 +66,25 @@ describe("WeekCard", () => {
     expect(html).not.toMatch(/eligible/i);
   });
 
+  it("says how close the deadline is in words, and that a passed one has passed", () => {
+    expect(render(matchCard())).toContain("Closes in 18 days");
+    const opportunity = matchCard().opportunity!;
+    const passed = render(matchCard({ opportunity: { ...opportunity, deadline: new Date("2026-11-10T13:00:00Z") } }));
+    expect(passed).toContain("Deadline passed");
+    expect(passed).toContain('data-urgency="passed"');
+  });
+
+  it("writes the interface in Swedish and keeps the stored texts as they are", () => {
+    const html = renderToStaticMarkup(createElement(WeekCard, { card: matchCard(), now, locale: "sv" }));
+    for (const text of ["Möjlig matchning", "Utlysning", "Varför det passar", "Nästa steg", "Vad som är osäkert", "Sista dag", "2 dec. 2026, 14:00", "Stänger om 18 dagar"]) {
+      expect(html).toContain(text);
+    }
+    // The judge's why and the title are data: never translated.
+    expect(html).toContain("Your underwater sensors fit");
+    expect(html).toContain("The Baltic Marine Watchdog Challenge");
+    expect(html).not.toMatch(/berättigad|behörig/i);
+  });
+
   it("says when a call is not open yet, and stops once it has opened", () => {
     const opportunity = matchCard().opportunity!;
     expect(render(matchCard({ opportunity: { ...opportunity, opensAt: new Date("2026-11-30T23:00:00Z") } }))).toContain("Not open yet: opens 1 Dec 2026");

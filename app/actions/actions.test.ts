@@ -55,13 +55,13 @@ describe("signIn errors follow the language (C19)", () => {
   it("answers in English by default and keeps the typed email", async () => {
     expect(await signIn({ error: null }, form({ email: "", password: "" }))).toEqual({ error: "Enter your email and password.", email: "" });
     expect(await signIn({ error: null }, form({ email: "a@b.test", password: "x" }))).toEqual({
-      error: "Wrong email or password.",
+      error: "That email and password do not match. Check for typos and try again.",
       email: "a@b.test",
     });
   });
 
   it("answers in Swedish with the Swedish cookie", async () => {
     mocks.locale = "sv";
-    expect((await signIn({ error: null }, form({ email: "a@b.test", password: "x" }))).error).toBe("Fel e-postadress eller lösenord.");
+    expect((await signIn({ error: null }, form({ email: "a@b.test", password: "x" }))).error).toBe("E-postadressen och lösenordet stämmer inte. Kontrollera stavningen och försök igen.");
   });
 });

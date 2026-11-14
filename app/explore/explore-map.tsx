@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { filtersToQuery, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
 import { project, ringPath, type TestbedMap } from "@/lib/explore/map";
@@ -75,7 +75,7 @@ export function ExploreMap({
             </h2>
             <p className="text-sm text-muted-foreground">{t("map.noLocationIntro")}</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="stagger grid gap-3 md:grid-cols-2">
             {noPlace.map(({ item }) => (
               <div key={item.id}>{cardFor(item, null)}</div>
             ))}
@@ -88,7 +88,7 @@ export function ExploreMap({
           <h2 id="outside-heading" className="text-heading">
             {t("map.outsideTitle")}
           </h2>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="stagger grid gap-3 md:grid-cols-2">
             {outside.map(({ item, outsideTown }) => (
               <div key={item.id}>{cardFor(item, { town: outsideTown!, source: t("map.outsideSource") })}</div>
             ))}
@@ -198,9 +198,11 @@ function TestbedCard({
       {item.description ? <p className="line-clamp-4 text-sm break-words text-muted-foreground">{item.description}</p> : null}
       {verified ? null : <p className="text-xs text-muted-foreground">{notVerifiedWhy}</p>}
       {match ? <MatchNote match={match} locale={t.locale} /> : null}
-      <Link href={listHref} className="w-fit text-sm text-primary underline-offset-4 hover:underline">
+      {/* A plain <a>, not <Link>: a client-side navigation does not set :target, so the row would not be highlighted. */}
+      <a href={listHref} className="inline-flex w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline">
+        <List aria-hidden className="size-4" />
         {t("map.showInList")}
-      </Link>
+      </a>
     </article>
   );
 }

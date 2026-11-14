@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { PageShellSkeleton } from "@/components/loading-skeleton";
+import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/lib/auth";
 import { LocaleProvider } from "@/lib/i18n/client";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -9,6 +10,7 @@ import { INNGEST_CHECKS } from "@/lib/inngest-checks";
 import { NVIDIA_CHECKS } from "@/lib/nvidia-checks";
 import { RESEND_CHECKS } from "@/lib/resend-checks";
 import { VOYAGE_CHECKS } from "@/lib/voyage-checks";
+import { StaffPageIntro } from "../page-intro";
 import { FetchPageForm } from "./fetch-page-form";
 import { ImportMembersButton } from "./import-members-button";
 import { ServiceChecks } from "./service-checks";
@@ -42,47 +44,43 @@ async function ChecksContent() {
   const t = createTranslator(locale, "checks");
   return (
     <LocaleProvider locale={locale}>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-title">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("intro")}</p>
-      </div>
+      <StaffPageIntro title={t("title")} intro={t("intro")} todo={t("todo")} />
 
-      <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("nvidia.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("nvidia.text")}</p>
-        <ServiceChecks endpoint="/api/checks/nvidia" button={t("nvidia.button")} checks={list(NVIDIA_CHECKS)} />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("inngest.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("inngest.text")}</p>
-        <ServiceChecks endpoint="/api/checks/inngest" button={t("inngest.button")} checks={list(INNGEST_CHECKS)} />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("voyage.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("voyage.text")}</p>
-        <ServiceChecks endpoint="/api/checks/voyage" button={t("voyage.button")} checks={list(VOYAGE_CHECKS)} />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("resend.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("resend.text")}</p>
-        <ServiceChecks endpoint="/api/checks/resend" button={t("resend.button")} checks={list(RESEND_CHECKS)} />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("fetcherTitle")}</h2>
-        <p className="text-sm text-muted-foreground">{t("fetcherText")}</p>
-        <FetchPageForm />
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("importTitle")}</h2>
-        <p className="text-sm text-muted-foreground">{t("importText")}</p>
-        <ImportMembersButton />
+      <div className="flex flex-col gap-10 stagger">
+        <Section title={t("nvidia.title")} text={t("nvidia.text")}>
+          <ServiceChecks endpoint="/api/checks/nvidia" button={t("nvidia.button")} checks={list(NVIDIA_CHECKS)} />
+        </Section>
+        <Section title={t("inngest.title")} text={t("inngest.text")}>
+          <ServiceChecks endpoint="/api/checks/inngest" button={t("inngest.button")} checks={list(INNGEST_CHECKS)} />
+        </Section>
+        <Section title={t("voyage.title")} text={t("voyage.text")}>
+          <ServiceChecks endpoint="/api/checks/voyage" button={t("voyage.button")} checks={list(VOYAGE_CHECKS)} />
+        </Section>
+        <Section title={t("resend.title")} text={t("resend.text")}>
+          <ServiceChecks endpoint="/api/checks/resend" button={t("resend.button")} checks={list(RESEND_CHECKS)} />
+        </Section>
+        <Section title={t("fetcherTitle")} text={t("fetcherText")} badge={t("writesData")}>
+          <FetchPageForm />
+        </Section>
+        <Section title={t("importTitle")} text={t("importText")} badge={t("writesData")}>
+          <ImportMembersButton />
+        </Section>
       </div>
     </LocaleProvider>
+  );
+}
+
+/** One service: its name, what the check does, and (for the ones that store something) a "writes data" label. */
+function Section({ title, text, badge, children }: { title: string; text: string; badge?: string; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-heading">{title}</h2>
+        {badge ? <Badge variant="warning">{badge}</Badge> : null}
+      </div>
+      <p className="text-sm text-muted-foreground">{text}</p>
+      {children}
+    </section>
   );
 }
 
