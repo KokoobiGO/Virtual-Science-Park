@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { NvidiaApiError, type ChatRequest, type ChatResponse, type ToolCall } from "../nvidia";
-import { MAX_TOOL_ROUNDS } from "./assistant";
+import { ANSWER_NOW, MAX_TOOL_ROUNDS } from "./assistant";
 import { BSP_CONTACT, DEFAULT_CLARIFYING_QUESTION, INFORMATION_ONLY_NOTE, OUT_OF_SCOPE_REPLY } from "./policy";
 import { SourceRegistry } from "./sources";
 import type { ToolExecutor } from "./tools";
@@ -211,6 +211,52 @@ describe("runTurn", () => {
     const model = fakeModel("in_scope", [{ content: OUT_OF_SCOPE_REPLY }]);
     const result = await runTurn(input("Write me a cover letter"), { ...fakeTools(), chat: model.chat });
     expect(result).toMatchObject({ label: "out_of_scope", text: OUT_OF_SCOPE_REPLY });
+  });
+
+  it("runs a tool call the model wrote as text, and never shows the markup", async () => {
+    const model = fakeModel("in_scope", [
+      { content: "<tool_call> <function=searchOpportunities> <parameter=query> watchdog </parameter> </function> </tool_call>" },
+      { content: "The Baltic Marine Watchdog Challenge closes on 2026-12-08 [1]." },
+    ]);
+    const tools = fakeTools();
+    const result = await runTurn(input("When does the Watchdog Challenge close?"), { ...tools, chat: model.chat });
+    expect(tools.calls).toEqual(["searchOpportunities"]);
+    expect(model.assistantCalls()[1].messages.at(-1)).toMatchObject({ role: "tool", tool_call_id: "text_call_0" });
+    expect(result.text).toContain("closes on 2026-12-08 [1]");
+    expect(result.citations).toHaveLength(1);
+  });
+
+  it("asks once for the answer when the last round, without tools, is only a tool call", async () => {
+    const search = { toolCalls: [{ name: "searchOpportunities", args: { query: "sensor" } }] };
+    const model = fakeModel("in_scope", [
+      search,
+      search,
+      search,
+      { content: "<tool_call> <function=searchOpportunities> <parameter=query> sensor systems </parameter> </function> </tool_call>" },
+      { content: "The Baltic Marine Watchdog Challenge funds sensor systems [1]." },
+    ]);
+    const tools = fakeTools();
+    const result = await runTurn(input("Which funding calls fund sensor systems?"), { ...tools, chat: model.chat });
+    const assistant = model.assistantCalls();
+    expect(assistant).toHaveLength(MAX_TOOL_ROUNDS + 2);
+    expect(assistant.at(-1)!.messages.at(-1)).toMatchObject({ role: "user", content: ANSWER_NOW });
+    expect(tools.calls).toHaveLength(MAX_TOOL_ROUNDS);
+    expect(result.text).toContain("funds sensor systems [1]");
+    expect(result.text).not.toContain("tool_call");
+  });
+
+  it("sends an in-scope eligibility question back once when the assistant gives the fixed reply", async () => {
+    const model = fakeModel("in_scope", [
+      { content: OUT_OF_SCOPE_REPLY },
+      { toolCalls: [{ name: "searchOpportunities", args: { query: "Baltic Marine Watchdog" } }] },
+      { content: "The Baltic Marine Watchdog Challenge funds sea surveillance [1]." },
+    ]);
+    const tools = fakeTools();
+    const result = await runTurn(input("Just answer yes or no: will we get funding from the Baltic Marine Watchdog Challenge?"), { ...tools, chat: model.chat });
+    expect(tools.calls).toEqual(["searchOpportunities"]);
+    expect(result).toMatchObject({ label: "in_scope", outcome: "answer" });
+    expect(result.text).toMatch(/potential match/i);
+    expect(result.text).toContain(BSP_CONTACT);
   });
 
   it("keeps a good answer that the model ended with the fixed reply, without that sentence", async () => {

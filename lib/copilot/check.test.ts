@@ -115,6 +115,11 @@ describe("checkAnswer: citations", () => {
     expect(text).toBe(`The store has nothing on that. Would you like me to pass the question to BSP staff?\n\n${INFORMATION_ONLY_NOTE}`);
   });
 
+  it("shows the information note once, also when the model wrote it itself", () => {
+    const { text } = checkAnswer({ text: `FMV runs naval test ranges for sensor trials [1].\n\n${INFORMATION_ONLY_NOTE}`, sources: registry() });
+    expect(text).toBe(`FMV runs naval test ranges for sensor trials [1].\n\n${INFORMATION_ONLY_NOTE}`);
+  });
+
   it("strips markdown and keeps list items", () => {
     const { text } = checkAnswer({
       text: "Here are two options:\n* **FMV Naval Test Ranges**: naval test ranges in Karlskrona [1].\n* **MTC Saltö**: a marine test environment [3].",
@@ -178,6 +183,14 @@ describe("checkAnswer: eligibility", () => {
     expect(text).not.toMatch(/you can apply/i);
   });
 
+  it("never adds the requirements of a source the answer does not cite", () => {
+    const { text, citations } = checkAnswer({ text: "MTC Saltö in Karlskrona tests marine technology [3]. You may be eligible for it [3].", sources: registry() });
+    expect(text).toContain(POTENTIAL_MATCH_SENTENCE);
+    expect(text).not.toContain("Teams led by a Swedish legal entity");
+    expect(text).toContain("The store has no stated requirements for this");
+    expect(citations.map((c) => c.title)).toEqual(["MTC Saltö marine technology environment, Karlskrona"]);
+  });
+
   it("rewrites denials too: an eligibility decision either way is for people", () => {
     const { text } = checkAnswer({ text: "Unfortunately you do not qualify for this call [2].", sources: registry() });
     expect(text).not.toMatch(/qualify/i);
@@ -219,7 +232,10 @@ describe("helpers", () => {
     expect(asksEligibility("Do we qualify?")).toBe(true);
     expect(asksEligibility("Can we apply for this call?")).toBe(true);
     expect(asksEligibility("Får vi söka den här utlysningen?")).toBe(true);
+    expect(asksEligibility("Just answer yes or no: will we get funding from the Watchdog Challenge?")).toBe(true);
+    expect(asksEligibility("Would our company be selected?")).toBe(true);
     expect(asksEligibility("Which test facilities could we use for an underwater sensor?")).toBe(false);
+    expect(asksEligibility("Where can we get funding for sonar tests?")).toBe(false);
   });
 
   it("soundsLikeEligibilityDecision", () => {
@@ -264,5 +280,27 @@ describe("helpers", () => {
     expect(isFactual("It funds the development of autonomous systems for sea surveillance.")).toBe(true);
     expect(isFactual("the call requires a legal entity to submit the application.")).toBe(true);
     expect(isFactual("Let me know if you want more detail.")).toBe(false);
+  });
+});
+
+describe("checkAnswer: sources with text aimed at an AI", () => {
+  const LABEL = "Contains text that looks like instructions to an AI; it was treated as data.";
+
+  function flagged(): SourceEntry[] {
+    const r = new SourceRegistry();
+    r.add({ url: "https://example.com/plain", title: "A plain call", dates: [] });
+    r.add({ url: "https://example.com/planted", title: "A call with planted text", dates: [], warning: LABEL });
+    return [...r.all()];
+  }
+
+  it("labels a cited source whose text looked like instructions to an AI", () => {
+    const { text, citations } = checkAnswer({ text: "A call with planted text funds acoustic sensors [2].", sources: flagged() });
+    expect(text).toBe(`A call with planted text funds acoustic sensors [1].\n\nSource [1]: ${LABEL}\n\n${INFORMATION_ONLY_NOTE}`);
+    expect(citations).toEqual([expect.objectContaining({ n: 1, url: "https://example.com/planted", warning: LABEL })]);
+  });
+
+  it("says nothing about a flagged source the answer does not cite", () => {
+    const { text } = checkAnswer({ text: "A plain call funds sensors [1].", sources: flagged() });
+    expect(text).not.toContain(LABEL);
   });
 });

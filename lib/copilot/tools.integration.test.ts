@@ -97,6 +97,12 @@ describe.skipIf(!configured)("Copilot tools in the database, as two companies", 
       expect(found.every((o) => !o.externalId.startsWith("fixture-"))).toBe(true);
       expect(search.results.every((r: { cite: string; kind: string }) => /^\[\d+\]$/.test(r.cite) && r.kind === "test facility")).toBe(true);
 
+      // An empty query with closesBefore lists what closes by then, soonest first.
+      const closing = JSON.parse((await toolsA("searchOpportunities", JSON.stringify({ query: "", kind: "funding", closesBefore: "2099-12-31" }))).content);
+      const deadlines: string[] = closing.results.map((r: { deadline: string }) => r.deadline);
+      expect(deadlines.length).toBeGreaterThan(0);
+      expect(deadlines).toEqual([...deadlines].sort());
+
       // saveOpportunity and contactStaff write under EmbeddedArt, whatever company id the model passes.
       const saved = await toolsA("saveOpportunity", JSON.stringify({ opportunityId: onlyMalvacom.id, companyId: malvacom.id }));
       expect(saved.ok).toBe(true);

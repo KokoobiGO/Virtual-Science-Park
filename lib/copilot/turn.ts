@@ -21,7 +21,8 @@ import type { ToolExecutor } from "./tools";
 /**
  * From the start of the request to a checked answer. Netlify cuts a request
  * off at 30 s; the rest is for loading the history, storing the turn and the
- * network.
+ * network. With nemotron-3.5-super-vl-120b-a12b the 51 red-team turns
+ * (2026-11-14) took 1 s at the median and 6.1 s at the slowest.
  */
 export const TURN_BUDGET_MS = 23_000;
 
@@ -150,9 +151,10 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
       chat,
       now,
       onStatus: deps.onStatus,
-      // An answer with facts but no tool call, or an eligibility question answered from memory: look it up first.
+      // An answer with facts but no tool call, or an eligibility question answered from memory or with the
+      // fixed reply (the classifier already found it in scope): look it up first.
       nudgeWithoutTools: (answer) =>
-        !isFixedReply(answer) && (asksEligibility(input.message) || statesFacts(withoutFixedReply(answer), input.companyName)) ? LOOK_IT_UP : null,
+        asksEligibility(input.message) || (!isFixedReply(answer) && statesFacts(withoutFixedReply(answer), input.companyName)) ? LOOK_IT_UP : null,
     });
 
     if (isFixedReply(run.text) && !run.handoffIds.length) {

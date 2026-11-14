@@ -14,7 +14,9 @@
  *    ("who may apply") and the BSP staff contact.
  * 3. What the tools did is confirmed in code: a handoff with "sent to BSP
  *    staff", a save with "Saved to your list" and its source.
- * 4. The "information only" note is appended.
+ * 4. A cited source whose text looked like instructions to an AI (the tools
+ *    ran the injection detector on it) is labelled with INJECTION_LABEL.
+ * 5. The "information only" note is appended.
  *
  * "States a fact" is a heuristic (see isFactual): it can miss a fact written
  * in lower-case words without a reporting verb, such as "the deadline is next
@@ -52,7 +54,7 @@ export const ELIGIBILITY_PATTERNS: readonly RegExp[] = [
 
 /** Whether the member's message asks for an eligibility decision. */
 export function asksEligibility(message: string): boolean {
-  return /eligib|qualif|entitled|\b(?:can|may|could)\s+(?:we|i|our company)\s+(?:apply|take part|participate)\b|\b(?:are|am)\s+(?:we|i)\s+allowed\s+to\s+apply\b|\bdo\s+(?:we|i)\s+(?:meet|fulfil|fulfill|fit|match)\b|berättigad|behörig|\b(?:får|kan)\s+vi\s+söka\b/i.test(
+  return /eligib|qualif|entitled|\b(?:can|may|could)\s+(?:we|i|our company)\s+(?:apply|take part|participate)\b|\b(?:are|am)\s+(?:we|i)\s+allowed\s+to\s+apply\b|\bdo\s+(?:we|i)\s+(?:meet|fulfil|fulfill|fit|match)\b|\b(?:will|would)\s+(?:we|i|our company)\s+(?:get|receive|win|be\s+(?:granted|awarded|funded|accepted|approved|selected))\b|berättigad|behörig|\b(?:får|kan)\s+vi\s+söka\b/i.test(
     message,
   );
 }
@@ -253,7 +255,9 @@ export function checkAnswer({ text, sources, askedEligibility = false, handoffSe
   const kept: string[] = [];
   const seenSentences = new Set<string>();
 
-  for (const rawLine of normalise(text, urlNumber, changes).split("\n")) {
+  // The note is appended below; a copy the model wrote itself would show twice.
+  const withoutNote = text.split(INFORMATION_ONLY_NOTE).join("");
+  for (const rawLine of normalise(withoutNote, urlNumber, changes).split("\n")) {
     if (!rawLine.trim()) {
       kept.push("");
       continue;
@@ -325,16 +329,21 @@ export function checkAnswer({ text, sources, askedEligibility = false, handoffSe
     if (!/potential match/i.test(body)) extra.push(`${POTENTIAL_MATCH_SENTENCE}.`);
     const used = new Set([...eligibilityCites, ...citedNumbers(body)]);
     const withRules = sources.filter((s) => s.whoMayApply);
-    const cited = withRules.filter((s) => used.has(s.n));
+    // The requirements of the sources the answer cites; only an answer that cites nothing gets those of the first sources found.
+    const pool = (used.size ? withRules.filter((s) => used.has(s.n)) : withRules).slice(0, 2);
     const said = (rule: string) => body.replace(/\s+/g, " ").includes(rule.replace(/\s+/g, " ").slice(0, 40));
-    const requirements = (cited.length ? cited : withRules).slice(0, 2).filter((s) => !said(s.whoMayApply!));
-    const quotedAlready = (cited.length ? cited : withRules).slice(0, 2).some((s) => said(s.whoMayApply!));
+    const requirements = pool.filter((s) => !said(s.whoMayApply!));
+    const quotedAlready = pool.some((s) => said(s.whoMayApply!));
     for (const s of requirements) {
       extra.push(`Who may apply, as the source states it for ${s.title}: "${s.whoMayApply}" [${s.n}].`);
     }
     if (!requirements.length && !quotedAlready) extra.push("The store has no stated requirements for this; the source text and BSP staff can tell you who may apply.");
     if (!body.includes(BSP_CONTACT)) extra.push(`BSP staff can help you check this: ${BSP_CONTACT}.`);
   }
+
+  // A cited source whose text looked like instructions to an AI says so (INJECTION_LABEL, set by the tools).
+  const citedNow = new Set(citedNumbers([body, ...extra].join("\n")));
+  for (const s of sources) if (s.warning && citedNow.has(s.n)) extra.push(`Source [${s.n}]: ${s.warning}`);
 
   const full = [body, extra.join("\n"), INFORMATION_ONLY_NOTE].filter(Boolean).join("\n\n").replace(/(\[\d+\]) (?=\[\d+\])/g, "$1");
   return { ...renumber(full, byNumber), changes };

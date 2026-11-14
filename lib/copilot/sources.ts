@@ -19,6 +19,11 @@ export type Citation = {
   simulated?: boolean;
   /** Set when the source is an opportunity, so a follow-up can save or explain it. */
   opportunityId?: string;
+  /**
+   * INJECTION_LABEL (lib/injection/detect.ts) when the source's text looks
+   * like instructions to an AI. The text was given to the model as data only.
+   */
+  warning?: string;
 };
 
 /** A registered source: a citation plus what the eligibility rewrite needs. */
@@ -51,6 +56,7 @@ export class SourceRegistry {
       // Keep the richer record: later tools may know more about the same page.
       existing.whoMayApply ??= source.whoMayApply;
       existing.opportunityId ??= source.opportunityId;
+      existing.warning ??= source.warning;
       for (const d of source.dates) if (!existing.dates.includes(d)) existing.dates.push(d);
       return existing.n;
     }
@@ -83,5 +89,6 @@ export function toCitation(entry: SourceEntry, n = entry.n): Citation {
     dates: entry.dates,
     ...(entry.simulated ? { simulated: true } : {}),
     ...(entry.opportunityId ? { opportunityId: entry.opportunityId } : {}),
+    ...(entry.warning ? { warning: entry.warning } : {}),
   };
 }

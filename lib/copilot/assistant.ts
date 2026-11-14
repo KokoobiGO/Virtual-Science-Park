@@ -5,7 +5,7 @@
  * gets a timeout that ends before the turn's deadline, because Netlify cuts a
  * request off at 30 s.
  */
-import { NVIDIA_MODELS, nvidiaChat, type ChatMessage } from "../nvidia";
+import { NVIDIA_MODELS, nvidiaChat, type ChatMessage, type ToolCall } from "../nvidia";
 import type { ChatFn, HistoryTurn } from "./classifier";
 import { ASSISTANT_HISTORY_TURNS, historyMessage, toolResultBlock } from "./prompt";
 import type { Citation } from "./sources";
@@ -60,12 +60,64 @@ export type AssistantInput = {
 export const LOOK_IT_UP =
   "Look this up with the tools before you answer: every fact needs a cite number from a tool result, and for a question about who may apply, find the opportunity first and use its whoMayApply field.";
 
+/** What the model is told when its last answer, with no tools left, was only a tool call. */
+export const ANSWER_NOW = "You cannot call any more tools. Answer the question now from the tool results above, with their cite numbers; if they do not answer it, say so.";
+
+/** A tool call written as text: <TOOLCALL>...</TOOLCALL> or <tool_call>...</tool_call> (unclosed at the end too). */
+const TEXT_TOOL_CALL = /<(TOOLCALL|tool_call)>([\s\S]*?)(?:<\/\1>|$)/gi;
+
 /** The reply text without a thinking block or a tool call written as text. */
 export function cleanReply(content: string | null | undefined): string {
   return (content ?? "")
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
-    .replace(/<TOOLCALL>[\s\S]*?(<\/TOOLCALL>|$)/gi, "")
+    .replace(TEXT_TOOL_CALL, "")
+    .replace(/<function=[\w-]+>[\s\S]*?(?:<\/function>|$)/gi, "")
     .trim();
+}
+
+const parameterValue = (raw: string): unknown => {
+  const value = raw.trim();
+  if (/^[[{]/.test(value)) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
+/**
+ * Tool calls the model wrote into its text instead of as tool_calls, which
+ * Nemotron 3.5 sometimes does:
+ *
+ *   <tool_call> <function=searchOpportunities> <parameter=query> sonar </parameter> </function> </tool_call>
+ *   <tool_call>{"name": "searchOpportunities", "arguments": {"query": "sonar"}}</tool_call>
+ *
+ * Read as the calls they are, so the tool runs and the member never sees the markup.
+ */
+export function textToolCalls(content: string | null | undefined): ToolCall[] {
+  const calls: ToolCall[] = [];
+  for (const [, , raw] of (content ?? "").matchAll(TEXT_TOOL_CALL)) {
+    const body = raw.trim();
+    let name = "";
+    let args: Record<string, unknown> = {};
+    if (body.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(body) as { name?: unknown; arguments?: unknown; parameters?: unknown };
+        name = typeof parsed.name === "string" ? parsed.name : "";
+        const given = parsed.arguments ?? parsed.parameters;
+        args = typeof given === "string" ? (parameterValue(given) as Record<string, unknown>) : ((given ?? {}) as Record<string, unknown>);
+      } catch {
+        continue;
+      }
+    } else {
+      name = body.match(/<function=([\w-]+)>/)?.[1] ?? "";
+      for (const [, key, value] of body.matchAll(/<parameter=([\w-]+)>([\s\S]*?)(?=<\/parameter>|<parameter=|<\/function>|$)/g)) args[key] = parameterValue(value);
+    }
+    if (name) calls.push({ id: `text_call_${calls.length}`, type: "function", function: { name, arguments: JSON.stringify(args) } });
+  }
+  return calls;
 }
 
 export async function runAssistant({ system, history, message, execute, deadline, chat = nvidiaChat, now = Date.now, onStatus, nudgeWithoutTools }: AssistantInput): Promise<AssistantRun> {
@@ -75,6 +127,7 @@ export async function runAssistant({ system, history, message, execute, deadline
     { role: "user", content: message },
   ];
   const run: AssistantRun = { text: "", modelCalls: 0, toolCalls: [], handoffIds: [], savedOpportunityIds: [], messages };
+  let toldToAnswer = false;
 
   for (let round = 0; ; round++) {
     const finalRound = round >= MAX_TOOL_ROUNDS;
@@ -96,16 +149,23 @@ export async function runAssistant({ system, history, message, execute, deadline
     );
     run.modelCalls++;
     const reply = response.choices[0]?.message;
-    const calls = finalRound ? [] : (reply?.tool_calls ?? []);
+    const written = textToolCalls(reply?.content);
+    const calls = finalRound ? [] : reply?.tool_calls?.length ? reply.tool_calls : written;
     if (!calls.length) {
       run.text = cleanReply(reply?.content);
+      // With no tools left the model sometimes still writes a call: ask once for the answer instead.
+      if (finalRound && !run.text && written.length && !toldToAnswer) {
+        toldToAnswer = true;
+        messages.push({ role: "user", content: ANSWER_NOW });
+        continue;
+      }
       const nudge = !finalRound && !run.toolCalls.length && round === 0 ? nudgeWithoutTools?.(run.text) : null;
       if (!nudge) return run;
       messages.push({ role: "assistant", content: run.text }, { role: "user", content: nudge });
       continue;
     }
 
-    messages.push({ role: "assistant", content: reply?.content ?? null, tool_calls: calls });
+    messages.push({ role: "assistant", content: reply?.tool_calls?.length ? (reply.content ?? null) : cleanReply(reply?.content) || null, tool_calls: calls });
     for (const [index, call] of calls.entries()) {
       const name = call.function?.name ?? "";
       if (index >= MAX_CALLS_PER_ROUND) {

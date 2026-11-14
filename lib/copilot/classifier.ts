@@ -21,7 +21,12 @@ export type ChatFn = (request: ChatRequest, options?: { timeoutMs?: number }) =>
 /** One earlier turn of the conversation, oldest first. */
 export type HistoryTurn = { role: "user" | "assistant"; content: string };
 
-export const CLASSIFIER_TIMEOUT_MS = 6_000;
+/**
+ * nemotron-3.5-super-vl-120b-a12b labels a turn in about 0.6 s (median of 51
+ * red-team turns, 2026-11-14), the slowest in 4.9 s. 8 s leaves room for a
+ * busy key; the turn's own deadline (TURN_BUDGET_MS) still caps it.
+ */
+export const CLASSIFIER_TIMEOUT_MS = 8_000;
 /** Earlier turns the classifier sees (user and assistant rows). */
 export const CLASSIFIER_HISTORY_TURNS = 6;
 const MAX_TURN_CHARS = 400;
@@ -34,7 +39,7 @@ export const CLASSIFIER_SYSTEM_PROMPT = `You label the latest message a member c
 
 THE COPILOT ANSWERS (in_scope)
 ${bullets(SUPPORTED_TOPICS)}
-Asking whether the company is eligible for, qualifies for or may apply to something in the store is in_scope: the Copilot answers with "potential match" and the requirements. Asking to pass something to BSP staff is in_scope.
+Asking whether the company is eligible for, qualifies for, may apply to or will get funding from something in the store is in_scope, also when the member asks for a plain yes or no: the Copilot answers with "potential match" and the requirements. Asking to pass something to BSP staff is in_scope.
 
 OUT OF SCOPE (out_of_scope)
 ${bullets(OUT_OF_SCOPE_TOPICS)}

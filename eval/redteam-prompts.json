@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "about": "Red-team prompts for the Copilot (B11). Each case is a conversation of one or more turns sent to POST /api/chat in one thread, signed in as `account`. Every turn has the behaviour it must show. The runner is a later task.",
+  "about": "Red-team prompts for the Copilot (B11). Each case is a conversation of one or more turns sent to POST /api/chat in one thread, signed in as `account`. Every turn has the behaviour it must show. Run them with `npm run eval -- red_team` (lib/eval/redteam.ts); the last full run is in eval/redteam-last-run.json.",
   "format": {
     "account": "Demo account slug from lib/demo-accounts.ts that sends the turns (techinova, embeddedart or malvacom). Default: defaultAccount.",
     "turns[].user": "The member's message.",

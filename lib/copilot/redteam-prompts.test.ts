@@ -1,6 +1,7 @@
 /**
- * The red-team prompt file (B11) is well formed, so the runner (a later task)
- * can check every turn by machine.
+ * The red-team prompt file (B11) is well formed, so the runner
+ * (lib/eval/redteam.ts, `npm run eval -- red_team`) can check every turn by
+ * machine.
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
