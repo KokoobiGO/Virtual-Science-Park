@@ -4,7 +4,7 @@ Every Blue Science Park member gets a short, ranked list of funding calls,
 testbeds, events and partners that fit them this week, with the source of every
 line. Nothing is ever called "eligible": that stays a decision for people.
 
-One Next.js app (TypeScript) on Vercel, one Supabase Postgres database with
+One Next.js app (TypeScript) on Netlify, one Supabase Postgres database with
 pgvector, and Inngest for scheduled jobs. See the Solution Plan v2 for the why.
 
 ## Run it locally
@@ -148,10 +148,19 @@ not that the key may call it.
    key, and the session-pooler connection string as `DATABASE_URL`. Run
    `npm run db:setup` with those values to migrate, seed and create the demo
    accounts there.
-2. **Vercel**: import the GitHub repo, add every variable from `.env.example`
-   (without `INNGEST_DEV`), deploy. Put the production URL in `APP_URL`.
-3. **Inngest**: install the Vercel integration, or add `INNGEST_EVENT_KEY` and
-   `INNGEST_SIGNING_KEY` to Vercel. It finds the functions at `/api/inngest`.
+2. **Netlify**: the site deploys from `main` on GitHub. Add every variable from
+   `.env.example` (without `INNGEST_DEV`) and redeploy after each change. Put
+   the production URL in `APP_URL`.
+3. **Inngest**: add `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` to Netlify,
+   redeploy, then sync the app so Inngest Cloud knows its functions:
+
+   ```bash
+   curl -X PUT https://jade-kashata-27a74f.netlify.app/api/inngest
+   ```
+
+   It answers `Successfully registered`. Sync again after a deploy that adds
+   or changes a function (or use Resync in the Inngest dashboard). "Run Inngest
+   check" at `/staff/checks` sends the heartbeat event and waits for its run.
 4. **Anthropic** (set a spend limit), **Voyage AI** and **Resend**: add the keys.
 5. Run `npm run check:services` until every row says PASS.
 

@@ -3,16 +3,19 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { CheckResult, NvidiaCheckId } from "@/lib/nvidia-checks";
+import type { CheckResult } from "@/lib/nvidia-checks";
 
-type Check = { id: NvidiaCheckId; label: string };
+type Check = { id: string; label: string };
 type Outcome = CheckResult & { hint?: string | null };
 
 const BADGE = { PASS: "default", FAIL: "destructive", NOTE: "secondary" } as const;
 
-/** Runs every check in parallel, one request each, and shows results as they arrive. */
-export function NvidiaChecks({ checks }: { checks: Check[] }) {
-  const [outcomes, setOutcomes] = useState<Partial<Record<NvidiaCheckId, Outcome | "running">>>({});
+/**
+ * Runs every check of one service in parallel, one request each to
+ * `${endpoint}?check=<id>`, and shows results as they arrive.
+ */
+export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; button: string; checks: Check[] }) {
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome | "running">>({});
   const running = Object.values(outcomes).includes("running");
   const hint = Object.values(outcomes).find((o): o is Outcome => typeof o === "object" && !!o.hint)?.hint;
 
@@ -20,7 +23,7 @@ export function NvidiaChecks({ checks }: { checks: Check[] }) {
     setOutcomes(Object.fromEntries(checks.map((c) => [c.id, "running"])));
     for (const check of checks) {
       const fail = (detail: string): Outcome => ({ feature: check.label, status: "FAIL", detail });
-      fetch(`/api/checks/nvidia?check=${check.id}`, { cache: "no-store" })
+      fetch(`${endpoint}?check=${check.id}`, { cache: "no-store" })
         .then(async (res) => (res.ok ? ((await res.json()) as Outcome) : fail(`${res.status} ${await res.text()}`)))
         .catch((error: unknown) => fail(String(error)))
         .then((outcome) => setOutcomes((prev) => ({ ...prev, [check.id]: outcome })));
@@ -31,7 +34,7 @@ export function NvidiaChecks({ checks }: { checks: Check[] }) {
     <div className="flex flex-col gap-4">
       <div>
         <Button onClick={runAll} disabled={running}>
-          {running ? "Running…" : "Run NVIDIA checks"}
+          {running ? "Running…" : button}
         </Button>
       </div>
       <ul className="flex flex-col divide-y rounded-lg border">
