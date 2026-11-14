@@ -699,7 +699,10 @@
     "ofPercent": "{part} av {whole} ({percent})",
     "notRated": "inte bedömt",
     "accuracyCell": "{percent} ({right} av {checked} kontrollerade)",
-    "accuracyCellUnsure": "{percent} ({right} av {checked} kontrollerade, {unsure} osäkra)",
+    "accuracyCellUnsure": {
+      "one": "{percent} ({right} av {checked} kontrollerade, {count} osäker)",
+      "other": "{percent} ({right} av {checked} kontrollerade, {count} osäkra)"
+    },
     "allGoldProfiles": "Alla guldprofiler",
     "profileAccuracy": {
       "title": "Profilernas träffsäkerhet",

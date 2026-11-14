@@ -7,6 +7,8 @@
  * read says so with its date. Nothing here makes up or fills in a number.
  */
 import { z } from "zod";
+import { DEFAULT_LOCALE, INTL_LOCALE, type Locale } from "../i18n/config";
+import { createTranslator, MESSAGES } from "../i18n/translate";
 import type { AppRole, MatchMode } from "../schemas";
 import { judgeSources, type SourceHealth, type SourceStatusRow } from "../sources/health";
 import {
@@ -23,20 +25,29 @@ import {
   type TimedTask,
 } from "./shapes";
 
-export const NOT_MEASURED = "not measured yet";
-export const HAND_CHECK_NOT_FINISHED = "not measured yet: the team's hand-check is not finished";
+// The report's words live in messages/*.json (`trust`, C19); these are the English texts.
+export const NOT_MEASURED = MESSAGES.en.trust.notMeasured;
+export const HAND_CHECK_NOT_FINISHED = MESSAGES.en.trust.handCheckNotFinished;
 
 export const ELIGIBILITY_SENTENCE =
   'The system never decides eligibility: every match is a "potential match". Whether a company can apply stays a decision for people.';
 
-export const KNOWN_LIMITS = [
-  "A profile quote proves that the quote is on the company's page, word for word. It does not prove that the quote supports the value shown next to it: that is what the team's hand-check is for.",
-  "The EU Funding & Tenders portal answers 200 for any topic id, so a working EU link only means the portal is up. Energimyndigheten also answers 200 for a missing page.",
-  "Every model step (profiles, tags, the judge, trend notes, connections, Scout and the Copilot) runs on a free NVIDIA test model, nvidia/nemotron-3.5-super-vl-120b-a12b, not on Claude. Until the evening of 14 Nov 2026 it was the smaller nvidia/nemotron-3.5-lightning-30b-a3b, so a run dated before then measured that model. Answers that fail the checks are asked again or dropped, never shown.",
-  "Some sources are entered by hand by the team: regional funding, the curated testbed list and BSP's recurring events. They carry the Hand-entered label and change only when the team edits them.",
-  "The red-team tests are the cases written in eval/redteam-prompts.json, each run once against the live model. Passing them does not prove the Copilot withstands every attack, and a new run can differ because the model's answers vary.",
-  "The Copilot's output check finds a stated fact by its numbers, dates, names and a few reporting verbs. It can miss a fact written without them, such as \"the deadline is next week\", and let it through without a source.",
-];
+/**
+ * The sentence above in each language. Kept here rather than in
+ * messages/*.json: the catalogue test bans the English word outright, and this
+ * one sentence uses it to say the system never decides it.
+ */
+export const ELIGIBILITY_SENTENCES: Record<Locale, string> = {
+  en: ELIGIBILITY_SENTENCE,
+  sv: "Systemet avgör aldrig om ett företag kan söka: varje matchning är en \u201dmöjlig matchning\u201d. Om ett företag kan söka är ett beslut för människor.",
+};
+
+/** What the numbers do not prove, in the reader's language. */
+export function knownLimits(locale: Locale = DEFAULT_LOCALE): string[] {
+  return Object.values(MESSAGES[locale].trust.knownLimits.items);
+}
+
+export const KNOWN_LIMITS = knownLimits("en");
 
 /** The eval_runs kinds the report reads. */
 export const TRUST_EVAL_KINDS = ["profile_accuracy", "quote_check", "link_check", "matching", "red_team", "privacy"] as const;
@@ -216,10 +227,12 @@ export function handCheckStarted(summary: ProfileAccuracySummary): boolean {
   return summary.total.all.checked > 0;
 }
 
-/** One accuracy cell: "80% (4 of 5 checked)", or "not measured yet" while nothing in the group is checked. */
-export function accuracyText(group: AccuracyGroup): string {
-  if (group.checked === 0 || group.accuracy === null) return NOT_MEASURED;
-  return `${Math.round(group.accuracy * 100)}% (${group.right} of ${group.checked} checked)`;
+/** One accuracy cell: "80% (4 of 5 checked)", "50% (1 of 2 checked, 1 unsure)", or "not measured yet" while nothing in the group is checked. */
+export function accuracyText(group: AccuracyGroup, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "trust");
+  if (group.checked === 0 || group.accuracy === null) return t("notMeasured");
+  const values = { percent: t("percent", { n: Math.round(group.accuracy * 100) }), right: group.right, checked: group.checked };
+  return group.unsure ? t("accuracyCellUnsure", { ...values, count: group.unsure }) : t("accuracyCell", values);
 }
 
 /** One run of the timed test, as the report shows it. */
@@ -298,42 +311,62 @@ export function summarizeStaffSession(results: StaffSessionResults): StaffSessio
 }
 
 /** "5 of 7 (71%)"; "not rated" when nothing was rated. */
-export function ratingText({ rated, good }: RatingCount): string {
-  return rated ? `${good} of ${rated} (${percentOf(good, rated)})` : "not rated";
+export function ratingText({ rated, good }: RatingCount, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "trust");
+  return rated ? t("ofPercent", { part: good, whole: rated, percent: percentOf(good, rated, locale) }) : t("notRated");
 }
 
 /** One run's cell: "4 min 10 s, 2 of 4 points (3 results given)"; with a gave-up or time-out mark. */
-export function timedRunText(run: TimedRun | null, keyItems: number | null): string {
-  if (!run) return "not run";
-  const time = `${formatSeconds(run.seconds)}${run.completed ? "" : " (not finished)"}`;
-  const points = keyItems === null ? `${run.points} ${run.points === 1 ? "point" : "points"}` : `${run.points} of ${keyItems} points`;
-  return `${time}, ${points} (${run.found} ${run.found === 1 ? "result" : "results"} given)`;
+export function timedRunText(run: TimedRun | null, keyItems: number | null, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "trust");
+  if (!run) return t("timed.notRun");
+  const time = run.completed ? formatSeconds(run.seconds) : t("timed.timeNotFinished", { time: formatSeconds(run.seconds) });
+  const points = keyItems === null ? t("timed.points", { count: run.points }) : t("timed.pointsOf", { points: run.points, total: keyItems });
+  return t("timed.run", { time, points, results: t("timed.results", { count: run.found }) });
 }
 
-/** "25%" for 1 of 4; "-" when there is nothing to divide by. */
-export function percentOf(part: number, whole: number): string {
-  return whole > 0 ? `${Math.round((part / whole) * 100)}%` : "-";
+/** "25%" for 1 of 4 ("25 %" in Swedish); "-" when there is nothing to divide by. */
+export function percentOf(part: number, whole: number, locale: Locale = DEFAULT_LOCALE): string {
+  return whole > 0 ? createTranslator(locale, "trust")("percent", { n: Math.round((part / whole) * 100) }) : "-";
 }
 
-const dateTime = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Europe/Stockholm",
-  timeZoneName: "short",
-});
-const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const dateTimeFormats = new Map<Locale, Intl.DateTimeFormat>();
+const dayFormats = new Map<Locale, Intl.DateTimeFormat>();
 
-/** "14 Nov 2026, 19:11 CET", Swedish time. */
-export function formatDateTime(date: Date): string {
-  return dateTime.format(date);
+function dateTimeFormat(locale: Locale): Intl.DateTimeFormat {
+  let format = dateTimeFormats.get(locale);
+  if (!format) {
+    format = new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Europe/Stockholm",
+      timeZoneName: "short",
+    });
+    dateTimeFormats.set(locale, format);
+  }
+  return format;
 }
 
-/** "2026-11-20" as "20 Nov 2026". */
-export function formatDay(isoDay: string): string {
-  return day.format(new Date(`${isoDay}T00:00:00Z`));
+function dayFormat(locale: Locale): Intl.DateTimeFormat {
+  let format = dayFormats.get(locale);
+  if (!format) {
+    format = new Intl.DateTimeFormat(INTL_LOCALE[locale], { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    dayFormats.set(locale, format);
+  }
+  return format;
+}
+
+/** "14 Nov 2026, 19:11 CET", Swedish time ("14 nov. 2026 19:11 CET" in Swedish). */
+export function formatDateTime(date: Date, locale: Locale = DEFAULT_LOCALE): string {
+  return dateTimeFormat(locale).format(date);
+}
+
+/** "2026-11-20" as "20 Nov 2026" ("20 nov. 2026" in Swedish). */
+export function formatDay(isoDay: string, locale: Locale = DEFAULT_LOCALE): string {
+  return dayFormat(locale).format(new Date(`${isoDay}T00:00:00Z`));
 }
 
 /** "90 s", "2 min 5 s". */

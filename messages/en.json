@@ -699,7 +699,10 @@
     "ofPercent": "{part} of {whole} ({percent})",
     "notRated": "not rated",
     "accuracyCell": "{percent} ({right} of {checked} checked)",
-    "accuracyCellUnsure": "{percent} ({right} of {checked} checked, {unsure} unsure)",
+    "accuracyCellUnsure": {
+      "one": "{percent} ({right} of {checked} checked, {count} unsure)",
+      "other": "{percent} ({right} of {checked} checked, {count} unsure)"
+    },
     "allGoldProfiles": "All gold profiles",
     "profileAccuracy": {
       "title": "Profile accuracy",

@@ -2,9 +2,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { Citation } from "@/lib/copilot/sources";
+import { TOOL_STATUS } from "@/lib/copilot/tools";
+import { LocaleProvider } from "@/lib/i18n/client";
 import { INJECTION_LABEL } from "@/lib/injection/detect";
 import { INFORMATION_ONLY_NOTE } from "@/lib/schemas";
-import { answerAnnouncement, CopilotPanel, failureText, QUESTION_KEPT, Sources } from "./copilot-panel";
+import { answerAnnouncement, CopilotPanel, failureText, QUESTION_KEPT, Sources, statusText } from "./copilot-panel";
 
 const render = renderToStaticMarkup;
 
@@ -84,5 +86,51 @@ describe("what a screen reader hears", () => {
       `The Copilot answered, In scope: The Copilot is busy right now. ${QUESTION_KEPT}`,
     );
     expect(failureText(" The Copilot could not be reached. ")).toBe(`Your question was not answered. The Copilot could not be reached. ${QUESTION_KEPT}`);
+  });
+});
+
+describe("the Copilot in Swedish (C19)", () => {
+  const sv = (element: Parameters<typeof render>[0]) =>
+    render(createElement(LocaleProvider, { locale: "sv" } as Parameters<typeof LocaleProvider>[0], element));
+
+  it("writes the interface in Swedish and keeps the example questions in English, as they are sent", () => {
+    const html = sv(createElement(CopilotPanel));
+    expect(html).toContain("Vad ni kan fråga om");
+    expect(html).toContain('aria-label="Er fråga"');
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>.*Fråga<\/button>/);
+    expect(html).toContain("möjlig matchning");
+    expect(html).toContain("Which test facilities could we use for an underwater sensor?");
+    expect(html).not.toContain("What you can ask");
+    expect(html).not.toMatch(/berättigad|behörig|eligib/i);
+  });
+
+  it("names the sources and the data labels in Swedish", () => {
+    const out = sv(
+      createElement(Sources, {
+        citations: [{ n: 1, url: "https://example.com/a", title: "A call", dates: [], label: "hand_entered" }],
+      }),
+    );
+    expect(out).toMatch(/<p id="([^"]+)"[^>]*>Källor<\/p>/);
+    expect(out).toContain("Inlagt för hand");
+    expect(out).toContain("(öppnas i en ny flik)");
+  });
+
+  it("reads an answer out in Swedish, the Copilot's own text as it came", () => {
+    const reply = { label: "out_of_scope" as const, text: "I can only help with BSP questions.", citations: [{ n: 1 }] as Citation[], outcome: "busy" as const };
+    expect(answerAnnouncement(reply, "sv")).toBe(
+      "Copilot svarade, Utanför området: I can only help with BSP questions. 1 källa listas under svaret. Er fråga finns kvar i rutan nedan, så att ni kan skicka den igen.",
+    );
+    expect(failureText("Svaret avbröts.", "sv")).toBe("Er fråga besvarades inte. Svaret avbröts. Er fråga finns kvar i rutan nedan, så att ni kan skicka den igen.");
+  });
+
+  it("knows every progress line the server sends, and shows an unknown one as sent", () => {
+    for (const line of Object.values(TOOL_STATUS)) {
+      expect(statusText(line, "en"), line).toBe(line);
+      expect(statusText(line, "sv"), line).not.toBe(line);
+    }
+    for (const line of ["Sending", "Checking the question", "Thinking about your question", "Writing the answer", "Using a tool", "Checking the answer", "Adding sources to the answer", "Saving the conversation"]) {
+      expect(statusText(line, "sv"), line).not.toBe(line);
+    }
+    expect(statusText("Something new", "sv")).toBe("Something new");
   });
 });

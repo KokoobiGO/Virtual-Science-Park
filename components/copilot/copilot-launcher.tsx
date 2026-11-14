@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { CopilotPanel } from "@/components/copilot/copilot-panel";
 import { Button } from "@/components/ui/button";
+import { LocaleProvider, useT } from "@/lib/i18n/client";
+import type { Locale } from "@/lib/i18n/config";
 
 /** The full-page Copilot. The launcher hides there, so a member never has two chats on one screen. */
 export const COPILOT_PAGE = "/copilot";
@@ -22,9 +24,21 @@ export function isCopilotPage(pathname: string | null): boolean {
  * sheet and moving between pages; following a link closes the sheet. Focus
  * moves into the sheet, Escape closes it and focus returns to the button.
  * Mounted from the root layout for signed-in members only (see
- * copilot-launcher-slot.tsx).
+ * copilot-launcher-slot.tsx), with the reader's language (C19); without
+ * `locale` the words follow the language cookie in the browser.
  */
-export function CopilotLauncher() {
+export function CopilotLauncher({ locale }: { locale?: Locale }) {
+  return locale ? (
+    <LocaleProvider locale={locale}>
+      <LauncherSheet />
+    </LocaleProvider>
+  ) : (
+    <LauncherSheet />
+  );
+}
+
+function LauncherSheet() {
+  const t = useT("copilot");
   const pathname = usePathname();
   // Open for one pathname only, so a navigation (a source link in an answer) closes the sheet.
   const [openOn, setOpenOn] = useState<string | null>(null);
@@ -71,7 +85,7 @@ export function CopilotLauncher() {
           <div className="flex justify-end px-3 pt-3">
             <Dialog.Close render={<Button variant="ghost" size="sm" />}>
               <X aria-hidden />
-              Close
+              {t("close")}
             </Dialog.Close>
           </div>
           <CopilotPanel className="flex-1 rounded-none pt-1 ring-0" />

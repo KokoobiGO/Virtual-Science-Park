@@ -20,17 +20,42 @@ const share = z.number().min(0).max(1).nullable();
 // eval_runs summaries written today
 // ---------------------------------------------------------------------------
 
-const AccuracyGroup = z.object({ claims: count, checked: count, right: count, wrong: count, unchecked: count, accuracy: share });
+/** `unsure` counts as checked, never as right; runs from before it existed have none. */
+const AccuracyGroup = z.object({ claims: count, checked: count, right: count, wrong: count, unsure: count.optional(), unchecked: count, accuracy: share });
 const AccuracyBlock = z.object({ stated: AccuracyGroup, inferred: AccuracyGroup, missing: AccuracyGroup, all: AccuracyGroup });
 export type AccuracyGroup = z.infer<typeof AccuracyGroup>;
 
-/** kind "profile_accuracy", written by lib/eval/accuracy.ts from the team's hand-check. */
+/**
+ * kind "profile_accuracy", written by lib/eval/accuracy.ts from the hand-check
+ * in data/gold-profiles. Per company, who gave the verdicts: automatedReviewer
+ * true means an automated reviewer (AI), not a person, and confirmedByTeam
+ * false that no team member has gone through them yet. Runs from before these
+ * keys existed have none of them.
+ */
 export const ProfileAccuracySummary = z.object({
   complete: z.boolean(),
   total: AccuracyBlock,
-  companies: z.array(AccuracyBlock.extend({ slug: z.string(), company: z.string() })),
+  companies: z.array(
+    AccuracyBlock.extend({
+      slug: z.string(),
+      company: z.string(),
+      checkedBy: z.string().optional(),
+      checkedOn: z.iso.date().nullable().optional(),
+      automatedReviewer: z.boolean().optional(),
+      confirmedByTeam: z.boolean().optional(),
+    }),
+  ),
 });
 export type ProfileAccuracySummary = z.infer<typeof ProfileAccuracySummary>;
+
+/**
+ * The gold profiles whose verdicts come from an automated reviewer (AI) that
+ * no team member has confirmed. The Trust report must say so next to the
+ * numbers. Empty when people gave every verdict.
+ */
+export function automatedReviewCompanies(summary: ProfileAccuracySummary): string[] {
+  return summary.companies.filter((c) => c.automatedReviewer && !c.confirmedByTeam).map((c) => c.company);
+}
 
 const QuoteRun = z.object({
   slug: z.string(),

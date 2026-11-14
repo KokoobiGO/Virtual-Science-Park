@@ -2,8 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { judgeSources, type SourceStatusRow } from "@/lib/sources/health";
-import { KNOWN_LIMITS } from "@/lib/trust/report";
-import { KnownLimitsSection, RedTeamSection, SourceStatusSection, Table } from "./sections";
+import { KNOWN_LIMITS, knownLimits } from "@/lib/trust/report";
+import { KnownLimitsSection, LinkHealthSection, MatchingSection, RedTeamSection, SourceStatusSection, Table } from "./sections";
 
 const render = renderToStaticMarkup;
 const NOW = new Date("2026-11-14T20:00:00Z");
@@ -57,5 +57,62 @@ describe("Trust report sections (C20, D20)", () => {
     expect(KNOWN_LIMITS.join(" ")).not.toContain("NVIDIA Nemotron 3.5 Lightning");
     expect(KNOWN_LIMITS.join(" ")).not.toMatch(/marked simulated/);
     expect(out).toMatch(/<h2>Known limits<\/h2>/);
+  });
+
+  it("counts the links a script cannot verify in their own column, and says which sites they are", () => {
+    const run = { status: "measured" as const, ranAt: NOW, summary: { checked: 20, ok: 15, broken: 1, blocked: 2, unverifiable: 2 } };
+    const out = render(createElement(LinkHealthSection, { run }));
+    expect(out).toContain('<th scope="col" class="px-2 py-1.5 align-top first:pl-0 last:pr-0 font-medium">Cannot verify by script</th>');
+    expect(out).toContain("Link health: source links checked, working, broken, unclear and cannot verify by script");
+    expect(out).toContain("(Energimyndigheten, ri.se)");
+    expect(out).toMatch(/<th scope="row"[^>]*>20<\/th><td[^>]*>15 \(75%\)<\/td><td[^>]*>1<\/td><td[^>]*>2<\/td><td[^>]*>2<\/td>/);
+  });
+});
+
+describe("Trust report in Swedish (C19)", () => {
+  it("writes headings, table heads and cells in Swedish, and the numbers and dates the Swedish way", () => {
+    const run = { status: "measured" as const, ranAt: NOW, summary: { checked: 20, ok: 15, broken: 1, blocked: 2, unverifiable: 2 } };
+    const out = render(createElement(LinkHealthSection, { run, locale: "sv" }));
+    expect(out).toMatch(/<h2>Länkhälsa<\/h2>/);
+    expect(out).toContain("Körd 14 nov. 2026 21:00 CET");
+    expect(out).toContain("Kan inte kontrolleras av ett skript");
+    expect(out).toContain("15 (75\u00A0%)");
+  });
+
+  it("names the red-team groups in Swedish and keeps an unknown group id readable", () => {
+    const run = {
+      status: "measured" as const,
+      ranAt: NOW,
+      summary: { groups: [{ group: "eligibility", passed: 3, total: 4 }, { group: "new_group", passed: 1, total: 1 }] },
+    };
+    const sv = render(createElement(RedTeamSection, { run, locale: "sv" }));
+    expect(sv).toContain("Frågor av typen \u201dKan vi söka?\u201d");
+    expect(sv).toContain("3 av 4");
+    expect(sv).toContain("new group");
+    const en = render(createElement(RedTeamSection, { run }));
+    expect(en).toContain("&quot;Can we apply?&quot; questions");
+  });
+
+  it("labels the sources with the shared Swedish data labels", () => {
+    const sources = judgeSources([row({ source: "testbeds", label: "Curated testbed list", state: "simulated" })], NOW);
+    const out = render(createElement(SourceStatusSection, { sources, locale: "sv" }));
+    expect(out).toContain("Inlagt för hand");
+    expect(out).toContain("Källornas status");
+    // The source's own name stays as stored.
+    expect(out).toContain("Curated testbed list");
+  });
+
+  it("says a section is not measured yet, and the decision sentence, in Swedish, without the words the product rule bans", () => {
+    const out = render(createElement(MatchingSection, { matching: { status: "not_measured" }, locale: "sv" }));
+    expect(out).toContain("inte mätt än");
+    expect(out).toContain("möjlig matchning");
+    expect(out).not.toMatch(/berättigad|behörig|eligib/i);
+  });
+
+  it("keeps the known limits' model ids in Swedish too", () => {
+    const out = render(createElement(KnownLimitsSection, { locale: "sv" }));
+    expect(out).toMatch(/<h2>Kända begränsningar<\/h2>/);
+    expect(out).toContain("nvidia/nemotron-3.5-super-vl-120b-a12b");
+    expect(knownLimits("sv")).toHaveLength(KNOWN_LIMITS.length);
   });
 });

@@ -1,13 +1,18 @@
 /**
  * The gold profiles (A7): the public profiler claims of the three hand-checked
- * members, one file each in data/gold-profiles/<slug>.json. The team marks
- * every claim "right" or "wrong" against the company's own pages; the accuracy
- * eval (A21) reads the files.
+ * members, one file each in data/gold-profiles/<slug>.json. Every claim is
+ * marked "right", "wrong" or "unsure" against the company's own pages; the
+ * accuracy eval (A21) reads the files.
  *
- * Exporting again must not lose the team's work: a claim whose id, value and
- * status are unchanged keeps its verdict and note (mergeGoldFile). The files
- * are written with a fixed key order, two-space indent and a trailing
- * newline, so git diffs stay readable.
+ * Who checked is part of the file: checkedBy and checkedOn, and, when the
+ * verdicts come from an automated reviewer (AI) rather than a person,
+ * automatedReviewer true and confirmedByTeam false until a team member has
+ * gone through them. The Trust report says so next to the numbers.
+ *
+ * Exporting again must not lose that work: a claim whose id, value and
+ * status are unchanged keeps its verdict, note and checked pages
+ * (mergeGoldFile). The files are written with a fixed key order, two-space
+ * indent and a trailing newline, so git diffs stay readable.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -20,9 +25,10 @@ import { ProfileField } from "../schemas";
 export const GOLD_DIR = path.join("data", "gold-profiles");
 
 export const GOLD_HOW_TO =
-  'Check each claim against the company\'s own public pages and set verdict to "right" or "wrong" (for a missing claim, "right" means the pages really do not say it); write why in note, and your name in checkedBy.';
+  'Check each claim against the company\'s own public pages and set verdict to "right", "wrong" or "unsure" (for a missing claim, "right" means the pages really do not say it; "unsure" means the pages do not settle it, and it never counts as right); write why in note, the pages you read in checkedUrls, your name in checkedBy and the day in checkedOn.';
 
-export const Verdict = z.enum(["right", "wrong"]);
+/** "unsure": the pages do not settle it. It counts as checked, never as right. */
+export const Verdict = z.enum(["right", "wrong", "unsure"]);
 export type Verdict = z.infer<typeof Verdict>;
 
 export const GoldStatus = z.enum(["stated", "inferred", "missing"]);
@@ -36,9 +42,11 @@ export const GoldClaim = z.strictObject({
   value: z.union([z.string(), z.array(z.string())]).nullable(),
   confidence: z.number().min(0).max(1),
   evidence: z.array(z.strictObject({ quote: z.string(), url: z.string() })),
-  /** Null until the team has checked the claim. */
+  /** Null until someone has checked the claim. */
   verdict: Verdict.nullable(),
   note: z.string(),
+  /** The pages the verdict was checked against. */
+  checkedUrls: z.array(z.string()).optional(),
   /** The verdict the claim had before its value or status changed. */
   previousVerdict: Verdict.optional(),
 });
@@ -49,10 +57,27 @@ export const GoldFile = z.strictObject({
   company: z.string(),
   exportedAt: z.string(),
   checkedBy: z.string(),
+  /** The day the verdicts were given, "YYYY-MM-DD". */
+  checkedOn: z.iso.date().optional(),
+  /** True when the verdicts come from an automated reviewer (AI), not from a person. */
+  automatedReviewer: z.boolean().optional(),
+  /** False until a team member has gone through an automated reviewer's verdicts. */
+  confirmedByTeam: z.boolean().optional(),
   howTo: z.string(),
   claims: z.array(GoldClaim),
 });
 export type GoldFile = z.infer<typeof GoldFile>;
+
+/** Who checked a file: what a new export takes over from the file on disk. */
+type Review = Pick<GoldFile, "checkedBy" | "checkedOn" | "automatedReviewer" | "confirmedByTeam">;
+
+function reviewOf(file: GoldFile): Review {
+  const review: Review = { checkedBy: file.checkedBy };
+  if (file.checkedOn !== undefined) review.checkedOn = file.checkedOn;
+  if (file.automatedReviewer !== undefined) review.automatedReviewer = file.automatedReviewer;
+  if (file.confirmedByTeam !== undefined) review.confirmedByTeam = file.confirmedByTeam;
+  return review;
+}
 
 /** One active public profiler claim as the database holds it. */
 export type ExportClaim = {
@@ -142,7 +167,7 @@ export type GoldMerge = {
   file: GoldFile;
   /** False when the file on disk already says exactly this. */
   changed: boolean;
-  /** Same id, value and status: verdict and note carried over. */
+  /** Same id, value and status: verdict, note and checked pages carried over. */
   kept: GoldClaim[];
   /** Same id, but the value or status changed: verdict open again, the old one in previousVerdict. */
   reset: GoldClaim[];
@@ -154,7 +179,7 @@ export type GoldMerge = {
 
 const sameClaim = (a: GoldClaim, b: GoldClaim) => a.status === b.status && JSON.stringify(a.value) === JSON.stringify(b.value);
 
-/** The fresh export with the team's verdicts, notes and name taken over from the file already on disk. */
+/** The fresh export with the verdicts, notes and reviewer taken over from the file already on disk. */
 export function mergeGoldFile(previous: GoldFile | null, fresh: GoldFile): GoldMerge {
   if (!previous) return { file: fresh, changed: true, kept: [], reset: [], added: fresh.claims, dropped: [] };
 
@@ -169,21 +194,22 @@ export function mergeGoldFile(previous: GoldFile | null, fresh: GoldFile): GoldM
       added.push(claim);
       return claim;
     }
+    const checkedUrls = old.checkedUrls ? { checkedUrls: old.checkedUrls } : {};
     if (sameClaim(old, claim)) {
-      const next = { ...claim, verdict: old.verdict, note: old.note, ...(old.previousVerdict ? { previousVerdict: old.previousVerdict } : {}) };
+      const next = { ...claim, verdict: old.verdict, note: old.note, ...checkedUrls, ...(old.previousVerdict ? { previousVerdict: old.previousVerdict } : {}) };
       kept.push(next);
       return next;
     }
-    // The note stays: it may say what was wrong with the old value.
+    // The note and its pages stay: they may say what was wrong with the old value.
     const previousVerdict = old.verdict ?? old.previousVerdict;
-    const next = { ...claim, verdict: null, note: old.note, ...(previousVerdict ? { previousVerdict } : {}) };
+    const next = { ...claim, verdict: null, note: old.note, ...checkedUrls, ...(previousVerdict ? { previousVerdict } : {}) };
     reset.push(next);
     return next;
   });
   const freshIds = new Set(fresh.claims.map((claim) => claim.claimId));
   const dropped = previous.claims.filter((claim) => !freshIds.has(claim.claimId));
 
-  const file: GoldFile = { ...fresh, checkedBy: previous.checkedBy, claims: merged };
+  const file: GoldFile = { ...fresh, ...reviewOf(previous), claims: merged };
   // Nothing changed: keep the old export date too, so the file stays byte for byte the same.
   const unchanged = formatGoldFile({ ...file, exportedAt: previous.exportedAt }) === formatGoldFile(previous);
   return { file: unchanged ? { ...file, exportedAt: previous.exportedAt } : file, changed: !unchanged, kept, reset, added, dropped };
@@ -195,7 +221,7 @@ export function formatGoldFile(file: GoldFile): string {
     slug: file.slug,
     company: file.company,
     exportedAt: file.exportedAt,
-    checkedBy: file.checkedBy,
+    ...reviewOf(file),
     howTo: file.howTo,
     claims: file.claims.map((claim) => ({
       claimId: claim.claimId,
@@ -206,6 +232,7 @@ export function formatGoldFile(file: GoldFile): string {
       evidence: claim.evidence.map((e) => ({ quote: e.quote, url: e.url })),
       verdict: claim.verdict,
       note: claim.note,
+      ...(claim.checkedUrls ? { checkedUrls: claim.checkedUrls } : {}),
       ...(claim.previousVerdict ? { previousVerdict: claim.previousVerdict } : {}),
     })),
   };
