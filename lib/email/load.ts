@@ -9,7 +9,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { mondayOf } from "../cards/week";
 import { getDb } from "../db";
-import { companies, opportunities, trendNotes, weekCards } from "../db/schema";
+import { companies, opportunities, sourceStatus, trendNotes, weekCards } from "../db/schema";
 import { UnknownCompanyError } from "../matcher/store";
 import { buildDigest, type DigestCard, type DigestEmail } from "./digest";
 
@@ -43,9 +43,15 @@ export async function loadDigestCards(companyId: string, weekOf: string): Promis
       deadline: opportunities.deadline,
       eventDate: opportunities.eventDate,
       simulated: opportunities.simulated,
+      externalId: opportunities.externalId,
+      retrievedAt: opportunities.retrievedAt,
+      // For the data label (D20): opportunities.source is the collector's label in source_status.
+      sourceState: sourceStatus.state,
+      sourceCachedAt: sourceStatus.cachedAt,
     })
     .from(weekCards)
     .leftJoin(opportunities, eq(opportunities.id, weekCards.opportunityId))
+    .leftJoin(sourceStatus, eq(sourceStatus.label, opportunities.source))
     .leftJoin(trendNotes, eq(trendNotes.id, weekCards.trendNoteId))
     .where(and(eq(weekCards.companyId, companyId), eq(weekCards.weekOf, weekOf)))
     .orderBy(asc(weekCards.position));
@@ -61,7 +67,18 @@ export async function loadDigestCards(companyId: string, weekOf: string): Promis
     trendArea: r.trendArea,
     opportunity:
       r.opportunityKind && r.source !== null && r.url !== null
-        ? { kind: r.opportunityKind, source: r.source, url: r.url, deadline: r.deadline, eventDate: r.eventDate, simulated: r.simulated ?? false }
+        ? {
+            kind: r.opportunityKind,
+            source: r.source,
+            url: r.url,
+            deadline: r.deadline,
+            eventDate: r.eventDate,
+            simulated: r.simulated ?? false,
+            externalId: r.externalId,
+            sourceState: r.sourceState,
+            // A cached copy's date; without one, the date the item was read from it.
+            cachedAt: r.sourceState === "cached" ? (r.sourceCachedAt ?? r.retrievedAt) : null,
+          }
         : null,
   }));
 }

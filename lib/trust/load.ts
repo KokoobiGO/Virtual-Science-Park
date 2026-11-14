@@ -65,10 +65,14 @@ export async function loadTrustReport(viewer: Viewer, now: Date = new Date()): P
   });
 }
 
-/** The file's text, or null when it does not exist. Relative paths are from the project root. */
+/**
+ * The file's text, or null when it does not exist. Relative paths are from the project root.
+ * The turbopackIgnore comment keeps the build from tracing the whole project for this
+ * dynamic path; next.config.ts includes the two results files for /trust instead.
+ */
 export async function readIfExists(relativePath: string): Promise<string | null> {
   try {
-    return await readFile(path.join(process.cwd(), relativePath), "utf8");
+    return await readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath), "utf8");
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw error;

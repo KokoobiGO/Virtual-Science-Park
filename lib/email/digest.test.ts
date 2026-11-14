@@ -20,6 +20,9 @@ function matchCard(over: Partial<DigestCard> = {}): DigestCard {
       deadline: new Date("2026-12-03T13:00:00Z"),
       eventDate: null,
       simulated: false,
+      externalId: "vinnova-maritime-2026",
+      sourceState: "live",
+      cachedAt: null,
     },
     trendArea: null,
     ...over,
@@ -75,7 +78,7 @@ describe("buildDigest", () => {
       'href="https://www.vinnova.se/e/maritime-2026"',
       'href="https://vsp.example.org/week"',
       "Information only.",
-      "Simulated data", // in the footer's label list
+      "<strong>Potential match</strong>", // in the footer's label list
     ]) {
       expect(email.html).toContain(part);
     }
@@ -84,12 +87,37 @@ describe("buildDigest", () => {
     expect(email.html).not.toMatch(/<link\b/);
   });
 
-  it("labels simulated data on the card", () => {
+  it("labels a live opportunity with nothing, and explains no data label it does not use", () => {
     const real = digest([matchCard()])!;
-    const simulated = digest([matchCard({ opportunity: { ...matchCard().opportunity!, simulated: true } })])!;
     expect(real.html).not.toContain('class="vsp-sim"');
-    expect(simulated.html).toContain('class="vsp-sim"');
-    expect(simulated.text).toContain("Potential match | Funding call | Vinnova | Simulated data");
+    expect(real.html).not.toContain('class="vsp-cache"');
+    expect(real.text).not.toMatch(/Hand-entered|Simulated|Cached copy/);
+  });
+
+  it("labels a hand-entered opportunity Hand-entered, not Simulated (D20)", () => {
+    const email = digest([
+      matchCard({ opportunity: { ...matchCard().opportunity!, kind: "testbed", source: "Curated testbed list", simulated: true, sourceState: "simulated" } }),
+    ])!;
+    expect(email.html).toContain('class="vsp-sim"');
+    expect(email.text).toContain("Potential match | Testbed | Curated testbed list | Hand-entered");
+    expect(email.text).toContain("- Hand-entered: typed in by the team from the source, not read automatically.");
+    expect(email.text).not.toContain("Simulated");
+  });
+
+  it("labels only the team's sample (fixture) rows Simulated", () => {
+    const email = digest([matchCard({ opportunity: { ...matchCard().opportunity!, simulated: true, externalId: "fixture-call-1" } })])!;
+    expect(email.text).toContain("Potential match | Funding call | Vinnova | Simulated");
+    expect(email.text).toContain("- Simulated: sample data written by the team. Not real.");
+  });
+
+  it("labels an opportunity from a cached source with the date of the copy", () => {
+    const email = digest([
+      matchCard({ opportunity: { ...matchCard().opportunity!, sourceState: "cached", cachedAt: new Date("2026-11-10T09:00:00Z") } }),
+    ])!;
+    expect(email.html).toContain('class="vsp-cache"');
+    expect(email.html).toContain("Cached copy · 10 Nov 2026");
+    expect(email.text).toContain("Potential match | Funding call | Vinnova | Cached copy · 10 Nov 2026");
+    expect(email.text).toContain("- Cached copy: a recorded copy of the source, from the date shown.");
   });
 
   it("marks a date that has passed", () => {
@@ -163,7 +191,7 @@ describe("buildDigest", () => {
     expect(email.text).toContain("   Source:\n   Maritime sensor testbed call: https://www.vinnova.se/e/maritime-2026");
     expect(email.text).toContain("https://vsp.example.org/week");
     expect(email.text).toContain("Information only.");
-    expect(email.text).toContain("- Simulated data: entered by hand by the team, not read from a live source.");
+    expect(email.text).toContain("How the data is labelled:\n- Potential match: ");
   });
 
   it("stays well under Gmail's clipping size with a full week of long cards", () => {

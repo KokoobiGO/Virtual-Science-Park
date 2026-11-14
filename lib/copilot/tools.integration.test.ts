@@ -97,6 +97,14 @@ describe.skipIf(!configured)("Copilot tools in the database, as two companies", 
       expect(found.every((o) => !o.externalId.startsWith("fixture-"))).toBe(true);
       expect(search.results.every((r: { cite: string; kind: string }) => /^\[\d+\]$/.test(r.cite) && r.kind === "test facility")).toBe(true);
 
+      // D20: the hand-entered testbeds carry their label, and every source date reads like the screens ("14 Nov 2026").
+      const testbeds = sourcesA.all().filter((s) => s.publisher === "Curated testbed list");
+      expect(testbeds.length).toBeGreaterThan(0);
+      expect(testbeds.every((s) => s.label === "hand_entered")).toBe(true);
+      expect(sourcesA.all().flatMap((s) => s.dates).every((d) => /^[a-z]+ \d{1,2} [A-Z][a-z]{2,3} \d{4}$/.test(d))).toBe(true);
+      // The tools still give the model YYYY-MM-DD, as its prompt asks.
+      expect(search.results.every((r: { deadline?: string }) => r.deadline === undefined || /^\d{4}-\d{2}-\d{2}$/.test(r.deadline))).toBe(true);
+
       // An empty query with closesBefore lists what closes by then, soonest first.
       const closing = JSON.parse((await toolsA("searchOpportunities", JSON.stringify({ query: "", kind: "funding", closesBefore: "2099-12-31" }))).content);
       const deadlines: string[] = closing.results.map((r: { deadline: string }) => r.deadline);

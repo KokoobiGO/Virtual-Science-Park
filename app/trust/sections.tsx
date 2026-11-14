@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
+import { useId, type ReactNode } from "react";
+import { DATA_STATUS_META, DataStatusLabel, dataStatusFromVerdict } from "@/components/data-status-label";
+import { statusDate } from "@/components/data-status-panel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileField } from "@/lib/schemas";
 import type { SourceHealth } from "@/lib/sources/health";
@@ -48,11 +49,14 @@ const FIELDS_PER_PROFILE = ProfileField.options.length;
 // Building blocks
 // ---------------------------------------------------------------------------
 
+/** One section of the report: an h2 under the page's h1, then when it was measured and what it measures. */
 function Section({ title, description, when, children }: { title: string; description: string; when?: ReactNode; children: ReactNode }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>
+          <h2>{title}</h2>
+        </CardTitle>
         {when ? <p className="text-xs text-muted-foreground">{when}</p> : null}
         <CardDescription>{description}</CardDescription>
       </CardHeader>
@@ -83,11 +87,39 @@ function fileWhen(result: FileResult<unknown>): ReactNode {
   return result.status === "measured" ? <span>Held {formatDay(result.date)}</span> : null;
 }
 
-function Table({ head, rows, foot }: { head: ReactNode[]; rows: ReactNode[][]; foot?: ReactNode[][] }) {
+/**
+ * A table of numbers (C20): a caption for screen readers, column headers, and
+ * the first cell of each row as the row's header. On a phone a wide table
+ * scrolls sideways inside its own box, which can take keyboard focus to
+ * scroll; the page itself never scrolls sideways.
+ */
+export function Table({ caption, head, rows, foot }: { caption: string; head: ReactNode[]; rows: ReactNode[][]; foot?: ReactNode[][] }) {
+  const captionId = useId();
   const cell = "px-2 py-1.5 align-top first:pl-0 last:pr-0";
+  const row = (cells: ReactNode[]) =>
+    cells.map((c, i) =>
+      i === 0 ? (
+        <th key={i} scope="row" className={`${cell} text-left font-medium`}>
+          {c}
+        </th>
+      ) : (
+        <td key={i} className={cell}>
+          {c}
+        </td>
+      ),
+    );
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-sm">
+    <div
+      role="region"
+      aria-labelledby={captionId}
+      tabIndex={0}
+      className="max-w-full overflow-x-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {/* Wide enough that cells stay readable; narrower screens scroll the box. */}
+      <table className={`w-full border-collapse text-left text-sm ${head.length > 4 ? "min-w-[44rem]" : head.length > 3 ? "min-w-[34rem]" : ""}`}>
+        <caption id={captionId} className="sr-only">
+          {caption}
+        </caption>
         <thead className="text-xs text-muted-foreground">
           <tr className="border-b">
             {head.map((h, i) => (
@@ -98,25 +130,17 @@ function Table({ head, rows, foot }: { head: ReactNode[]; rows: ReactNode[][]; f
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, r) => (
+          {rows.map((cells, r) => (
             <tr key={r} className="border-b last:border-b-0">
-              {row.map((c, i) => (
-                <td key={i} className={cell}>
-                  {c}
-                </td>
-              ))}
+              {row(cells)}
             </tr>
           ))}
         </tbody>
         {foot?.length ? (
           <tfoot className="font-medium">
-            {foot.map((row, r) => (
+            {foot.map((cells, r) => (
               <tr key={r} className="border-t">
-                {row.map((c, i) => (
-                  <td key={i} className={cell}>
-                    {c}
-                  </td>
-                ))}
+                {row(cells)}
               </tr>
             ))}
           </tfoot>
@@ -150,6 +174,7 @@ export function ProfileAccuracySection({ run }: { run: Run<ProfileAccuracySummar
       {run.status === "measured" && handCheckStarted(run.summary) ? (
         <>
           <Table
+            caption="Profile accuracy per gold profile: right claims out of checked claims"
             head={["Gold profile", "Stated claims", "Inferred claims", "Missing (page says nothing)"]}
             rows={run.summary.companies.map((c) => [c.company, accuracyText(c.stated), accuracyText(c.inferred), accuracyText(c.missing)])}
             foot={[["All gold profiles", accuracyText(run.summary.total.stated), accuracyText(run.summary.total.inferred), accuracyText(run.summary.total.missing)]]}
@@ -183,6 +208,7 @@ export function QuoteCheckSection({ run }: { run: Run<QuoteCheckSummary> }) {
       {run.status === "unreadable" ? <Unreadable what="A quote-check run is stored" problem={run.problem} /> : null}
       {run.status === "measured" ? (
         <Table
+          caption="Quote check per profile: quotes found word for word on the stored page, and fields dropped"
           head={["Profile", "Quotes found on the page", "Quotes not found", "Fields dropped", "Profiled"]}
           rows={run.summary.gold.companies.map((c) => [
             c.slug,
@@ -209,6 +235,7 @@ export function LinkHealthSection({ run }: { run: Run<LinkCheckSummary> }) {
       {run.status === "unreadable" ? <Unreadable what="A link-check run is stored" problem={run.problem} /> : null}
       {run.status === "measured" ? (
         <Table
+          caption="Link health: source links checked, working, broken and unclear"
           head={["Links checked", "Working", "Broken", "Unclear: check by hand"]}
           rows={[
             [
@@ -224,31 +251,26 @@ export function LinkHealthSection({ run }: { run: Run<LinkCheckSummary> }) {
   );
 }
 
-const VERDICT_LABEL: Record<SourceHealth["verdict"], string> = {
-  ok: "Live",
-  stale: "Live, stale",
-  cached: "Cached copy",
-  hand_entered: "Hand-entered",
-};
-
 export function SourceStatusSection({ sources }: { sources: SourceHealth[] }) {
   return (
     <Section
       title="Source status"
-      description="Where the opportunities come from. Live: read from the source within the last 48 hours. Cached: a recorded copy, with its date. Hand-entered: written by the team and marked simulated."
+      description={`Where the opportunities come from. ${SOURCE_KINDS.map((kind) => `${DATA_STATUS_META[kind].label}: ${DATA_STATUS_META[kind].description}`).join(" ")}`}
     >
       {sources.length ? (
         <Table
+          caption="Source status: each source's data label, last success, items and note"
           head={["Source", "Status", "Last success", "Items", "Note"]}
-          rows={sources.map((s) => [
-            s.label,
-            <Badge key="v" variant={s.verdict === "ok" ? "secondary" : s.verdict === "stale" ? "destructive" : "outline"}>
-              {VERDICT_LABEL[s.verdict]}
-            </Badge>,
-            s.lastSuccessAt ? formatDateTime(s.lastSuccessAt) : "never",
-            s.itemCount === null ? "-" : String(s.itemCount),
-            sourceNote(s),
-          ])}
+          rows={sources.map((s) => {
+            const kind = dataStatusFromVerdict(s.verdict);
+            return [
+              s.label,
+              <DataStatusLabel key="status" kind={kind} date={statusDate(s, kind)} />,
+              s.lastSuccessAt ? formatDateTime(s.lastSuccessAt) : "never",
+              s.itemCount === null ? "-" : String(s.itemCount),
+              sourceNote(s),
+            ];
+          })}
         />
       ) : (
         <NotMeasured />
@@ -257,9 +279,12 @@ export function SourceStatusSection({ sources }: { sources: SourceHealth[] }) {
   );
 }
 
+/** The labels a source can carry, in the order the description explains them. */
+const SOURCE_KINDS = ["live", "stale", "cached", "hand_entered"] as const;
+
 function sourceNote(s: SourceHealth): string {
   const parts: string[] = [];
-  if (s.verdict === "cached") parts.push(s.cachedAt ? `Copy from ${formatDateTime(s.cachedAt)}.` : "Date of the copy unknown.");
+  if (s.verdict === "cached" && !s.cachedAt) parts.push("Date of the copy unknown.");
   if (s.verdict === "stale") parts.push("No success in the last 48 hours.");
   if (s.message) parts.push(s.message);
   return parts.join(" ");
@@ -303,6 +328,7 @@ export function MatchingSection({ matching }: { matching: MatchingResult }) {
         <>
           <p className="text-muted-foreground">{MATCHING_SCOPE_TEXT[matching.scope]}</p>
           <Table
+            caption="Matching per ranking: members, ranked, judged, kept, rejected and not judged yet"
             head={["Ranking", "Members", "Ranked", "Judged", "Kept", "Rejected", "Not judged yet"]}
             rows={matching.modes.map((m) => [
               MODE_LABEL[m.mode],
@@ -331,6 +357,7 @@ export function RedTeamSection({ run }: { run: Run<RedTeamSummary> }) {
       {run.status === "unreadable" ? <Unreadable what="A red-team run is stored" problem={run.problem} /> : null}
       {run.status === "measured" ? (
         <Table
+          caption="Red-team tests per group: prompts passed and pass rate"
           head={["Group", "Passed", "Pass rate"]}
           rows={run.summary.groups.map((g) => [RED_TEAM_GROUP_LABELS[g.group] ?? g.group.replace(/_/g, " "), `${g.passed} of ${g.total}`, percentOf(g.passed, g.total)])}
         />
@@ -374,6 +401,7 @@ export function TimedTestSection({ result }: { result: FileResult<TimedTestResul
       {result.status === "measured" ? (
         <>
           <Table
+            caption="Timed test per task and tester: by hand next to with the tool"
             head={["Task", "Tester", "By hand", "With the tool"]}
             rows={summarizeTimedTest(result.data).map((row) => [
               TASK_LABEL[row.task],
@@ -406,6 +434,7 @@ export function StaffSessionSection({ result }: { result: FileResult<StaffSessio
             {result.data.staff} {result.data.staff === 1 ? "member" : "members"} of BSP staff took part.
           </p>
           <Table
+            caption="Staff session per gold member: profile claims rated right and top-five matches rated relevant"
             head={["Gold member", "Profile claims right", "Top-five matches relevant"]}
             rows={summary.members.map((m) => [m.member, claimsText(m.claims), ratingText(m.top5)])}
             foot={summary.members.length > 1 ? [["All gold members", claimsText(summary.total.claims), ratingText(summary.total.top5)]] : undefined}

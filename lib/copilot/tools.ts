@@ -16,14 +16,14 @@
  */
 import { and, asc, eq, gte, ilike, inArray, isNotNull, isNull, lte, notLike, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import { claims, companies, companyPrivate, evidence, matches, opportunities, savedItems } from "../db/schema";
+import { claims, companies, companyPrivate, evidence, matches, opportunities, savedItems, snapshots, sourceStatus } from "../db/schema";
 import type { UserTx } from "../db/user";
 import { detectInjection, INJECTION_LABEL } from "../injection/detect";
 import type { ToolDefinition } from "../nvidia";
-import { OpportunityKind, OpportunityTag } from "../schemas";
+import { OpportunityKind, OpportunityTag, type SourceState } from "../schemas";
 import { createHandoff } from "./handoff";
 import { BSP_CONTACT } from "./policy";
-import { day, type SourceRegistry } from "./sources";
+import { day, opportunityLabel, shownDay, type CitationLabel, type SourceRegistry } from "./sources";
 
 /** Runs one piece of work on the member's own database client. */
 export type DbRunner = <T>(run: (tx: UserTx) => Promise<T>) => Promise<T>;
@@ -264,48 +264,76 @@ export function injectionWarning(...texts: (string | readonly string[] | null | 
 
 const forModel = (warning: string | undefined) => (warning ? { warning: INJECTION_NOTE_FOR_MODEL } : {});
 
-type OpportunityRow = {
+export type OpportunityRow = {
   id: string;
   kind: OpportunityKind;
   title: string;
   url: string;
   source: string;
+  externalId: string;
   deadline: Date | null;
   opensAt: Date | null;
   eventDate: Date | null;
   retrievedAt: Date;
   simulated: boolean;
   eligibilityText: string | null;
+  /** The source's state (source_status, joined on its label), for the data label; null without a row. */
+  sourceState: SourceState | null;
+  /** For a cached source: the date of the copy. */
+  sourceCachedAt: Date | null;
 };
 
+/** Every query that selects these left-joins source_status with withSourceStatus. */
 const opportunityColumns = {
   id: opportunities.id,
   kind: opportunities.kind,
   title: opportunities.title,
   url: opportunities.url,
   source: opportunities.source,
+  externalId: opportunities.externalId,
   deadline: opportunities.deadline,
   opensAt: opportunities.opensAt,
   eventDate: opportunities.eventDate,
   retrievedAt: opportunities.retrievedAt,
   simulated: opportunities.simulated,
   eligibilityText: opportunities.eligibilityText,
+  sourceState: sourceStatus.state,
+  sourceCachedAt: sourceStatus.cachedAt,
 };
+
+/** The join behind the data label (D20): opportunities.source is the collector's label (lib/staff-views/query.ts does the same). */
+const withSourceStatus = eq(sourceStatus.label, opportunities.source);
+
+/** What citeOpportunity registers for an opportunity: the dates as the screens write them, and its data label. */
+export function opportunitySource(o: OpportunityRow): { dates: string[]; label?: CitationLabel; cachedAt?: string } {
+  const dates = [
+    o.opensAt ? `opens ${shownDay(o.opensAt)}` : null,
+    o.deadline ? `closes ${shownDay(o.deadline)}` : null,
+    o.eventDate ? `event ${shownDay(o.eventDate)}` : null,
+    `retrieved ${shownDay(o.retrievedAt)}`,
+  ].filter((d): d is string => d !== null);
+  const label = opportunityLabel(o);
+  // A cached copy carries the copy's date; without one, the date the item was read from it.
+  const cachedAt = label === "cached" ? (o.sourceCachedAt ?? o.retrievedAt).toISOString() : undefined;
+  return { dates, ...(label ? { label } : {}), ...(cachedAt ? { cachedAt } : {}) };
+}
+
+/**
+ * What a profile quote's source shows: the retrieval date of a real page, or
+ * the Simulated label for page text the team wrote (no retrieval date then,
+ * as on the profile's evidence viewer).
+ */
+export function quoteSource(quote: { retrievedAt: Date; simulated: boolean }): { dates: string[]; label?: "simulated" } {
+  return quote.simulated ? { dates: [], label: "simulated" } : { dates: [`retrieved ${shownDay(quote.retrievedAt)}`] };
+}
 
 /** Registers an opportunity as a source and returns its "[n]". */
 function citeOpportunity(registry: SourceRegistry, o: OpportunityRow, warning?: string): string {
-  const dates = [
-    o.opensAt ? `opens ${day(o.opensAt)}` : null,
-    o.deadline ? `closes ${day(o.deadline)}` : null,
-    o.eventDate ? `event ${day(o.eventDate)}` : null,
-    `retrieved ${day(o.retrievedAt)}`,
-  ].filter((d): d is string => d !== null);
   const n = registry.add({
     url: o.url,
     title: o.title,
     publisher: o.source,
-    dates,
-    simulated: o.simulated,
+    ...opportunitySource(o),
     opportunityId: o.id,
     whoMayApply: cut(o.eligibilityText, MAX_FIELD_CHARS),
     ...(warning ? { warning } : {}),
@@ -341,14 +369,16 @@ export async function getMyProfile(tx: UserTx, ctx: ToolContext, registry: Sourc
     .orderBy(asc(claims.field));
   const quotes = rows.length
     ? await tx
-        .select({ claimId: evidence.claimId, url: evidence.url, retrievedAt: evidence.retrievedAt })
+        // The snapshot says whether the page text was written by the team (simulated).
+        .select({ claimId: evidence.claimId, url: evidence.url, retrievedAt: evidence.retrievedAt, simulated: snapshots.simulated })
         .from(evidence)
+        .innerJoin(snapshots, eq(snapshots.id, evidence.snapshotId))
         .where(inArray(evidence.claimId, rows.map((r) => r.id)))
         .orderBy(asc(evidence.retrievedAt))
     : [];
   const [own] = await tx.select({ userPriorities: companyPrivate.userPriorities }).from(companyPrivate).where(eq(companyPrivate.companyId, ctx.companyId));
 
-  const profileDate = day(company.lastProfiledAt ?? company.updatedAt);
+  const profileDate = shownDay(company.lastProfiledAt ?? company.updatedAt);
   const profileCite = registry.add({ url: "/profile", title: `${company.name}'s profile in the Virtual Science Park`, dates: profileDate ? [`profiled ${profileDate}`] : [] });
   const memberCite = registry.add({ url: company.memberPage, title: `${company.name} on Blue Science Park's member list`, publisher: "Blue Science Park", dates: profileDate ? [`retrieved ${profileDate}`] : [] });
 
@@ -360,7 +390,7 @@ export async function getMyProfile(tx: UserTx, ctx: ToolContext, registry: Sourc
       ? registry.add({
           url: quote.url,
           title: quote.url === company.memberPage ? `${company.name} on Blue Science Park's member list` : `${company.name}'s web page`,
-          dates: [`retrieved ${day(quote.retrievedAt)}`],
+          ...quoteSource(quote),
           ...(warning ? { warning } : {}),
         })
       : profileCite;
@@ -415,6 +445,7 @@ export async function searchOpportunities(tx: UserTx, args: z.infer<typeof Searc
     tx
       .select({ ...opportunityColumns, description: opportunities.description, contact: opportunities.contact, format: opportunities.format, score: sql<number>`${score}`.mapWith(Number) })
       .from(opportunities)
+      .leftJoin(sourceStatus, withSourceStatus)
       .where(and(...filters, withText && terms.length ? sql`(${score}) > 0` : undefined))
       // Without keywords the score is the constant 0, which ORDER BY would read as a column number.
       .orderBy(...(terms.length ? [sql`(${score}) desc`] : []), sql`coalesce(${opportunities.deadline}, ${opportunities.eventDate}) asc nulls last`, asc(opportunities.title))
@@ -469,6 +500,7 @@ export async function explainMatch(tx: UserTx, ctx: ToolContext, args: z.infer<t
     })
     .from(matches)
     .innerJoin(opportunities, eq(opportunities.id, matches.opportunityId))
+    .leftJoin(sourceStatus, withSourceStatus)
     .where(
       and(
         eq(matches.companyId, ctx.companyId),
@@ -517,7 +549,11 @@ export async function explainMatch(tx: UserTx, ctx: ToolContext, args: z.infer<t
 
 export async function saveOpportunity(tx: UserTx, ctx: ToolContext, args: z.infer<typeof SaveArgs>, registry: SourceRegistry) {
   if (!isUuid(args.opportunityId)) return { error: "opportunityId must be an id from searchOpportunities or explainMatch." };
-  const [o] = await tx.select(opportunityColumns).from(opportunities).where(and(eq(opportunities.id, args.opportunityId), notFixture));
+  const [o] = await tx
+    .select(opportunityColumns)
+    .from(opportunities)
+    .leftJoin(sourceStatus, withSourceStatus)
+    .where(and(eq(opportunities.id, args.opportunityId), notFixture));
   if (!o) return { error: "There is no such opportunity in the store." };
   await tx.insert(savedItems).values({ companyId: ctx.companyId, opportunityId: o.id, userId: ctx.userId }).onConflictDoNothing();
   const warning = injectionWarning(o.title, o.eligibilityText);

@@ -10,7 +10,8 @@
  *
  * No cards, no email: buildDigest() returns null for an empty week.
  */
-import type { OpportunityKind } from "../schemas";
+import { DATA_STATUS_META, dataStatusText, itemDataStatus, type DataStatusKind } from "../../components/data-status-label";
+import type { OpportunityKind, SourceState } from "../schemas";
 import { cardDates, isWebLink, kindLabel, sourceLabel, weekLabel } from "../week/format";
 
 export type DigestOpportunity = {
@@ -20,8 +21,14 @@ export type DigestOpportunity = {
   url: string;
   deadline: Date | null;
   eventDate: Date | null;
-  /** Entered by hand by the team, not read from a live source. */
+  /** opportunities.simulated: entered by hand by the team, or the team's sample data for a `fixture-` row. */
   simulated: boolean;
+  /** opportunities.external_id: a `fixture-` row is the team's sample data, labelled Simulated. */
+  externalId: string | null;
+  /** The state of the opportunity's source (source_status, joined on its label); null without a row. */
+  sourceState: SourceState | null;
+  /** For a cached source: the date of the copy (or of the read from it). Null otherwise. */
+  cachedAt: Date | null;
 };
 
 /** One stored week_cards row, with its opportunity (match cards) or trend area (trend cards). */
@@ -56,12 +63,36 @@ export const DIGEST_NOTICE =
   "Information only. These cards are picked by software from public sources and your company's profile on Virtual Science Park. " +
   "A potential match is not a decision on whether you can apply: check the source before you act, or ask BSP staff.";
 
-/** How the data is labelled, shared by the HTML and the text version. */
-export const DIGEST_LABELS: readonly { label: string; meaning: string }[] = [
+/** The card labels every digest explains. */
+const CARD_LABELS: readonly { label: string; meaning: string }[] = [
   { label: "Potential match", meaning: "an opportunity ranked for your company, with why it may fit and a next step." },
   { label: "Trend note", meaning: "a short note on this week's news and new calls in one technology area, written by software from the sources it lists." },
-  { label: "Simulated data", meaning: "entered by hand by the team, not read from a live source." },
 ];
+
+/** The data label of a card's opportunity (D20, the same rule as on the screens), or null for one read live. */
+export function opportunityDataStatus(o: DigestOpportunity): DataStatusKind | null {
+  return itemDataStatus(o);
+}
+
+/** The words on the label: "Hand-entered", "Simulated", "Cached copy · 10 Nov 2026". */
+function dataLabelText(o: DigestOpportunity, kind: DataStatusKind): string {
+  return dataStatusText(kind, kind === "cached" ? o.cachedAt : null);
+}
+
+/**
+ * How the data is labelled, shared by the HTML and the text version: the two
+ * card labels, then each data label this email uses, with what it means.
+ */
+export function digestLabels(cards: readonly DigestCard[]): { label: string; meaning: string }[] {
+  const used = new Set(cards.map((c) => (c.opportunity ? opportunityDataStatus(c.opportunity) : null)));
+  const data = (["hand_entered", "cached", "simulated"] as const)
+    .filter((kind) => used.has(kind))
+    .map((kind) => {
+      const { label, description } = DATA_STATUS_META[kind];
+      return { label, meaning: `${description.charAt(0).toLowerCase()}${description.slice(1)}` };
+    });
+  return [...CARD_LABELS, ...data];
+}
 
 const AREA_LABELS: Record<string, string> = {
   marine: "Marine",
@@ -109,17 +140,20 @@ function areaLabel(area: string | null): string | null {
   return area ? (AREA_LABELS[area] ?? area) : null;
 }
 
-/** The labels on a card, in order, e.g. ["Potential match", "Funding call", "Vinnova", "Simulated data"]. */
-function cardLabels(card: DigestCard): { text: string; style: "main" | "plain" | "simulated" }[] {
+type LabelStyle = "main" | "plain" | "simulated" | "cached";
+
+/** The labels on a card, in order, e.g. ["Potential match", "Testbed", "Curated testbed list", "Hand-entered"]. */
+function cardLabels(card: DigestCard): { text: string; style: LabelStyle }[] {
   if (card.kind === "trend") {
     const area = areaLabel(card.trendArea);
     return [{ text: "Trend note", style: "main" }, ...(area ? [{ text: area, style: "plain" as const }] : [])];
   }
   const o = card.opportunity;
+  const status = o ? opportunityDataStatus(o) : null;
   return [
     { text: "Potential match", style: "main" },
     ...(o ? [{ text: kindLabel(o.kind), style: "plain" as const }, { text: oneLine(o.source), style: "plain" as const }] : []),
-    ...(o?.simulated ? [{ text: "Simulated data", style: "simulated" as const }] : []),
+    ...(o && status ? [{ text: dataLabelText(o, status), style: status === "cached" ? ("cached" as const) : ("simulated" as const) }] : []),
   ];
 }
 
@@ -155,6 +189,9 @@ const COLOR = {
   simBg: "#fff4e0",
   simText: "#8a4b00",
   simBorder: "#d9a75c",
+  cacheBg: "#e7f5f2",
+  cacheText: "#0d5c52",
+  cacheBorder: "#8cc9bd",
   button: "#0b5cad",
   buttonText: "#ffffff",
 } as const;
@@ -171,6 +208,7 @@ const STYLE = `
   .vsp-main { background-color: #1d3550 !important; color: #cfe3ff !important; border-color: #2f4f75 !important; }
   .vsp-plain { color: #c5ccd5 !important; border-color: #3a414a !important; }
   .vsp-sim { background-color: #3a2a12 !important; color: #ffd28a !important; border-color: #8a6a3a !important; }
+  .vsp-cache { background-color: #123a35 !important; color: #9fe3d4 !important; border-color: #2d6b60 !important; }
 }
 @media (max-width: 620px) {
   .vsp-outer { padding: 16px 8px !important; }
@@ -186,14 +224,16 @@ function link(href: string, label: string): string {
   return `<a class="vsp-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">${escapeHtml(label)}</a>`;
 }
 
-function badge({ text, style }: { text: string; style: "main" | "plain" | "simulated" }): string {
+const BADGE_LOOK: Record<LabelStyle, { cls: string; css: string }> = {
+  main: { cls: "vsp-main", css: `background-color:${COLOR.mainBg};color:${COLOR.mainText};border:1px solid ${COLOR.mainBorder};` },
+  simulated: { cls: "vsp-sim", css: `background-color:${COLOR.simBg};color:${COLOR.simText};border:1px dashed ${COLOR.simBorder};` },
+  cached: { cls: "vsp-cache", css: `background-color:${COLOR.cacheBg};color:${COLOR.cacheText};border:1px dashed ${COLOR.cacheBorder};` },
+  plain: { cls: "vsp-plain", css: `color:${COLOR.muted};border:1px solid ${COLOR.border};` },
+};
+
+function badge({ text, style }: { text: string; style: LabelStyle }): string {
   const base = `display:inline-block;margin:0 6px 6px 0;padding:2px 8px;border-radius:10px;font-family:${FONT};font-size:12px;line-height:18px;font-weight:600;`;
-  const look =
-    style === "main"
-      ? { cls: "vsp-main", css: `background-color:${COLOR.mainBg};color:${COLOR.mainText};border:1px solid ${COLOR.mainBorder};` }
-      : style === "simulated"
-        ? { cls: "vsp-sim", css: `background-color:${COLOR.simBg};color:${COLOR.simText};border:1px dashed ${COLOR.simBorder};` }
-        : { cls: "vsp-plain", css: `color:${COLOR.muted};border:1px solid ${COLOR.border};` };
+  const look = BADGE_LOOK[style];
   return `<span class="${look.cls}" style="${base}${look.css}">${escapeHtml(text)}</span>`;
 }
 
@@ -255,7 +295,9 @@ function html({ subject, preheader, company, week, intro, cards, weekUrl, now }:
   weekUrl: string;
   now: Date;
 }): string {
-  const labels = DIGEST_LABELS.map((l) => `<strong>${escapeHtml(l.label)}</strong>: ${escapeHtml(l.meaning)}`).join("<br>");
+  const labels = digestLabels(cards)
+    .map((l) => `<strong>${escapeHtml(l.label)}</strong>: ${escapeHtml(l.meaning)}`)
+    .join("<br>");
   return [
     "<!doctype html>",
     '<html lang="en">',
@@ -355,7 +397,7 @@ export function buildDigest({ companyName, weekOf, cards, siteUrl, now = new Dat
     DIGEST_NOTICE,
     "",
     "How the data is labelled:",
-    ...DIGEST_LABELS.map((l) => `- ${l.label}: ${l.meaning}`),
+    ...digestLabels(ordered).map((l) => `- ${l.label}: ${l.meaning}`),
     "Dates are in Swedish time.",
     "",
     "Sent by Virtual Science Park for members of Blue Science Park.",

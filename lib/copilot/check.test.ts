@@ -13,14 +13,16 @@ import { HANDOFF_SENT_TEXT } from "./handoff";
 import { BSP_CONTACT, INFORMATION_ONLY_NOTE } from "./policy";
 import { SourceRegistry, type SourceEntry } from "./sources";
 
+const HAND_ENTERED_LINE = (n: number) => `Source [${n}]: Hand-entered. Typed in by the team from the source, not read automatically.`;
+
 function registry(): SourceEntry[] {
   const r = new SourceRegistry();
   r.add({
     url: "https://testandevaluation.fmv.se/about/test-ranges/fmv-naval-test-ranges/",
     title: "FMV Naval Test Ranges (Naval Test Centre, Karlskrona)",
     publisher: "Curated testbed list",
-    dates: ["retrieved 2026-11-14"],
-    simulated: true,
+    dates: ["retrieved 14 Nov 2026"],
+    label: "hand_entered",
     opportunityId: "11111111-1111-4111-8111-111111111111",
   });
   r.add({
@@ -42,13 +44,14 @@ describe("checkAnswer: citations", () => {
       sources: registry(),
     });
     expect(text).toBe(
-      `MTC Saltö in Karlskrona is a marine test environment [1]. FMV runs naval test ranges for sensor trials [2].\n\n${INFORMATION_ONLY_NOTE}`,
+      `MTC Saltö in Karlskrona is a marine test environment [1]. FMV runs naval test ranges for sensor trials [2].\n\n${HAND_ENTERED_LINE(2)}\n\n${INFORMATION_ONLY_NOTE}`,
     );
     expect(citations.map((c) => [c.n, c.title])).toEqual([
       [1, "MTC Saltö marine technology environment, Karlskrona"],
       [2, "FMV Naval Test Ranges (Naval Test Centre, Karlskrona)"],
     ]);
-    expect(citations[1]).toMatchObject({ dates: ["retrieved 2026-11-14"], simulated: true, opportunityId: "11111111-1111-4111-8111-111111111111" });
+    expect(citations[1]).toMatchObject({ dates: ["retrieved 14 Nov 2026"], label: "hand_entered", opportunityId: "11111111-1111-4111-8111-111111111111" });
+    expect(citations[0]).not.toHaveProperty("label");
     expect(changes).toEqual([]);
   });
 
@@ -117,7 +120,7 @@ describe("checkAnswer: citations", () => {
 
   it("shows the information note once, also when the model wrote it itself", () => {
     const { text } = checkAnswer({ text: `FMV runs naval test ranges for sensor trials [1].\n\n${INFORMATION_ONLY_NOTE}`, sources: registry() });
-    expect(text).toBe(`FMV runs naval test ranges for sensor trials [1].\n\n${INFORMATION_ONLY_NOTE}`);
+    expect(text).toBe(`FMV runs naval test ranges for sensor trials [1].\n\n${HAND_ENTERED_LINE(1)}\n\n${INFORMATION_ONLY_NOTE}`);
   });
 
   it("strips markdown and keeps list items", () => {
@@ -216,7 +219,7 @@ describe("checkAnswer: handoffs", () => {
       sources: registry(),
       savedOpportunityIds: ["11111111-1111-4111-8111-111111111111"],
     });
-    expect(text).toBe(`Saved to your list: FMV Naval Test Ranges (Naval Test Centre, Karlskrona) [1].\n\n${INFORMATION_ONLY_NOTE}`);
+    expect(text).toBe(`Saved to your list: FMV Naval Test Ranges (Naval Test Centre, Karlskrona) [1].\n${HAND_ENTERED_LINE(1)}\n\n${INFORMATION_ONLY_NOTE}`);
     expect(citations).toHaveLength(1);
   });
 
@@ -302,5 +305,45 @@ describe("checkAnswer: sources with text aimed at an AI", () => {
   it("says nothing about a flagged source the answer does not cite", () => {
     const { text } = checkAnswer({ text: "A plain call funds sensors [1].", sources: flagged() });
     expect(text).not.toContain(LABEL);
+  });
+});
+
+describe("checkAnswer: data labels of the cited sources (D20)", () => {
+  function labelled(): SourceEntry[] {
+    const r = new SourceRegistry();
+    r.add({ url: "https://example.com/live", title: "A live call", dates: [] });
+    r.add({ url: "https://example.com/testbed-a", title: "Testbed A", dates: [], label: "hand_entered" });
+    r.add({ url: "https://example.com/cached", title: "A call from a cached copy", dates: [], label: "cached", cachedAt: "2026-11-10T09:00:00.000Z" });
+    r.add({ url: "https://example.com/testbed-b", title: "Testbed B", dates: [], label: "hand_entered" });
+    r.add({ url: "https://example.com/team-page", title: "EmbeddedArt's web page", dates: [], label: "simulated" });
+    return [...r.all()];
+  }
+
+  it("adds one line per label, with the sources in order of use and the date of a cached copy", () => {
+    const { text } = checkAnswer({
+      text: "Testbed B tests sonar [4]. A live call funds sensors [1]. Testbed A tests radar [2]. A cached call funds AI [3]. Your offerings are UV sensors [5].",
+      sources: labelled(),
+    });
+    expect(text).toContain(
+      [
+        "Sources [1][3]: Hand-entered. Typed in by the team from the source, not read automatically.",
+        "Source [4]: Cached copy · 10 Nov 2026. A recorded copy of the source, from the date shown.",
+        "Source [5]: Simulated. Sample data written by the team. Not real.",
+      ].join("\n"),
+    );
+    expect(text).not.toMatch(/Source \[2\]:/);
+  });
+
+  it("labels only the sources the answer cites", () => {
+    const { text } = checkAnswer({ text: "A live call funds sensors [1].", sources: labelled() });
+    expect(text).toBe(`A live call funds sensors [1].\n\n${INFORMATION_ONLY_NOTE}`);
+  });
+
+  it("keeps the label of a page that a later tool registers again without one", () => {
+    const r = new SourceRegistry();
+    r.add({ url: "https://example.com/team-page", title: "EmbeddedArt on Blue Science Park's member list", dates: ["retrieved 14 Nov 2026"] });
+    r.add({ url: "https://example.com/team-page", title: "EmbeddedArt's web page", dates: [], label: "simulated" });
+    r.add({ url: "https://example.com/team-page", title: "EmbeddedArt's web page", dates: [] });
+    expect(r.get(1)).toMatchObject({ label: "simulated" });
   });
 });

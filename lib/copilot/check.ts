@@ -14,8 +14,10 @@
  *    ("who may apply") and the BSP staff contact.
  * 3. What the tools did is confirmed in code: a handoff with "sent to BSP
  *    staff", a save with "Saved to your list" and its source.
- * 4. A cited source whose text looked like instructions to an AI (the tools
- *    ran the injection detector on it) is labelled with INJECTION_LABEL.
+ * 4. A cited source that is hand-entered, simulated or a cached copy gets its
+ *    data label (D20) in a line after the answer; one whose text looked like
+ *    instructions to an AI (the tools ran the injection detector on it) is
+ *    labelled with INJECTION_LABEL.
  * 5. The "information only" note is appended.
  *
  * "States a fact" is a heuristic (see isFactual): it can miss a fact written
@@ -23,6 +25,7 @@
  * week". When sentences are removed, runTurn (turn.ts) asks the model once to
  * cite or drop them and checks the new answer again.
  */
+import { DATA_STATUS_META, dataStatusText } from "../../components/data-status-label";
 import { HANDOFF_SENT_TEXT } from "./handoff";
 import { BSP_CONTACT, INFORMATION_ONLY_NOTE } from "./policy";
 import { toCitation, type Citation, type SourceEntry } from "./sources";
@@ -341,12 +344,33 @@ export function checkAnswer({ text, sources, askedEligibility = false, handoffSe
     if (!body.includes(BSP_CONTACT)) extra.push(`BSP staff can help you check this: ${BSP_CONTACT}.`);
   }
 
+  // Cited sources that are hand-entered, simulated or a cached copy say so (D20), as under the answer on screen.
+  const cited = [...new Set(citedNumbers([body, ...extra].join("\n")))];
+  extra.push(...labelLines(sources, cited));
   // A cited source whose text looked like instructions to an AI says so (INJECTION_LABEL, set by the tools).
-  const citedNow = new Set(citedNumbers([body, ...extra].join("\n")));
+  const citedNow = new Set(cited);
   for (const s of sources) if (s.warning && citedNow.has(s.n)) extra.push(`Source [${s.n}]: ${s.warning}`);
 
   const full = [body, extra.join("\n"), INFORMATION_ONLY_NOTE].filter(Boolean).join("\n\n").replace(/(\[\d+\]) (?=\[\d+\])/g, "$1");
   return { ...renumber(full, byNumber), changes };
+}
+
+/**
+ * One line per data label among the cited sources, in order of first use:
+ * "Sources [1][3]: Hand-entered. Typed in by the team from the source, not
+ * read automatically." Sources read live get no line.
+ */
+export function labelLines(sources: readonly SourceEntry[], cited: readonly number[]): string[] {
+  const groups = new Map<string, { label: string; numbers: number[] }>();
+  for (const n of cited) {
+    const source = sources.find((s) => s.n === n);
+    if (!source?.label) continue;
+    const label = `${dataStatusText(source.label, source.cachedAt)}. ${DATA_STATUS_META[source.label].description}`;
+    const group = groups.get(label) ?? { label, numbers: [] };
+    if (!group.numbers.includes(n)) group.numbers.push(n);
+    groups.set(label, group);
+  }
+  return [...groups.values()].map(({ label, numbers }) => `${numbers.length === 1 ? "Source" : "Sources"} ${marks(numbers)}: ${label}`);
 }
 
 /** Numbers the cited sources 1, 2, ... in order of first use, in the text and the list. */
