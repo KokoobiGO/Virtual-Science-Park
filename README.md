@@ -125,7 +125,7 @@ no SDK version to pin.
 
 | Feature | What we use | Note |
 |---|---|---|
-| Models | `nvidia/nemotron-3.5-lightning-30b-a3b` (classifier, tagging), `nvidia/nemotron-3-super-120b-a12b` (everything else) | Both served by the live model list. Model cards list tool calling and structured output as supported |
+| Models | `nvidia/nemotron-3.5-lightning-30b-a3b` for both the fast and the main slot | `nvidia/nemotron-3-super-120b-a12b` is in the live model list but answers 404 "Function not found for account" for our free key, so main uses the fast model until a bigger model is confirmed |
 | Structured outputs | `response_format: {type: "json_schema", ...}`, falling back to `nvext.guided_json` | The check reports which of the two the endpoint accepted |
 | Tool calling | `tools` + `tool_choice: "auto"`, answer with a `role: "tool"` message | No Tool Runner: the agent loop is ours |
 | Web search | None | No server-side search is documented. Scout needs a search API exposed as a tool |
@@ -138,10 +138,9 @@ allows 4,096 output tokens, so reasoning cannot crowd out the answer.
 `npm run check:nvidia` makes one test call per row with the key in
 `.env.local`, and explains a 401 or 403 answer. The same checks run on the
 deploy, with Netlify's key, at `/staff/checks` (staff only; the key stays on
-the server). `NVIDIA_MODEL_FAST` / `NVIDIA_MODEL_MAIN` in `.env.local` override the
-models without a code change. Last run, 14 Nov 2026: the model IDs passed, but
-every chat call returned `403 Authorization failed`, for these models and for
-`openai/gpt-oss-20b` too, so NVIDIA refused the key in `.env.local` itself.
+the server). `NVIDIA_MODEL_FAST` / `NVIDIA_MODEL_MAIN` override the models
+without a code change. The "Model IDs" row only checks that a model is listed,
+not that the key may call it.
 
 ## Hosted setup (S2, S4)
 

@@ -16,8 +16,13 @@
 export const NVIDIA_MODELS = {
   /** Scope classifier, tagging: cheap and fast. */
   fast: process.env.NVIDIA_MODEL_FAST || "nvidia/nemotron-3.5-lightning-30b-a3b",
-  /** Profiler, matcher judge, digest, Scout, Copilot. */
-  main: process.env.NVIDIA_MODEL_MAIN || "nvidia/nemotron-3-super-120b-a12b",
+  /**
+   * Profiler, matcher judge, digest, Scout, Copilot. nemotron-3-super-120b-a12b
+   * is in the model list but answered 404 "Function not found for account" for
+   * our free key on 2026-11-14, so main uses the fast model until a bigger
+   * model is confirmed for the account.
+   */
+  main: process.env.NVIDIA_MODEL_MAIN || "nvidia/nemotron-3.5-lightning-30b-a3b",
 };
 
 export const NVIDIA_DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1";
