@@ -72,8 +72,8 @@ describe("profiler output schema", () => {
 
   it("parses a reply with or without a code fence, and refuses a wrong shape", () => {
     const reply = JSON.stringify(output({}));
-    expect(parseProfilerReply(reply).summary.status).toBe("missing");
-    expect(parseProfilerReply("```json\n" + reply + "\n```").summary.status).toBe("missing");
+    expect(parseProfilerReply(reply).summary?.status).toBe("missing");
+    expect(parseProfilerReply("```json\n" + reply + "\n```").summary?.status).toBe("missing");
     expect(() => parseProfilerReply('{"summary": {"status": "certain"}}')).toThrow();
     expect(() => parseProfilerReply("I could not read the pages.")).toThrow();
   });

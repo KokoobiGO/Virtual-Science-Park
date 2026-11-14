@@ -39,7 +39,7 @@ FIELDS
 FOR EACH FIELD
 - status: "stated" when a source says it. "inferred" when it is your reasonable reading of what the sources say. "missing" when the sources do not say. Missing is a good answer: never fill a gap with a guess, or with what you know about the company from anywhere else.
 - evidence: one to three quotes that support the field, each with the id of the source it is from. Write the quotes first, then the values they support. An empty list when missing.
-- values: short phrases in English. For summary, exactly one sentence. An empty list when missing.
+- values: short phrases in English, one thing per item: write ["Sonar", "Hydroacoustics"], not ["Sonar and hydroacoustics"]. For summary, exactly one sentence. An empty list when missing.
 - confidence: a number from 0 to 1. 0 when missing.
 
 QUOTES

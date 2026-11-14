@@ -1,12 +1,14 @@
 /**
  * Profiler (A5): stored page text in, draft claims out. It calls the model
- * once and checks the answer against the output schema. It does not check
- * quotes or store anything: that is the pipeline's job (A6).
+ * once and checks the answer against the output schema. Checking the quotes
+ * (verify.ts) and storing the claims (store.ts) are separate steps of the
+ * profile-company job (A6).
  *
  * While we test with NVIDIA's free key the model is NVIDIA_MODELS.main; the
  * prompt and schema do not depend on the provider.
  */
 import { NVIDIA_MODELS, nvidiaChat } from "../nvidia";
+import type { ProfileField } from "../schemas";
 import { parseProfilerReply, profilerJsonSchema, toDraftClaims, type DraftClaim } from "./output";
 import { buildProfilerUserMessage, PROFILER_SYSTEM_PROMPT, type ProfilerSource } from "./prompt";
 
@@ -40,14 +42,19 @@ export type ProfilerRun = {
   usage: { promptTokens: number; completionTokens: number } | null;
 };
 
-export async function runProfiler(
-  companyName: string,
-  sources: ProfilerSource[],
-  options: { model?: string; thinking?: boolean } = {},
-): Promise<ProfilerRun> {
+export type ProfilerOptions = {
+  model?: string;
+  thinking?: boolean;
+  /** A retry: answer for these fields only, after reading `feedback`. */
+  retry?: { fields: ProfileField[]; feedback: string };
+};
+
+export async function runProfiler(companyName: string, sources: ProfilerSource[], options: ProfilerOptions = {}): Promise<ProfilerRun> {
   if (!sources.length) throw new Error(`No sources to profile ${companyName} from.`);
   const model = options.model ?? NVIDIA_MODELS.main;
   const started = Date.now();
+  const fields = options.retry?.fields;
+  const question = [buildProfilerUserMessage(companyName, sources), ...(options.retry ? [options.retry.feedback] : [])].join("\n\n");
 
   const response = await nvidiaChat(
     {
@@ -56,9 +63,9 @@ export async function runProfiler(
       temperature: 0.2,
       messages: [
         { role: "system", content: PROFILER_SYSTEM_PROMPT },
-        { role: "user", content: buildProfilerUserMessage(companyName, sources) },
+        { role: "user", content: question },
       ],
-      response_format: { type: "json_schema", json_schema: { name: "company_profile", schema: profilerJsonSchema(), strict: true } },
+      response_format: { type: "json_schema", json_schema: { name: "company_profile", schema: profilerJsonSchema(fields), strict: true } },
       chat_template_kwargs: { enable_thinking: options.thinking ?? DEFAULT_THINKING },
     },
     { timeoutMs: TIMEOUT_MS },
@@ -68,7 +75,7 @@ export async function runProfiler(
   const reply = choice?.message.content?.trim() ?? "";
   let output;
   try {
-    output = parseProfilerReply(reply);
+    output = parseProfilerReply(reply, fields);
   } catch (error) {
     throw new ProfilerOutputError(
       `The profiler's answer does not fit the output schema (finish_reason=${choice?.finish_reason ?? "none"}): ${(error as Error).message.slice(0, 300)}`,

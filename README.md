@@ -78,7 +78,7 @@ lib/resend.ts        Resend email client, for the weekly digest (C18)
 lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clean text
 lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/members/         member list import (A2): BSP's member list and pages into companies
-lib/profiler/        profiler prompt and output schema (A5): page text in, draft claims out
+lib/profiler/        profiler (A5, A6): page text in, claims out; quote check with one retry; storage
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
 lib/quote-check.ts   quote verifier (A4): is a claim's quote in the stored page text, word for word?
 lib/inngest/         Inngest client and functions (S10)
@@ -189,6 +189,29 @@ language and a hash of the text. Quotes are checked against that stored text.
   JavaScript come out empty and are refused with a clear message.
 - Jobs call `fetchSnapshot()` in a step, or send `app/snapshot.requested`.
   Staff can try a URL under "Page fetcher" at `/staff/checks`.
+
+## Profiler (A5, A6)
+
+The `profile-company` job profiles one member: it stores the company's home
+page and its BSP member page as snapshots, asks the model for the eight profile
+fields, checks every quote against the stored page text, gives failed fields
+one retry, and stores what passed. A field that fails twice is stored as
+`missing`, never as an unproven claim.
+
+```
+event: app/company.profile.requested   data: { "slug": "techinova" }
+```
+
+- Add `"dryRun": true` to get the claims back in the run's output without
+  storing them.
+- Values are in English; quotes stay in the page's language, three per field at
+  most. The quote check only proves a quote is on the page, not that it
+  supports the value: that is what the hand-check (A7) is for.
+- Nothing is deleted: the profiler's earlier claims become `superseded`. Where
+  the member has their own claim for a field, the new one is `suggested`.
+- Each run is logged in `job_runs` with its tokens, retried and dropped fields.
+- Model: `nvidia/nemotron-3.5-lightning-30b-a3b` with thinking off, about 10 s
+  a company. With thinking on it runs past Netlify's 30 s limit for one step.
 
 ## Member import (A2)
 

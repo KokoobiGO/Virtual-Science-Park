@@ -10,6 +10,9 @@ import { z } from "zod";
 import { ProfileField, type ClaimStatus, type QuoteLang } from "../schemas";
 import { sourceId, type ProfilerSource } from "./prompt";
 
+/** More quotes per field make the answer slow without making it truer. */
+export const MAX_QUOTES_PER_FIELD = 3;
+
 const ProfilerEvidence = z.object({
   /** The id of the source the quote is copied from, e.g. "S1". */
   source: z.string(),
@@ -27,24 +30,35 @@ const ProfilerClaim = z.object({
   confidence: z.number(),
 });
 
-/** One claim per profile field, all eight required. */
-export const ProfilerOutput = z.object(
-  Object.fromEntries(ProfileField.options.map((field) => [field, ProfilerClaim])) as Record<ProfileField, typeof ProfilerClaim>,
-);
-export type ProfilerOutput = z.infer<typeof ProfilerOutput>;
+const ALL_FIELDS: readonly ProfileField[] = ProfileField.options;
 
-/** The same schema as JSON Schema, for the model's `response_format`. */
-export function profilerJsonSchema(): Record<string, unknown> {
-  return z.toJSONSchema(ProfilerOutput) as Record<string, unknown>;
+/** One claim per profile field. A retry asks for some of the fields only. */
+function profilerSchema(fields: readonly ProfileField[]) {
+  return z.object(Object.fromEntries(fields.map((field) => [field, ProfilerClaim])) as Record<string, typeof ProfilerClaim>);
+}
+
+export type ProfilerOutput = Partial<Record<ProfileField, z.infer<typeof ProfilerClaim>>>;
+
+/**
+ * The same schema as JSON Schema, for the model's `response_format`. It also
+ * caps the quotes per field; the parser does not insist on the cap, so one
+ * quote too many costs us that quote and not the whole answer.
+ */
+export function profilerJsonSchema(fields: readonly ProfileField[] = ALL_FIELDS): Record<string, unknown> {
+  const schema = z.toJSONSchema(profilerSchema(fields)) as unknown as {
+    properties: Record<string, { properties: { evidence: Record<string, unknown> } }>;
+  };
+  for (const claim of Object.values(schema.properties)) claim.properties.evidence.maxItems = MAX_QUOTES_PER_FIELD;
+  return schema;
 }
 
 /** Parses the model's reply, with or without a code fence around the JSON. */
-export function parseProfilerReply(reply: string): ProfilerOutput {
+export function parseProfilerReply(reply: string, fields: readonly ProfileField[] = ALL_FIELDS): ProfilerOutput {
   const fenced = reply.match(/```(?:json)?\s*([\s\S]*?)```/);
-  return ProfilerOutput.parse(JSON.parse(fenced ? fenced[1] : reply));
+  return profilerSchema(fields).parse(JSON.parse(fenced ? fenced[1] : reply)) as ProfilerOutput;
 }
 
-/** A claim as the profiler proposed it. Its quotes are not checked yet (A4, A6). */
+/** A claim as the profiler proposed it. Its quotes are not checked yet (see verify.ts). */
 export type DraftClaim = {
   field: ProfileField;
   /** One sentence for summary, a list for the other fields, null when missing. */
@@ -54,31 +68,34 @@ export type DraftClaim = {
   evidence: { snapshotId: string; url: string; quote: string; quoteLang: QuoteLang }[];
 };
 
-const missing = (field: ProfileField): DraftClaim => ({ field, value: null, status: "missing", confidence: 0, evidence: [] });
+export const missingClaim = (field: ProfileField): DraftClaim => ({ field, value: null, status: "missing", confidence: 0, evidence: [] });
 
-/** Model output to draft claims, in profile order, with the rules applied. */
+/** Model output to draft claims, in profile order, with the rules applied. Fields the output lacks are left out. */
 export function toDraftClaims(output: ProfilerOutput, sources: ProfilerSource[]): DraftClaim[] {
   const byId = new Map(sources.map((source, i) => [sourceId(i), source]));
 
-  return ProfileField.options.map((field): DraftClaim => {
+  return ALL_FIELDS.flatMap((field): DraftClaim[] => {
     const claim = output[field];
+    if (!claim) return [];
     const values = [...new Set(claim.values.map((v) => v.replace(/\s+/g, " ").trim()).filter(Boolean))];
-    if (claim.status === "missing" || values.length === 0) return missing(field);
+    if (claim.status === "missing" || values.length === 0) return [missingClaim(field)];
 
     const evidence = claim.evidence.flatMap((e) => {
       const source = byId.get(e.source.trim().toUpperCase());
       const quote = e.quote.trim();
       // A quote from a source that was never shown cannot be checked: leave it out.
-      return source && quote ? [{ snapshotId: source.snapshotId, url: source.url, quote, quoteLang: source.lang ?? "other" }] : [];
+      return source && quote ? [{ snapshotId: source.snapshotId, url: source.url, quote, quoteLang: source.lang ?? ("other" as const) }] : [];
     });
 
-    return {
-      field,
-      value: field === "summary" ? values[0] : values,
-      // Interests are our reading of the sources, whatever the model called them.
-      status: field === "inferredInterests" ? "inferred" : claim.status,
-      confidence: Math.min(1, Math.max(0, Number.isFinite(claim.confidence) ? claim.confidence : 0)),
-      evidence,
-    };
+    return [
+      {
+        field,
+        value: field === "summary" ? values[0] : values,
+        // Interests are our reading of the sources, whatever the model called them.
+        status: field === "inferredInterests" ? "inferred" : claim.status,
+        confidence: Math.min(1, Math.max(0, Number.isFinite(claim.confidence) ? claim.confidence : 0)),
+        evidence: evidence.slice(0, MAX_QUOTES_PER_FIELD),
+      },
+    ];
   });
 }
