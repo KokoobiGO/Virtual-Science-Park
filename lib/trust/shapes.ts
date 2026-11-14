@@ -1,7 +1,7 @@
 /**
  * What the Trust report (C12) reads, as Zod schemas.
  *
- * - The summaries the evals store in eval_runs. The first three mirror what
+ * - The summaries the evals store in eval_runs. The first four mirror what
  *   lib/eval and scripts/check-links.ts write today (only the parts the report
  *   shows); `red_team` and `privacy` are defined here for runs that come later.
  * - The two results files the team writes by hand after a session:
@@ -55,6 +55,26 @@ export type QuoteCheckSummary = z.infer<typeof QuoteCheckSummary>;
 export const LinkCheckSummary = z.object({ checked: count, ok: count, broken: count, blocked: count });
 export type LinkCheckSummary = z.infer<typeof LinkCheckSummary>;
 
+/**
+ * kind "matching", written by lib/eval/matching.ts: the ranked matches over
+ * every member, per ranking mode (counts only).
+ */
+export const MatchingSummary = z.object({
+  modes: z.array(
+    z.object({
+      mode: z.enum(["public", "personal"]),
+      companies: count,
+      ranked: count,
+      judged: count,
+      kept: count,
+      rejected: count,
+      notJudgedYet: count,
+      lastJudgedAt: z.iso.datetime().nullable(),
+    }),
+  ),
+});
+export type MatchingSummary = z.infer<typeof MatchingSummary>;
+
 // ---------------------------------------------------------------------------
 // eval_runs summaries for runs that come later
 // ---------------------------------------------------------------------------
@@ -93,60 +113,126 @@ export type PrivacySummary = z.infer<typeof PrivacySummary>;
 /** A day, "YYYY-MM-DD". */
 const Day = z.iso.date();
 
-/**
- * data/timed-test/results.json: one session in which members did the same
- * task with the app and without it (their usual search), against the clock.
- *
- * - date: the day of the session.
- * - task: what every participant was asked to do, word for word.
- * - trials: one entry per participant and method. `participant` is an
- *   anonymous label ("P1"), never a name. `seconds` is the time until the
- *   participant said "done" or gave up; `completed` is false when they gave up
- *   or ran out of time.
- * - notes: optional, anything a reader needs to weigh the numbers.
- */
-export const TimedTestResults = z.strictObject({
-  date: Day,
-  task: z.string().min(1),
-  trials: z
-    .array(
-      z.strictObject({
-        participant: z.string().min(1),
-        method: z.enum(["with_app", "without_app"]),
-        seconds: z.number().positive(),
-        completed: z.boolean(),
-      }),
-    )
-    .min(1),
-  notes: z.string().optional(),
-});
-export type TimedTestResults = z.infer<typeof TimedTestResults>;
+/** An anonymous label such as "P1" (tester) or "S1" (staff), never a name. */
+const label = (letter: "P" | "S") =>
+  z.string().regex(new RegExp(`^${letter}[0-9]+$`), { message: `an anonymous label such as ${letter}1, never a name` });
+
+/** A company slug, as in the sheet's file name (claims-embeddedart.md: "embeddedart"). */
+const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, { message: "a company slug such as embeddedart" });
+
+/** The two timed-test tasks (data/timed-test/answer-key.md). */
+export const TIMED_TASKS = ["A", "B"] as const;
+export type TimedTask = (typeof TIMED_TASKS)[number];
+
+/** 15 minutes: a run stops there. */
+export const TIMED_TEST_LIMIT_SECONDS = 900;
+
+/** Adds an issue for each value that is there twice. */
+function noDuplicates<T>(items: readonly T[], key: (item: T) => string, path: (i: number) => PropertyKey[], what: string, ctx: z.RefinementCtx) {
+  const seen = new Set<string>();
+  items.forEach((item, i) => {
+    const k = key(item);
+    if (seen.has(k)) ctx.addIssue({ code: "custom", path: path(i), message: `${what} is there twice` });
+    seen.add(k);
+  });
+}
 
 /**
- * data/staff-session/results.json: one session in which BSP staff looked at
- * what the system suggests and rated each item.
+ * data/timed-test/results.json: the timed test, from the record sheets
+ * (data/timed-test/record-sheet.md, one sheet per run). How to fill it in:
+ * data/timed-test/README.md.
+ *
+ * - date: the day of the session.
+ * - keyItems: optional, per task, how many items count in the confirmed
+ *   answer key (believed correct, plus the unsure items ticked "counts"), so
+ *   the report can say "2 of 4 points".
+ * - trials: one per record sheet. `participant` is the tester's anonymous
+ *   label; `task` A or B; `method` without_app (by hand) or with_app (with the
+ *   tool); `seconds` the time used, 900 at most; `completed` false when the
+ *   tester gave up or the 15 minutes ran out; `found` the results the tester
+ *   gave; `points` the correct ones (one point per correct result within 15
+ *   minutes). One trial per tester, task and method.
+ * - notes: optional, anything a reader needs to weigh the numbers.
+ */
+export const TimedTestResults = z
+  .strictObject({
+    date: Day,
+    keyItems: z.strictObject({ A: count.min(1).optional(), B: count.min(1).optional() }).optional(),
+    trials: z
+      .array(
+        z
+          .strictObject({
+            participant: label("P"),
+            task: z.enum(TIMED_TASKS),
+            method: z.enum(["without_app", "with_app"]),
+            seconds: z.number().int().min(0).max(TIMED_TEST_LIMIT_SECONDS),
+            completed: z.boolean(),
+            found: count,
+            points: count,
+            note: z.string().optional(),
+          })
+          .refine((t) => t.points <= t.found, { message: "points cannot be more than the results found", path: ["points"] }),
+      )
+      .min(1),
+    notes: z.string().optional(),
+  })
+  .superRefine((results, ctx) => {
+    noDuplicates(results.trials, (t) => `${t.participant}|${t.task}|${t.method}`, (i) => ["trials", i], "the same tester, task and method", ctx);
+    results.trials.forEach((t, i) => {
+      const max = results.keyItems?.[t.task];
+      if (max !== undefined && t.points > max) {
+        ctx.addIssue({ code: "custom", path: ["trials", i, "points"], message: `points cannot be more than keyItems.${t.task} (${max})` });
+      }
+    });
+  });
+export type TimedTestResults = z.infer<typeof TimedTestResults>;
+
+const Rater = label("S").optional();
+
+/**
+ * data/staff-session/results.json: the staff session, from the rating sheets
+ * in data/staff-session/ (claims-<slug>.md, top5-<slug>.md, think-aloud.md).
+ * How to fill it in: data/staff-session/README.md.
  *
  * - date: the day of the session.
  * - staff: how many BSP staff took part.
- * - ratings: one entry per item rated. `kind` is a suggested match, a
- *   suggested connection between two members, or a company profile. `item`
- *   says which one in a few words. `verdict` is the staff's: useful, not
- *   useful, or unsure. `comment` is optional.
+ * - members: one per gold member rated. `member` is the slug from the sheet's
+ *   file name. `claims`: one per ticked box on its claims sheet, `claim` the
+ *   number in the heading ("## 2. Offerings" is 2), `rating` right, wrong or
+ *   unsure. `top5`: one per ticked box on its top-five sheet, `match` the
+ *   number in the heading (1 to 5), `rating` relevant or not_relevant.
+ *   `rater` ("S1") only when more than one person rated the same sheet.
+ * - quotes: the exact quotes from the think-aloud sheet, each with
+ *   `permission` true only when the box "yes" was ticked. The report shows
+ *   only those.
  * - notes: optional, anything a reader needs to weigh the numbers.
  */
-export const StaffSessionResults = z.strictObject({
-  date: Day,
-  staff: z.number().int().positive(),
-  ratings: z
-    .array(
-      z.strictObject({
-        kind: z.enum(["match", "connection", "profile"]),
-        item: z.string().min(1),
-        verdict: z.enum(["useful", "not_useful", "unsure"]),
-        comment: z.string().optional(),
-      }),
-    )
-    .min(1),
-  notes: z.string().optional(),
-});
+export const StaffSessionResults = z
+  .strictObject({
+    date: Day,
+    staff: z.number().int().positive(),
+    members: z
+      .array(
+        z
+          .strictObject({
+            member: Slug,
+            claims: z.array(
+              z.strictObject({ claim: z.number().int().positive(), rating: z.enum(["right", "wrong", "unsure"]), rater: Rater, note: z.string().optional() }),
+            ),
+            top5: z.array(
+              z.strictObject({ match: z.number().int().min(1).max(5), rating: z.enum(["relevant", "not_relevant"]), rater: Rater, note: z.string().optional() }),
+            ),
+          })
+          .superRefine((m, ctx) => {
+            noDuplicates(m.claims, (c) => `${c.claim}|${c.rater ?? ""}`, (i) => ["claims", i], "the same claim from the same rater", ctx);
+            noDuplicates(m.top5, (c) => `${c.match}|${c.rater ?? ""}`, (i) => ["top5", i], "the same match from the same rater", ctx);
+          }),
+      )
+      .min(1),
+    quotes: z.array(z.strictObject({ text: z.string().trim().min(1), permission: z.boolean() })).optional(),
+    notes: z.string().optional(),
+  })
+  .superRefine((results, ctx) => {
+    noDuplicates(results.members, (m) => m.member, (i) => ["members", i, "member"], "the same member", ctx);
+  });
 export type StaffSessionResults = z.infer<typeof StaffSessionResults>;

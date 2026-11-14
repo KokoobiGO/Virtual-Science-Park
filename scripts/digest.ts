@@ -68,7 +68,7 @@ async function main() {
     return;
   }
 
-  const { id } = await sendDigest(to!, prepared.email);
+  const { id } = await sendDigest(to!, prepared.email, prepared);
   console.log(`Sent to ${to}. Resend id ${id}; it shows in the Resend dashboard under Emails.`);
 }
 

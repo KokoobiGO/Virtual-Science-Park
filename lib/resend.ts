@@ -18,19 +18,33 @@ export class ResendApiError extends Error {
   }
 }
 
-/** Sends one email. Returns Resend's id; throws ResendApiError on a non-2xx answer. */
-export async function sendEmail(email: {
-  to: string[];
-  subject: string;
-  text: string;
-  html?: string;
-  from?: string;
-}): Promise<{ id: string }> {
+/**
+ * Sends one email. Returns Resend's id; throws ResendApiError on a non-2xx answer.
+ *
+ * `idempotencyKey` (1 to 256 characters) goes out as Resend's Idempotency-Key
+ * header: for 24 hours Resend answers a second request with the same key with
+ * the first email's id instead of sending again, so a retried send cannot go
+ * out twice. The same key with a different email is refused with a 409.
+ */
+export async function sendEmail(
+  email: {
+    to: string[];
+    subject: string;
+    text: string;
+    html?: string;
+    from?: string;
+  },
+  { idempotencyKey }: { idempotencyKey?: string } = {},
+): Promise<{ id: string }> {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("RESEND_API_KEY is not set. See .env.example.");
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+    },
     body: JSON.stringify({ from: RESEND_DEFAULT_FROM, ...email }),
   });
   if (!res.ok) throw new ResendApiError(res.status, await res.text());

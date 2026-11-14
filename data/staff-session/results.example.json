@@ -1,11 +1,38 @@
 {
   "date": "2026-11-21",
   "staff": 2,
-  "ratings": [
-    { "kind": "match", "item": "Company A: a Vinnova call on secure embedded systems", "verdict": "useful" },
-    { "kind": "match", "item": "Company B: a breakfast seminar", "verdict": "unsure", "comment": "Depends on who from the company would go." },
-    { "kind": "connection", "item": "Company A and company C", "verdict": "not_useful", "comment": "Same customers, nothing to trade." },
-    { "kind": "profile", "item": "Company C's profile", "verdict": "useful" }
+  "members": [
+    {
+      "member": "embeddedart",
+      "claims": [
+        { "claim": 1, "rating": "right" },
+        { "claim": 2, "rating": "right" },
+        { "claim": 3, "rating": "right" },
+        { "claim": 4, "rating": "unsure", "note": "Monitoring of what?" },
+        { "claim": 5, "rating": "right" },
+        { "claim": 6, "rating": "right" },
+        { "claim": 7, "rating": "wrong", "note": "The site mentions a defence project." }
+      ],
+      "top5": [
+        { "match": 1, "rating": "relevant" },
+        { "match": 2, "rating": "relevant" },
+        { "match": 3, "rating": "not_relevant", "note": "Too big for them." },
+        { "match": 4, "rating": "not_relevant" },
+        { "match": 5, "rating": "relevant" }
+      ]
+    },
+    {
+      "member": "techinova",
+      "claims": [
+        { "claim": 1, "rating": "right" },
+        { "claim": 2, "rating": "right" }
+      ],
+      "top5": []
+    }
   ],
-  "notes": "EXAMPLE ONLY: these ratings are invented to show the shape. The Trust report reads results.json in this folder, never this file. Shape: lib/trust/shapes.ts (StaffSessionResults)."
+  "quotes": [
+    { "text": "I would check the deadline on the funder's own page before I passed this on.", "permission": true },
+    { "text": "This one I would never have found myself.", "permission": false }
+  ],
+  "notes": "EXAMPLE ONLY: these ratings are invented to show the shape. The Trust report reads results.json in this folder, never this file. How to fill it in: README.md in this folder. Shape: lib/trust/shapes.ts (StaffSessionResults)."
 }

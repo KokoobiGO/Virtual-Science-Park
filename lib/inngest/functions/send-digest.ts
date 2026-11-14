@@ -53,7 +53,7 @@ export const sendDigestJob = inngest.createFunction(
     const emailId = email
       ? await step.run("send", async () => {
           try {
-            return (await sendDigest(to, email)).id;
+            return (await sendDigest(to, email, prepared)).id;
           } catch (error) {
             if (error instanceof DigestSendError && !error.retryable) throw new NonRetriableError(error.message, { cause: error });
             throw error;

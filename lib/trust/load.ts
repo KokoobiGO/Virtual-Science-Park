@@ -4,8 +4,10 @@
  *
  * - eval_runs and source_status: readable by every signed-in user.
  * - matches: staff read every member's public ranking; a member reads only
- *   its own company's rows. The matching numbers therefore cover what the
- *   viewer may read, and the page says which.
+ *   its own company's rows. So the totals over every member come from the
+ *   stored `matching` eval (lib/eval/matching.ts, run by scripts/eval.ts);
+ *   until one is stored, the report counts what the viewer may read, and the
+ *   page says which.
  * - job_runs is staff only, so the report does not read it: the quote-check
  *   numbers come from the stored quote_check eval instead.
  *
@@ -14,10 +16,11 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { desc, inArray, sql } from "drizzle-orm";
+import { desc, inArray } from "drizzle-orm";
 import type { Viewer } from "../auth";
-import { evalRuns, matches, sourceStatus } from "../db/schema";
+import { evalRuns, sourceStatus } from "../db/schema";
 import { withUserDb } from "../db/user";
+import { countRankedMatches } from "../eval/matching";
 import { buildTrustReport, TRUST_EVAL_KINDS, type TrustReport } from "./report";
 
 export const TIMED_TEST_FILE = path.join("data", "timed-test", "results.json");
@@ -43,17 +46,8 @@ export async function loadTrustReport(viewer: Viewer, now: Date = new Date()): P
           message: sourceStatus.message,
         })
         .from(sourceStatus);
-      const counts = await tx
-        .select({
-          mode: matches.mode,
-          companies: sql<number>`count(distinct ${matches.companyId})`.mapWith(Number),
-          judged: sql<number>`count(*) filter (where ${matches.judgedAt} is not null)`.mapWith(Number),
-          rejected: sql<number>`count(*) filter (where ${matches.judgedAt} is not null and ${matches.rejected})`.mapWith(Number),
-          rankedUnjudged: sql<number>`count(*) filter (where ${matches.rank} is not null and ${matches.judgedAt} is null)`.mapWith(Number),
-          lastJudgedAt: sql<Date | null>`max(${matches.judgedAt})`.mapWith(matches.judgedAt),
-        })
-        .from(matches)
-        .groupBy(matches.mode);
+      // Only needed while no `matching` eval is stored, but one small query either way.
+      const counts = await countRankedMatches(tx);
       return { runs, sources, counts };
     }),
     readIfExists(TIMED_TEST_FILE),

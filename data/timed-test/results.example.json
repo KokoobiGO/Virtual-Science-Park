@@ -1,11 +1,11 @@
 {
   "date": "2026-11-20",
-  "task": "Find two funding calls or events that fit your company in the next two months, and give the link to each.",
+  "keyItems": { "A": 2, "B": 5 },
   "trials": [
-    { "participant": "P1", "method": "with_app", "seconds": 140, "completed": true },
-    { "participant": "P1", "method": "without_app", "seconds": 900, "completed": false },
-    { "participant": "P2", "method": "with_app", "seconds": 95, "completed": true },
-    { "participant": "P2", "method": "without_app", "seconds": 610, "completed": true }
+    { "participant": "P1", "task": "A", "method": "without_app", "seconds": 900, "completed": false, "found": 2, "points": 1 },
+    { "participant": "P1", "task": "A", "method": "with_app", "seconds": 250, "completed": true, "found": 3, "points": 2 },
+    { "participant": "P1", "task": "B", "method": "without_app", "seconds": 780, "completed": true, "found": 3, "points": 1, "note": "Found one call from outside the database; the team decided it does not count." },
+    { "participant": "P1", "task": "B", "method": "with_app", "seconds": 410, "completed": true, "found": 4, "points": 3 }
   ],
-  "notes": "EXAMPLE ONLY: these numbers are invented to show the shape. The Trust report reads results.json in this folder, never this file. Shape: lib/trust/shapes.ts (TimedTestResults)."
+  "notes": "EXAMPLE ONLY: these numbers are invented to show the shape. The Trust report reads results.json in this folder, never this file. How to fill it in: README.md in this folder. Shape: lib/trust/shapes.ts (TimedTestResults)."
 }

@@ -11,13 +11,16 @@ import type { AppRole, MatchMode } from "../schemas";
 import { judgeSources, type SourceHealth, type SourceStatusRow } from "../sources/health";
 import {
   LinkCheckSummary,
+  MatchingSummary,
   PrivacySummary,
   ProfileAccuracySummary,
   QuoteCheckSummary,
   RedTeamSummary,
   StaffSessionResults,
+  TIMED_TASKS,
   TimedTestResults,
   type AccuracyGroup,
+  type TimedTask,
 } from "./shapes";
 
 export const NOT_MEASURED = "not measured yet";
@@ -34,7 +37,7 @@ export const KNOWN_LIMITS = [
 ];
 
 /** The eval_runs kinds the report reads. */
-export const TRUST_EVAL_KINDS = ["profile_accuracy", "quote_check", "link_check", "red_team", "privacy"] as const;
+export const TRUST_EVAL_KINDS = ["profile_accuracy", "quote_check", "link_check", "matching", "red_team", "privacy"] as const;
 export type TrustEvalKind = (typeof TRUST_EVAL_KINDS)[number];
 
 export type EvalRunRow = { kind: string; ranAt: Date; summary: unknown };
@@ -48,28 +51,50 @@ export type Run<T> =
 /** A results file the team writes by hand. Absent: not measured yet. */
 export type FileResult<T> = { status: "measured"; date: string; data: T } | { status: "not_measured" } | { status: "unreadable"; problem: string };
 
-/** Ranked matches per mode, counted over the rows the viewer may read. */
+/**
+ * Ranked matches (in a company's top 20 now) per mode, counted over the rows
+ * the viewer may read: what lib/eval/matching.ts countRankedMatches() returns.
+ */
 export type MatchCountRow = {
   mode: MatchMode;
-  /** Companies with at least one row in this mode. */
+  /** Companies with at least one ranked match in this mode. */
   companies: number;
-  /** Rows with a stored judgement, including rows that later left the top 20. */
+  ranked: number;
+  /** Ranked matches the judge has read. */
   judged: number;
   rejected: number;
-  /** In a top 20 now, not judged yet. */
-  rankedUnjudged: number;
   lastJudgedAt: Date | null;
+};
+
+/** One ranking mode as the report shows it: ranked = kept + rejected + not judged yet. */
+export type MatchingModeRow = {
+  mode: MatchMode;
+  companies: number;
+  ranked: number;
+  judged: number;
+  kept: number;
+  rejected: number;
+  notJudgedYet: number;
 };
 
 export type MatchingResult =
   | {
       status: "measured";
-      /** The latest judgement in the rows counted. */
-      ranAt: Date;
-      /** Staff count every member's public ranking; a member counts its own company only (row-level security). */
-      scope: "all_members_public" | "own_company";
-      modes: (MatchCountRow & { kept: number })[];
+      /**
+       * - all_members: the latest stored `matching` eval, every member, both rankings.
+       * - all_members_public / own_company: no such eval yet, so the viewer's own
+       *   count under row-level security: staff count every member's public
+       *   ranking, a member its own company only.
+       */
+      scope: "all_members" | "all_members_public" | "own_company";
+      /** When the eval counted; null for the viewer's own count, which is counted as the page loads. */
+      countedAt: Date | null;
+      /** The latest judgement among the matches counted; null when none is judged. */
+      lastJudgedAt: Date | null;
+      /** The public ranking first. */
+      modes: MatchingModeRow[];
     }
+  | { status: "unreadable"; ranAt: Date; problem: string }
   | { status: "not_measured" };
 
 export type TrustReport = {
@@ -88,6 +113,7 @@ export type TrustInput = {
   role: AppRole;
   evalRuns: EvalRunRow[];
   sources: SourceStatusRow[];
+  /** The viewer's own count, used while no `matching` eval is stored. */
   matches: MatchCountRow[];
   /** The file's text, or null when there is no file. */
   timedTestText: string | null;
@@ -102,7 +128,7 @@ export function buildTrustReport(input: TrustInput): TrustReport {
     quoteCheck: run("quote_check", QuoteCheckSummary),
     linkCheck: run("link_check", LinkCheckSummary),
     sources: judgeSources(input.sources, input.now),
-    matching: matchingResult(input.role, input.matches),
+    matching: matchingResult(input.role, input.evalRuns, input.matches),
     redTeam: run("red_team", RedTeamSummary),
     privacy: run("privacy", PrivacySummary),
     timedTest: parseResultsFile(input.timedTestText, TimedTestResults),
@@ -132,17 +158,56 @@ export function parseResultsFile<T extends { date: string }>(text: string | null
   return { status: "measured", date: parsed.data.date, data: parsed.data };
 }
 
-export function matchingResult(role: AppRole, rows: MatchCountRow[]): MatchingResult {
-  const judgedAt = rows.map((r) => r.lastJudgedAt).filter((d): d is Date => d !== null);
-  if (!judgedAt.length) return { status: "not_measured" };
+/**
+ * The matching numbers: the latest stored `matching` eval (every member), or,
+ * while there is none, the viewer's own count (`own`, row-level security).
+ */
+export function matchingResult(role: AppRole, runs: EvalRunRow[], own: MatchCountRow[]): MatchingResult {
+  const run = readRun(runs, "matching", MatchingSummary);
+  if (run.status === "unreadable") return run;
+  if (run.status === "measured") {
+    return {
+      status: "measured",
+      scope: "all_members",
+      countedAt: run.ranAt,
+      lastJudgedAt: latest(run.summary.modes.map((m) => (m.lastJudgedAt ? new Date(m.lastJudgedAt) : null))),
+      modes: publicFirst(run.summary.modes).map(({ mode, companies, ranked, judged, kept, rejected, notJudgedYet }) => ({
+        mode,
+        companies,
+        ranked,
+        judged,
+        kept,
+        rejected,
+        notJudgedYet,
+      })),
+    };
+  }
+  const lastJudgedAt = latest(own.map((r) => r.lastJudgedAt));
+  if (!lastJudgedAt) return { status: "not_measured" };
   return {
     status: "measured",
-    ranAt: new Date(Math.max(...judgedAt.map((d) => d.getTime()))),
     scope: role === "staff" ? "all_members_public" : "own_company",
-    // Public first: it is the ranking both staff and members can read.
-    modes: [...rows].sort((a, b) => (a.mode === b.mode ? 0 : a.mode === "public" ? -1 : 1)).map((r) => ({ ...r, kept: r.judged - r.rejected })),
+    countedAt: null,
+    lastJudgedAt,
+    modes: publicFirst(own).map((r) => ({
+      mode: r.mode,
+      companies: r.companies,
+      ranked: r.ranked,
+      judged: r.judged,
+      kept: r.judged - r.rejected,
+      rejected: r.rejected,
+      notJudgedYet: r.ranked - r.judged,
+    })),
   };
 }
+
+/** Public first: it is the ranking both staff and members can read. */
+const publicFirst = <T extends { mode: MatchMode }>(rows: readonly T[]) => [...rows].sort((a, b) => (a.mode === b.mode ? 0 : a.mode === "public" ? -1 : 1));
+
+const latest = (dates: (Date | null)[]): Date | null => {
+  const times = dates.filter((d): d is Date => d !== null).map((d) => d.getTime());
+  return times.length ? new Date(Math.max(...times)) : null;
+};
 
 /** False until the team has given at least one gold claim a verdict. */
 export function handCheckStarted(summary: ProfileAccuracySummary): boolean {
@@ -155,37 +220,92 @@ export function accuracyText(group: AccuracyGroup): string {
   return `${Math.round(group.accuracy * 100)}% (${group.right} of ${group.checked} checked)`;
 }
 
-export type MethodSummary = { method: "with_app" | "without_app"; trials: number; completed: number; medianSeconds: number | null };
+/** One run of the timed test, as the report shows it. */
+export type TimedRun = { seconds: number; completed: boolean; found: number; points: number };
 
-/** Per method, in a fixed order: how many trials, how many completed, and the median time of the completed ones. */
-export function summarizeTimedTest(results: TimedTestResults): MethodSummary[] {
-  return (["with_app", "without_app"] as const)
-    .map((method) => {
-      const trials = results.trials.filter((t) => t.method === method);
-      const done = trials.filter((t) => t.completed);
-      return { method, trials: trials.length, completed: done.length, medianSeconds: median(done.map((t) => t.seconds)) };
-    })
-    .filter((m) => m.trials > 0);
+/** One task done by one tester: by hand and with the tool side by side; null when that run is not in the file. */
+export type TimedTaskRow = {
+  task: TimedTask;
+  participant: string;
+  /** Items that count in the confirmed answer key for this task, when the file gives it. */
+  keyItems: number | null;
+  byHand: TimedRun | null;
+  withTool: TimedRun | null;
+};
+
+/** Per task (A, then B), one row per tester, by hand next to with the tool. */
+export function summarizeTimedTest(results: TimedTestResults): TimedTaskRow[] {
+  const run = (t: TimedTestResults["trials"][number] | undefined): TimedRun | null =>
+    t ? { seconds: t.seconds, completed: t.completed, found: t.found, points: t.points } : null;
+  return TIMED_TASKS.flatMap((task) => {
+    const trials = results.trials.filter((t) => t.task === task);
+    const participants = [...new Set(trials.map((t) => t.participant))].sort(byLabel);
+    return participants.map((participant) => {
+      const of = (method: "without_app" | "with_app") => trials.find((t) => t.participant === participant && t.method === method);
+      return { task, participant, keyItems: results.keyItems?.[task] ?? null, byHand: run(of("without_app")), withTool: run(of("with_app")) };
+    });
+  });
 }
 
-export type RatingSummary = { kind: "match" | "connection" | "profile"; useful: number; notUseful: number; unsure: number; total: number };
+/** "P2" before "P10". */
+const byLabel = (a: string, b: string) => a.localeCompare(b, "en", { numeric: true });
 
-/** Per kind of item rated, in a fixed order, only the kinds that were rated. */
-export function summarizeStaffSession(results: StaffSessionResults): RatingSummary[] {
-  return (["match", "connection", "profile"] as const)
-    .map((kind) => {
-      const rated = results.ratings.filter((r) => r.kind === kind);
-      const n = (verdict: string) => rated.filter((r) => r.verdict === verdict).length;
-      return { kind, useful: n("useful"), notUseful: n("not_useful"), unsure: n("unsure"), total: rated.length };
-    })
-    .filter((s) => s.total > 0);
+/** Ratings of one kind: how many were given, and how many were the good answer ("right", "relevant"). */
+export type RatingCount = { rated: number; good: number };
+
+/** One gold member's sheets: profile claims right, top-five matches relevant. */
+export type MemberRatings = {
+  member: string;
+  claims: RatingCount & { wrong: number; unsure: number };
+  top5: RatingCount & { notRelevant: number };
+};
+
+export type StaffSessionSummary = {
+  /** In the file's order. */
+  members: MemberRatings[];
+  /** Over every member. */
+  total: Omit<MemberRatings, "member">;
+  /** The quotes staff allowed us to use, word for word. */
+  quotes: string[];
+  /** Quotes written down without permission: counted, never shown. */
+  quotesWithheld: number;
+};
+
+/** Per gold member, the share of claims rated right and of top-five matches rated relevant, with the number rated. */
+export function summarizeStaffSession(results: StaffSessionResults): StaffSessionSummary {
+  const members = results.members.map((m): MemberRatings => {
+    const claims = (rating: string) => m.claims.filter((c) => c.rating === rating).length;
+    const top5 = (rating: string) => m.top5.filter((c) => c.rating === rating).length;
+    return {
+      member: m.member,
+      claims: { rated: m.claims.length, good: claims("right"), wrong: claims("wrong"), unsure: claims("unsure") },
+      top5: { rated: m.top5.length, good: top5("relevant"), notRelevant: top5("not_relevant") },
+    };
+  });
+  const sum = (pick: (m: MemberRatings) => number) => members.reduce((n, m) => n + pick(m), 0);
+  const quotes = results.quotes ?? [];
+  return {
+    members,
+    total: {
+      claims: { rated: sum((m) => m.claims.rated), good: sum((m) => m.claims.good), wrong: sum((m) => m.claims.wrong), unsure: sum((m) => m.claims.unsure) },
+      top5: { rated: sum((m) => m.top5.rated), good: sum((m) => m.top5.good), notRelevant: sum((m) => m.top5.notRelevant) },
+    },
+    quotes: quotes.filter((q) => q.permission).map((q) => q.text),
+    quotesWithheld: quotes.filter((q) => !q.permission).length,
+  };
 }
 
-export function median(values: number[]): number | null {
-  if (!values.length) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+/** "5 of 7 (71%)"; "not rated" when nothing was rated. */
+export function ratingText({ rated, good }: RatingCount): string {
+  return rated ? `${good} of ${rated} (${percentOf(good, rated)})` : "not rated";
+}
+
+/** One run's cell: "4 min 10 s, 2 of 4 points (3 results given)"; with a gave-up or time-out mark. */
+export function timedRunText(run: TimedRun | null, keyItems: number | null): string {
+  if (!run) return "not run";
+  const time = `${formatSeconds(run.seconds)}${run.completed ? "" : " (not finished)"}`;
+  const points = keyItems === null ? `${run.points} ${run.points === 1 ? "point" : "points"}` : `${run.points} of ${keyItems} points`;
+  return `${time}, ${points} (${run.found} ${run.found === 1 ? "result" : "results"} given)`;
 }
 
 /** "25%" for 1 of 4; "-" when there is nothing to divide by. */

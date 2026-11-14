@@ -6,12 +6,18 @@
  *
  * While we test with NVIDIA's free key the model is NVIDIA_MODELS.main; the
  * prompt and schema do not depend on the provider.
+ *
+ * Before the call, pages with text that looks like instructions to an AI are
+ * recorded on the run (injection.ts); the quote check then fails quotes taken
+ * from that text.
  */
 import { NVIDIA_MODELS, nvidiaChat } from "../nvidia";
 import type { ProfileField } from "../schemas";
+import { profilerInjection, type ProfilerInjection } from "./injection";
 import { parseProfilerReply, profilerJsonSchema, toDraftClaims, type DraftClaim } from "./output";
 import { buildProfilerUserMessage, PROFILER_SYSTEM_PROMPT, type ProfilerSource } from "./prompt";
 
+export type { ProfilerInjection } from "./injection";
 export type { DraftClaim } from "./output";
 export type { ProfilerSource } from "./prompt";
 
@@ -40,6 +46,11 @@ export type ProfilerRun = {
   seconds: number;
   finishReason: string | null;
   usage: { promptTokens: number; completionTokens: number } | null;
+  /**
+   * Which pages hold text that looks like instructions to an AI, found before
+   * the model was called. The quote check (verify.ts) fails quotes from it.
+   */
+  injection: ProfilerInjection;
 };
 
 export type ProfilerOptions = {
@@ -53,6 +64,8 @@ export async function runProfiler(companyName: string, sources: ProfilerSource[]
   if (!sources.length) throw new Error(`No sources to profile ${companyName} from.`);
   const model = options.model ?? NVIDIA_MODELS.main;
   const started = Date.now();
+  // Labelled only: the prompt is the same either way, and the page text stays data.
+  const injection = profilerInjection(sources);
   const fields = options.retry?.fields;
   const question = [buildProfilerUserMessage(companyName, sources), ...(options.retry ? [options.retry.feedback] : [])].join("\n\n");
 
@@ -89,5 +102,6 @@ export async function runProfiler(companyName: string, sources: ProfilerSource[]
     seconds: Math.round((Date.now() - started) / 100) / 10,
     finishReason: choice?.finish_reason ?? null,
     usage: response.usage ? { promptTokens: response.usage.prompt_tokens, completionTokens: response.usage.completion_tokens } : null,
+    injection,
   };
 }

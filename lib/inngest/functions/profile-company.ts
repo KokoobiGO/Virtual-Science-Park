@@ -152,7 +152,7 @@ export const profileCompanyJob = inngest.createFunction(
       const sources = await loadSources(snapshotIds);
       const run = await runProfiler(company.name, sources, { model, thinking });
       const checked = verifyDraftClaims(run.claims, new Map(sources.map((s) => [s.snapshotId, s.text])));
-      return { ...checked, model: run.model, seconds: run.seconds, usage: run.usage, sources: sources.map((s) => ({ url: s.url, chars: s.text.length })) };
+      return { ...checked, injectionFlagged: run.injection.flagged, model: run.model, seconds: run.seconds, usage: run.usage, sources: sources.map((s) => ({ url: s.url, chars: s.text.length })) };
     });
 
     const retry = first.failed.length

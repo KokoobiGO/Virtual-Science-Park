@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DigestRequest, DigestSendError, KEY_MESSAGE, OWNER_ONLY_MESSAGE, sendDigest } from "./send";
+import { sendEmail } from "../resend";
+import { ALREADY_SENT_MESSAGE, DigestRequest, DigestSendError, digestIdempotencyKey, KEY_MESSAGE, OWNER_ONLY_MESSAGE, sendDigest } from "./send";
 
 const email = { subject: "Your week", html: "<p>Hi</p>", text: "Hi" };
 
@@ -65,6 +66,50 @@ describe("sendDigest", () => {
     expect((await failure(sendDigest("member@example.org", email))).retryable).toBe(true);
     answer(429, { statusCode: 429, name: "daily_quota_exceeded", message: "You have exceeded your daily email sending quota." });
     expect((await failure(sendDigest("member@example.org", email))).retryable).toBe(false);
+  });
+
+  it("sends no Idempotency-Key header when no week is given", async () => {
+    const fetchMock = answer(200, { id: "email-123" });
+    await sendDigest("member@example.org", email);
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(new Headers(init.headers).has("Idempotency-Key")).toBe(false);
+  });
+
+  it("sends the same Idempotency-Key for a retry of the same company, week and address", async () => {
+    const fetchMock = answer(200, { id: "email-123" });
+    const week = { slug: "embeddedart", weekOf: "2026-11-09" };
+    await sendDigest("member@example.org", email, week);
+    await sendDigest("Member@Example.org ", email, week);
+    await sendDigest("member@example.org", email, { slug: "embeddedart", weekOf: "2026-11-16" });
+    await sendDigest("other@example.org", email, week);
+    await sendDigest("member@example.org", email, { slug: "malvacom", weekOf: "2026-11-09" });
+    const keys = fetchMock.mock.calls.map((call) => new Headers((call as unknown as [string, RequestInit])[1].headers).get("Idempotency-Key"));
+    expect(keys[0]).toBe(digestIdempotencyKey({ slug: "embeddedart", weekOf: "2026-11-09", to: "member@example.org" }));
+    expect(keys[0]).toMatch(/^digest\/embeddedart\/2026-11-09\/[0-9a-f]{32}$/);
+    expect(keys[0]).not.toContain("member");
+    expect(keys[1]).toBe(keys[0]);
+    expect(new Set(keys).size).toBe(4);
+  });
+
+  it("explains Resend refusing a different digest under the same key, and a send still in progress", async () => {
+    const week = { slug: "embeddedart", weekOf: "2026-11-09" };
+    answer(409, { statusCode: 409, name: "invalid_idempotent_request", message: "Same idempotency key used with a different request payload." });
+    const different = await failure(sendDigest("member@example.org", email, week));
+    expect(different.message).toBe(ALREADY_SENT_MESSAGE);
+    expect(different.retryable).toBe(false);
+    answer(409, { statusCode: 409, name: "concurrent_idempotent_requests", message: "Same idempotency key used while original request is still in progress." });
+    expect((await failure(sendDigest("member@example.org", email, week))).retryable).toBe(true);
+  });
+});
+
+describe("sendEmail", () => {
+  it("sends the idempotency key as Resend's Idempotency-Key header", async () => {
+    const fetchMock = answer(200, { id: "email-1" });
+    await expect(sendEmail({ to: ["a@example.org"], subject: "s", text: "t" }, { idempotencyKey: "digest/x/2026-11-09/abc" })).resolves.toEqual({ id: "email-1" });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get("Idempotency-Key")).toBe("digest/x/2026-11-09/abc");
+    expect(headers.get("Authorization")).toBe("Bearer re_test_key");
   });
 });
 

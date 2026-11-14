@@ -8,14 +8,15 @@ import {
   ELIGIBILITY_SENTENCE,
   formatDateTime,
   formatDay,
-  formatSeconds,
   HAND_CHECK_NOT_FINISHED,
   handCheckStarted,
   KNOWN_LIMITS,
   NOT_MEASURED,
   percentOf,
+  ratingText,
   summarizeStaffSession,
   summarizeTimedTest,
+  timedRunText,
   type FileResult,
   type MatchingResult,
   type Run,
@@ -256,31 +257,51 @@ function sourceNote(s: SourceHealth): string {
 
 const MODE_LABEL = { public: "Public", personal: "Personal" } as const;
 
+const MATCHING_SCOPE_TEXT = {
+  all_members:
+    "Counted over every member's ranked matches (each company's top 20 now), public and personal, by the matching eval. Only totals are stored: no member's own matches are shown.",
+  all_members_public:
+    "The matching eval has not been stored yet, so this is your own count: every member's public ranking. Personal rankings are private to each company, so staff cannot count them.",
+  own_company:
+    "The matching eval has not been stored yet, so this is your own count: your own company's matches only, since other members' matches are private to them.",
+} as const;
+
+function matchingWhen(matching: MatchingResult): ReactNode {
+  if (matching.status === "unreadable") return <span>Run {formatDateTime(matching.ranAt)}</span>;
+  if (matching.status !== "measured") return null;
+  const judged = matching.lastJudgedAt ? `last judged ${formatDateTime(matching.lastJudgedAt)}` : "nothing judged yet";
+  return matching.countedAt ? (
+    <span>
+      Counted {formatDateTime(matching.countedAt)}, {judged}
+    </span>
+  ) : (
+    <span>{judged.charAt(0).toUpperCase() + judged.slice(1)}</span>
+  );
+}
+
 export function MatchingSection({ matching }: { matching: MatchingResult }) {
   return (
     <Section
       title="Matching"
       description="The judge reads each ranked match and keeps it, with a reason and a next step, or rejects it with a reason. It can reject a match but never adds one. The public ranking uses public profile data only; the personal one adds the company's private data."
-      when={matching.status === "measured" ? <span>Last judged {formatDateTime(matching.ranAt)}</span> : null}
+      when={matchingWhen(matching)}
     >
       <p className="rounded-lg border bg-muted/50 px-3 py-2 font-medium">{ELIGIBILITY_SENTENCE}</p>
       {matching.status === "not_measured" ? <NotMeasured /> : null}
+      {matching.status === "unreadable" ? <Unreadable what="A matching run is stored" problem={matching.problem} /> : null}
       {matching.status === "measured" ? (
         <>
-          <p className="text-muted-foreground">
-            {matching.scope === "all_members_public"
-              ? "Counted over every member's public ranking. Personal rankings are private to each company, so staff cannot count them."
-              : "Counted over your own company's matches only: other members' matches are private to them."}
-          </p>
+          <p className="text-muted-foreground">{MATCHING_SCOPE_TEXT[matching.scope]}</p>
           <Table
-            head={["Ranking", "Members", "Judged", "Kept", "Rejected", "Not judged yet"]}
+            head={["Ranking", "Members", "Ranked", "Judged", "Kept", "Rejected", "Not judged yet"]}
             rows={matching.modes.map((m) => [
               MODE_LABEL[m.mode],
               String(m.companies),
+              String(m.ranked),
               String(m.judged),
               `${m.kept} (${percentOf(m.kept, m.judged)})`,
               `${m.rejected} (${percentOf(m.rejected, m.judged)})`,
-              String(m.rankedUnjudged),
+              String(m.notJudgedYet),
             ])}
           />
         </>
@@ -329,32 +350,29 @@ export function PrivacySection({ run }: { run: Run<PrivacySummary> }) {
   );
 }
 
-const METHOD_LABEL = { with_app: "With the app", without_app: "Without the app (usual search)" } as const;
+const TASK_LABEL = { A: "A: test facilities for an underwater sensor", B: "B: funding for Techinova, safer electricity grids" } as const;
 
 export function TimedTestSection({ result }: { result: FileResult<TimedTestResults> }) {
   return (
     <Section
       title="Timed test"
-      description="Members do the same task with the app and without it, against the clock."
+      description="A tester does each of two tasks once by hand (their own search) and once with the tool, against the clock. One point for each correct result found within 15 minutes, scored against the team's answer key."
       when={fileWhen(result)}
     >
       {result.status === "not_measured" ? <NotMeasured /> : null}
       {result.status === "unreadable" ? <Unreadable what="A timed-test results file is there" problem={result.problem} /> : null}
       {result.status === "measured" ? (
         <>
-          <p>
-            <span className="text-muted-foreground">Task: </span>
-            {result.data.task}
-          </p>
           <Table
-            head={["Method", "Trials", "Completed", "Median time (completed)"]}
-            rows={summarizeTimedTest(result.data).map((m) => [
-              METHOD_LABEL[m.method],
-              String(m.trials),
-              String(m.completed),
-              m.medianSeconds === null ? "-" : formatSeconds(m.medianSeconds),
+            head={["Task", "Tester", "By hand", "With the tool"]}
+            rows={summarizeTimedTest(result.data).map((row) => [
+              TASK_LABEL[row.task],
+              row.participant,
+              timedRunText(row.byHand, row.keyItems),
+              timedRunText(row.withTool, row.keyItems),
             ])}
           />
+          <p className="text-muted-foreground">Time is the time used, 15 minutes at most; &quot;not finished&quot; means the tester gave up or the time ran out.</p>
           {result.data.notes ? <p className="text-muted-foreground">{result.data.notes}</p> : null}
         </>
       ) : null}
@@ -362,36 +380,51 @@ export function TimedTestSection({ result }: { result: FileResult<TimedTestResul
   );
 }
 
-const KIND_LABEL = { match: "Suggested matches", connection: "Suggested connections", profile: "Company profiles" } as const;
-
 export function StaffSessionSection({ result }: { result: FileResult<StaffSessionResults> }) {
+  const summary = result.status === "measured" ? summarizeStaffSession(result.data) : null;
   return (
     <Section
       title="Staff session"
-      description="BSP staff look at what the system suggests and rate each item."
+      description="BSP staff rate each claim of a gold member's profile right, wrong or unsure against the source, and each of its top five public matches relevant or not."
       when={fileWhen(result)}
     >
       {result.status === "not_measured" ? <NotMeasured /> : null}
       {result.status === "unreadable" ? <Unreadable what="A staff-session results file is there" problem={result.problem} /> : null}
-      {result.status === "measured" ? (
+      {result.status === "measured" && summary ? (
         <>
           <p className="text-muted-foreground">
             {result.data.staff} {result.data.staff === 1 ? "member" : "members"} of BSP staff took part.
           </p>
           <Table
-            head={["Rated", "Useful", "Not useful", "Unsure"]}
-            rows={summarizeStaffSession(result.data).map((s) => [
-              KIND_LABEL[s.kind],
-              `${s.useful} of ${s.total}`,
-              String(s.notUseful),
-              String(s.unsure),
-            ])}
+            head={["Gold member", "Profile claims right", "Top-five matches relevant"]}
+            rows={summary.members.map((m) => [m.member, claimsText(m.claims), ratingText(m.top5)])}
+            foot={summary.members.length > 1 ? [["All gold members", claimsText(summary.total.claims), ratingText(summary.total.top5)]] : undefined}
           />
+          {summary.quotes.length ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-muted-foreground">What staff said, quoted with their permission:</p>
+              {summary.quotes.map((quote, i) => (
+                <blockquote key={i} className="border-l-2 pl-3 italic">
+                  &ldquo;{quote}&rdquo;
+                </blockquote>
+              ))}
+            </div>
+          ) : null}
+          {summary.quotesWithheld ? (
+            <p className="text-muted-foreground">
+              {summary.quotesWithheld} more {summary.quotesWithheld === 1 ? "quote is" : "quotes are"} not shown: no permission to quote.
+            </p>
+          ) : null}
           {result.data.notes ? <p className="text-muted-foreground">{result.data.notes}</p> : null}
         </>
       ) : null}
     </Section>
   );
+}
+
+/** "5 of 7 (71%); 1 wrong, 1 unsure". */
+function claimsText(claims: { rated: number; good: number; wrong: number; unsure: number }): string {
+  return claims.rated ? `${ratingText(claims)}; ${claims.wrong} wrong, ${claims.unsure} unsure` : ratingText(claims);
 }
 
 export function KnownLimitsSection() {
