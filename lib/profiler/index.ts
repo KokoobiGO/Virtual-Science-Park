@@ -13,8 +13,8 @@ import { buildProfilerUserMessage, PROFILER_SYSTEM_PROMPT, type ProfilerSource }
 export type { DraftClaim } from "./output";
 export type { ProfilerSource } from "./prompt";
 
-/** One job step on Netlify may take 60 s; stop before that with a clear error. */
-const TIMEOUT_MS = 50_000;
+/** Netlify cuts a job step off after 30 s; stop before that with a clear error. */
+const TIMEOUT_MS = 26_000;
 
 export class ProfilerOutputError extends Error {
   constructor(

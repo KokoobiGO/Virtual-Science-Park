@@ -2,8 +2,8 @@ import { getViewer } from "@/lib/auth";
 import { FetchPageError, publicHttpUrl } from "@/lib/fetcher/fetch-page";
 import { inngestCloudProblem, isFinished, sendAndWait } from "@/lib/inngest/runs";
 
-/** One page fetch takes up to 15 s plus Inngest's own delay; Netlify allows 60 s. */
-const WAIT_MS = 45_000;
+/** Netlify cuts a request off after 30 s, so stop waiting before that. */
+const WAIT_MS = 24_000;
 
 /**
  * POST /api/snapshots { url } asks the fetch-snapshot job to fetch the page

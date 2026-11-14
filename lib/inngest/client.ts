@@ -5,4 +5,11 @@ import { Inngest } from "inngest";
  * digest). Locally set INNGEST_DEV=1 and run `npm run inngest:dev`; in
  * production INNGEST_EVENT_KEY and INNGEST_SIGNING_KEY come from Netlify.
  */
-export const inngest = new Inngest({ id: "virtual-science-park" });
+export const inngest = new Inngest({
+  id: "virtual-science-park",
+  // Netlify cuts a request off after 30 s (measured on 2026-11-14: a 504 at
+  // 30.0 s). With checkpointing on, the SDK runs several steps inside one
+  // request, so a slow step only gets what the earlier steps left over. Off,
+  // every step is its own request with the full 30 s.
+  checkpointing: false,
+});

@@ -18,8 +18,8 @@ export function isInngestCheckId(value: string | null): value is InngestCheckId 
   return value !== null && Object.hasOwn(INNGEST_CHECKS, value);
 }
 
-/** Stays well inside the 60 s limit for one request on Netlify. */
-const WAIT_MS = 30_000;
+/** Netlify cuts a request off after 30 s, so stop waiting before that. */
+const WAIT_MS = 24_000;
 
 export async function runInngestCheck(id: InngestCheckId): Promise<CheckResult> {
   const feature = INNGEST_CHECKS[id];

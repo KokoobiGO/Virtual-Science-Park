@@ -5,7 +5,7 @@
  *   await inngest.send({ name: "app/members.import.requested", data: {} })
  *
  * Members are imported in batches, one step each, so no step comes near
- * Netlify's 60 s limit and a failed batch is retried on its own.
+ * Netlify's 30 s limit and a failed batch is retried on its own.
  */
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";

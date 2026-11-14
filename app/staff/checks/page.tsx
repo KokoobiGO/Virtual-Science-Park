@@ -32,7 +32,7 @@ export default function Page() {
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Inngest</h2>
         <p className="text-sm text-muted-foreground">
-          Sends the heartbeat event and waits up to 30 seconds for Inngest to run it here.
+          Sends the heartbeat event and waits up to 24 seconds for Inngest to run it here.
         </p>
         <ServiceChecks endpoint="/api/checks/inngest" button="Run Inngest check" checks={list(INNGEST_CHECKS)} />
       </div>
