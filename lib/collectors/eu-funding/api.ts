@@ -9,7 +9,8 @@
  * How it behaves (checked 2026-11-14): POST only (GET answers 405). The form
  * parts `query` and `languages` must be sent as application/json parts; plain
  * text parts answer 500. `text=***` matches every topic. Words in one text are
- * OR'ed and the best matches come first. `pageSize` is capped at 100.
+ * OR'ed and the best matches come first. `pageSize` is capped at 100. A
+ * `terms` query on `identifier` matches exact identifiers only (case counts).
  */
 import { fetchJson } from "../cache";
 
@@ -96,19 +97,48 @@ export async function searchEuFunding(now = new Date(), searches = EU_SEARCHES):
 }
 
 async function searchOnce(search: EuSearch, now: Date): Promise<EuSearchHit[]> {
-  const params = new URLSearchParams({
-    apiKey: "SEDIA",
-    text: search.text,
-    pageSize: String(Math.min(search.pageSize ?? DEFAULT_PAGE_SIZE, 100)),
-    pageNumber: "1",
-  });
-  const form = new FormData();
-  form.append("query", jsonPart(buildQuery(search.programmes ?? DEFAULT_PROGRAMMES, now)));
-  form.append("languages", jsonPart(["en"]));
-
-  const data = await fetchJson<{ results?: EuSearchHit[] }>(`${SEARCH_URL}?${params}`, { method: "POST", body: form }, TIMEOUT_MS);
+  const pageSize = Math.min(search.pageSize ?? DEFAULT_PAGE_SIZE, 100);
+  const data = await post(search.text, pageSize, buildQuery(search.programmes ?? DEFAULT_PROGRAMMES, now));
   if (!Array.isArray(data.results)) throw new Error(`the EU search for "${search.text}" answered without a results list`);
   return data.results;
+}
+
+/** Identifiers per lookup. A page holds 100 hits, so this leaves room. */
+const LOOKUP_BATCH = 50;
+
+/**
+ * Which of these topic identifiers the portal knows (A20: the link checker
+ * uses it, because the portal's topic page answers 200 for any id). The match
+ * is exact, case and suffix included. Closed and withdrawn topics are found
+ * too, since their pages still open. One request per 50 identifiers, one after
+ * another. Throws when the API fails or answers in a shape we do not expect,
+ * so the caller never takes "not found" from a failed request.
+ */
+export async function lookupEuTopics(identifiers: readonly string[]): Promise<Set<string>> {
+  const unique = [...new Set(identifiers)];
+  const found = new Set<string>();
+  for (let i = 0; i < unique.length; i += LOOKUP_BATCH) {
+    const batch = unique.slice(i, i + LOOKUP_BATCH);
+    const data = await post("***", 100, { bool: { must: [{ terms: { identifier: batch } }] } });
+    if (!Array.isArray(data.results)) throw new Error("the EU topic lookup answered without a results list");
+    if (typeof data.totalResults === "number" && data.totalResults > data.results.length) {
+      throw new Error(`the EU topic lookup found ${data.totalResults} hits but returned ${data.results.length}`);
+    }
+    for (const hit of data.results) {
+      const id = hit.metadata?.identifier?.[0];
+      if (id && batch.includes(id)) found.add(id);
+    }
+  }
+  return found;
+}
+
+/** One POST to the search API: the form it expects, the first page only. */
+async function post(text: string, pageSize: number, query: unknown) {
+  const params = new URLSearchParams({ apiKey: "SEDIA", text, pageSize: String(pageSize), pageNumber: "1" });
+  const form = new FormData();
+  form.append("query", jsonPart(query));
+  form.append("languages", jsonPart(["en"]));
+  return fetchJson<{ totalResults?: number; results?: EuSearchHit[] }>(`${SEARCH_URL}?${params}`, { method: "POST", body: form }, TIMEOUT_MS);
 }
 
 function buildQuery(programmes: Programme[], now: Date) {

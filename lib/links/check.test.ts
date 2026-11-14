@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { checkLinks, type FetchLike } from "./check";
+import { checkLinks, type FetchLike, type TopicLookup } from "./check";
 
 /** A fake fetch that answers from a table: a status, a redirect target, or a thrown error per URL. */
 type Answer = number | { redirect: string; status?: number } | Error | (() => Promise<Response>);
@@ -174,6 +174,82 @@ describe("checkLinks", () => {
     const results = await checkLinks(["https://a.example/x", "https://a.example/y", "https://a.example/x"], { fetchImpl, ...fast });
     expect(results.map((r) => r.url)).toEqual(["https://a.example/x", "https://a.example/y"]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  describe("source-aware checks", () => {
+    const topic = (id: string) => `https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/${id}`;
+    const lookupOf = (...answers: (string[] | Error)[]) => {
+      let call = 0;
+      return vi.fn<TopicLookup>(async () => {
+        const answer = answers[Math.min(call++, answers.length - 1)];
+        if (answer instanceof Error) throw answer;
+        return new Set(answer);
+      });
+    };
+
+    it("looks EU topics up in the portal API instead of trusting the portal page's 200", async () => {
+      const fetchImpl = fakeFetch({});
+      const lookupEuTopics = lookupOf(["HORIZON-CL6-2027-01-CIRCBIO-01-two-stage"]);
+      const urls = [topic("HORIZON-CL6-2027-01-CIRCBIO-01-two-stage"), topic("HORIZON-NOPE-2027-99"), topic("HORIZON-CL6-2027-01-CIRCBIO-01-two-stage/")];
+
+      const results = await checkLinks(urls, { fetchImpl, lookupEuTopics, ...fast });
+
+      expect(fetchImpl).not.toHaveBeenCalled();
+      expect(lookupEuTopics).toHaveBeenCalledTimes(1);
+      expect(lookupEuTopics.mock.calls[0][0]).toEqual(["HORIZON-CL6-2027-01-CIRCBIO-01-two-stage", "HORIZON-NOPE-2027-99"]);
+      expect(results.map((r) => [r.outcome, r.status, r.reason])).toEqual([
+        ["ok", null, "topic found in the portal API"],
+        ["broken", null, expect.stringMatching(/^topic not found in the portal API/)],
+        ["ok", null, "topic found in the portal API"],
+      ]);
+    });
+
+    it("asks the API once more when it fails, and calls the links blocked if it fails again", async () => {
+      const urls = [topic("A-1"), topic("B-2")];
+      const recovers = lookupOf(new Error("api.tech.ec.europa.eu answered 503"), ["A-1"]);
+      expect((await checkLinks(urls, { fetchImpl: fakeFetch({}), lookupEuTopics: recovers, ...fast })).map((r) => r.outcome)).toEqual(["ok", "broken"]);
+      expect(recovers).toHaveBeenCalledTimes(2);
+
+      const down = lookupOf(new Error("api.tech.ec.europa.eu answered 503"));
+      const results = await checkLinks(urls, { fetchImpl: fakeFetch({}), lookupEuTopics: down, ...fast });
+      expect(down).toHaveBeenCalledTimes(2);
+      expect(results.map((r) => r.outcome)).toEqual(["blocked", "blocked"]);
+      expect(results[0].reason).toContain("could not ask the portal API (api.tech.ec.europa.eu answered 503)");
+    });
+
+    it("reports links on hosts that answer 200 for any page as unverifiable, without requesting them", async () => {
+      const fetchImpl = fakeFetch({ "https://astazero.ri.se/": 200 });
+      const lookupEuTopics = lookupOf([]);
+      const onResult = vi.fn();
+      const results = await checkLinks(["https://www.ri.se/en/maritime", "https://www.energimyndigheten.se/utlysningar/x/", "https://astazero.ri.se/"], {
+        fetchImpl,
+        lookupEuTopics,
+        onResult,
+        ...fast,
+      });
+
+      expect(results.map((r) => [r.outcome, r.status])).toEqual([
+        ["unverifiable", null],
+        ["unverifiable", null],
+        ["ok", 200],
+      ]);
+      expect(results[0].reason).toMatch(/bot check/);
+      expect(results[1].reason).toMatch(/missing page with 200/);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(lookupEuTopics).not.toHaveBeenCalled();
+      expect(onResult).toHaveBeenCalledTimes(3);
+    });
+
+    it("keeps the order of the input across the three kinds of check", async () => {
+      const fetchImpl = fakeFetch({ "https://a.example/x": 404 });
+      const urls = ["https://www.ri.se/x", topic("A-1"), "https://a.example/x", topic("A-1")];
+      const results = await checkLinks(urls, { fetchImpl, lookupEuTopics: lookupOf(["A-1"]), ...fast });
+      expect(results.map((r) => [r.url, r.outcome])).toEqual([
+        ["https://www.ri.se/x", "unverifiable"],
+        [topic("A-1"), "ok"],
+        ["https://a.example/x", "broken"],
+      ]);
+    });
   });
 
   it("asks at most 6 at once and at most 2 at once per host", async () => {

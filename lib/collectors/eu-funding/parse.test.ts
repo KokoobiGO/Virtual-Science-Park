@@ -3,6 +3,7 @@ import type { Recorded } from "../cache";
 import { toInstant } from "../swedish-time";
 import { EU_STATUS, type EuSearchHit } from "./api";
 import { MAX_TOPICS, parseEuFunding, toPlainText } from "./parse";
+import recordedLookup from "./recorded-lookup.json";
 import recordedJson from "./recorded.json";
 
 const recorded: Recorded<EuSearchHit[]> = recordedJson;
@@ -61,6 +62,12 @@ describe("parseEuFunding on the recorded response", () => {
     }
   });
 
+  it("keeps a two-stage suffix in the link", () => {
+    const twoStage = items.filter((item) => /two-stage/i.test(item.externalId));
+    expect(twoStage.length).toBeGreaterThan(0);
+    for (const item of twoStage) expect(item.url.endsWith(`/topic-details/${item.externalId}`)).toBe(true);
+  });
+
   it("writes descriptions as plain text", () => {
     const described = items.filter((item) => item.description);
     expect(described.length).toBeGreaterThan(items.length * 0.9);
@@ -76,6 +83,35 @@ describe("parseEuFunding on the recorded response", () => {
     const deadlines = items.map((item) => item.deadline ?? "9999-12-31");
     expect(deadlines).toEqual([...deadlines].sort());
     expect(parseEuFunding(hits, now, 10)).toEqual(items.slice(0, 10));
+  });
+});
+
+describe("parseEuFunding links on a recorded identifier lookup", () => {
+  // The API's full hits, with its own `url` and `esST_URL` fields kept.
+  type FullHit = EuSearchHit & { url: string; metadata: { url?: string[]; esST_URL?: string[]; deadlineModel?: string[] } };
+  const lookupHits = recordedLookup.response.results as FullHit[];
+  const lookupItems = parseEuFunding(lookupHits, new Date(recordedLookup.recordedAt));
+  const itemFor = (id: string) => lookupItems.find((item) => item.externalId === id);
+
+  it("gives each topic the link the API itself names", () => {
+    expect(lookupItems).toHaveLength(lookupHits.length);
+    for (const hit of lookupHits) {
+      const item = itemFor(idOf(hit));
+      expect(item?.url).toBe(hit.url);
+      expect(item?.url).toBe(hit.metadata.url?.[0]);
+      expect(item?.url).toBe(hit.metadata.esST_URL?.[0]);
+    }
+  });
+
+  it("links a two-stage topic to its own page, not to the single-stage topic without the suffix", () => {
+    const twoStage = lookupHits.find((hit) => idOf(hit) === "HORIZON-CL6-2027-01-CIRCBIO-01-two-stage")!;
+    const singleStage = lookupHits.find((hit) => idOf(hit) === "HORIZON-CL6-2027-01-CIRCBIO-01")!;
+    expect(twoStage.metadata.deadlineModel).toEqual(["two-stage"]);
+    expect(singleStage.metadata.deadlineModel).toEqual(["single-stage"]);
+    expect(twoStage.metadata.title).not.toEqual(singleStage.metadata.title);
+    expect(itemFor(idOf(twoStage))?.url).toMatch(/\/topic-details\/HORIZON-CL6-2027-01-CIRCBIO-01-two-stage$/);
+    expect(itemFor(idOf(singleStage))?.url).toMatch(/\/topic-details\/HORIZON-CL6-2027-01-CIRCBIO-01$/);
+    expect(itemFor("HORIZON-CL5-2027-04-Two-Stage-D2-07")?.url).toMatch(/\/topic-details\/HORIZON-CL5-2027-04-Two-Stage-D2-07$/);
   });
 });
 

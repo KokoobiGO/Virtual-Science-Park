@@ -9,14 +9,22 @@
  *
  * The links: every distinct URL of the real opportunities (not the fixture-
  * rows) and every source of the week cards. Prints a count per outcome, then
- * every link that is not ok. Exits 0 even when links are broken: it is a
- * report, not a gate.
+ * every link that is not ok: broken and blocked one by one, "cannot verify by
+ * script" grouped by host. Exits 0 even when links are broken: it is a report,
+ * not a gate.
+ *
+ * Stored summary: { checked, ok, broken, blocked, unverifiable, startedAt,
+ * finishedAt }. `checked` is the sum of the four outcomes; `unverifiable`
+ * counts links on hosts that answer 200 for any page, which are neither
+ * working nor broken. EU portal topic links count as ok or broken from the
+ * portal's API, not from the page's own answer (lib/links/sources.ts).
  */
 import { execFileSync } from "node:child_process";
 import { notLike } from "drizzle-orm";
 import { closeDb, getDb } from "../lib/db";
 import { evalRuns, opportunities, weekCards } from "../lib/db/schema";
 import { checkLinks, type LinkResult } from "../lib/links/check";
+import { EU_TOPIC_FOUND } from "../lib/links/sources";
 
 type UsedBy = { kind: "opportunity" | "week_card"; source: string; title: string };
 
@@ -64,23 +72,45 @@ async function main() {
     ok: count("ok"),
     broken: count("broken"),
     blocked: count("blocked"),
+    unverifiable: count("unverifiable"),
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
   };
+  const euFound = results.filter((r) => r.reason === EU_TOPIC_FOUND).length;
+  const notes = {
+    ok: euFound ? `${euFound} of them EU topics found in the portal API` : "",
+    broken: "",
+    blocked: "unclear: check by hand",
+    unverifiable: "cannot verify by script: the host answers 200 for any page",
+  };
   console.log("");
-  for (const outcome of ["ok", "broken", "blocked"] as const) console.log(`${outcome.padEnd(8)} ${String(summary[outcome]).padStart(4)}`);
-  console.log(`checked  ${String(summary.checked).padStart(4)} in ${Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000)} s`);
+  for (const outcome of ["ok", "broken", "blocked", "unverifiable"] as const) {
+    console.log(`${outcome.padEnd(13)} ${String(summary[outcome]).padStart(4)}  ${notes[outcome]}`.trimEnd());
+  }
+  console.log(`${"checked".padEnd(13)} ${String(summary.checked).padStart(4)}  in ${Math.round((finishedAt.getTime() - startedAt.getTime()) / 1000)} s`);
 
-  const order = { broken: 0, blocked: 1, ok: 2 };
+  const order = { broken: 0, blocked: 1, unverifiable: 2, ok: 3 };
   const notOk = results.filter((r) => r.outcome !== "ok").sort((a, b) => order[a.outcome] - order[b.outcome] || a.url.localeCompare(b.url));
-  for (const r of notOk) {
-    const users = usedBy.get(r.url) ?? [];
+  const usedByText = (url: string) => {
+    const users = usedBy.get(url) ?? [];
     const shown = users.slice(0, 2).map((u) => `${u.source}: ${clip(u.title, 70)}`);
     if (users.length > 2) shown.push(`and ${users.length - 2} more`);
+    return shown.join(" | ");
+  };
+  for (const r of notOk.filter((n) => n.outcome !== "unverifiable")) {
     console.log(`\n${r.outcome.padEnd(8)} ${String(r.status ?? "-").padEnd(4)} ${r.url}`);
     console.log(`              ${r.reason}`);
     if (r.redirectedTo) console.log(`              ends at ${r.redirectedTo}`);
-    console.log(`              used by ${shown.join(" | ")}`);
+    console.log(`              used by ${usedByText(r.url)}`);
+  }
+  const unverifiableByHost = new Map<string, LinkResult[]>();
+  for (const r of notOk.filter((n) => n.outcome === "unverifiable")) {
+    unverifiableByHost.set(hostOf(r.url), [...(unverifiableByHost.get(hostOf(r.url)) ?? []), r]);
+  }
+  for (const [host, list] of unverifiableByHost) {
+    console.log(`\ncannot verify by script: ${host}, ${list.length} link${list.length === 1 ? "" : "s"}`);
+    console.log(`              ${list[0].reason}`);
+    for (const r of list) console.log(`              ${r.url}\n                used by ${usedByText(r.url)}`);
   }
 
   if (dry) {

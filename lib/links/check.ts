@@ -4,16 +4,25 @@
  * redirects are followed by hand so a private host is refused at every hop,
  * one retry for network errors and 5xx, and a cap on requests at once, both
  * overall and per host. Each distinct URL is requested once.
+ *
+ * Two kinds of link skip that request (./sources.ts): EU portal topic links
+ * are looked up in the portal's API instead, and links on hosts that answer
+ * 200 for any page are reported as "cannot verify by script".
  */
+import { lookupEuTopics } from "../collectors/eu-funding/api";
 import { publicHttpUrl, USER_AGENT } from "../fetcher/fetch-page";
 import { classify, failureOf, type LinkOutcome, type Probe } from "./classify";
+import { euLookupFailed, euTopicVerdict, sourceRule } from "./sources";
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
+
+/** Which of these EU topic identifiers exist. Throws when it cannot tell. */
+export type TopicLookup = (identifiers: readonly string[]) => Promise<Set<string>>;
 
 export type LinkResult = {
   url: string;
   outcome: LinkOutcome;
-  /** The last HTTP status, or null when no server answered. */
+  /** The link's own last HTTP status, or null when no server answered or the link was not requested (EU topics, hosts we cannot verify). */
   status: number | null;
   reason: string;
   /** Where the link ended up, when the host or path differs from the start. */
@@ -23,6 +32,8 @@ export type LinkResult = {
 export type CheckOptions = {
   /** Defaults to the global fetch. Tests pass a fake. */
   fetchImpl?: FetchLike;
+  /** Defaults to the EU collector's lookup in the portal's search API. Tests pass a fake. */
+  lookupEuTopics?: TopicLookup;
   timeoutMs?: number;
   maxConcurrent?: number;
   maxPerHost?: number;
@@ -54,16 +65,47 @@ export async function checkLinks(urls: readonly string[], options: CheckOptions 
   const settings: Settings = {
     ...LINK_CHECK_DEFAULTS,
     fetchImpl: (url, init) => fetch(url, init),
+    lookupEuTopics,
     ...withoutUndefined(rest),
   };
   const unique = [...new Set(urls)];
   const results = new Map<string, LinkResult>();
-  await runLimited(unique, hostOf, settings.maxConcurrent, settings.maxPerHost, async (url) => {
-    const result = await checkOne(url, settings);
-    results.set(url, result);
+  const record = (result: LinkResult) => {
+    results.set(result.url, result);
     onResult?.(result);
-  });
+  };
+
+  const euTopics = new Map<string, string>();
+  const plain: string[] = [];
+  for (const url of unique) {
+    const rule = sourceRule(url);
+    if (rule?.kind === "cannot_verify") record({ url, outcome: "unverifiable", status: null, reason: rule.reason });
+    else if (rule?.kind === "eu_topic") euTopics.set(url, rule.id);
+    else plain.push(url);
+  }
+
+  await Promise.all([
+    checkEuTopics(euTopics, settings).then((list) => list.forEach(record)),
+    runLimited(plain, hostOf, settings.maxConcurrent, settings.maxPerHost, async (url) => record(await checkOne(url, settings))),
+  ]);
   return unique.map((url) => results.get(url)!);
+}
+
+/** EU topic links (url to identifier): one lookup for all of them, asked once more if it fails. */
+async function checkEuTopics(topics: ReadonlyMap<string, string>, settings: Settings): Promise<LinkResult[]> {
+  if (topics.size === 0) return [];
+  const ids = [...new Set(topics.values())];
+  let found: Set<string> | undefined;
+  let failure = "";
+  for (let attempt = 1; attempt <= 2 && !found; attempt++) {
+    if (attempt > 1) await sleep(settings.retryDelayMs);
+    try {
+      found = await settings.lookupEuTopics(ids);
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
+  }
+  return [...topics].map(([url, id]) => ({ url, status: null, ...(found ? euTopicVerdict(id, found) : euLookupFailed(failure)) }));
 }
 
 async function checkOne(input: string, settings: Settings): Promise<LinkResult> {
@@ -75,7 +117,8 @@ async function checkOne(input: string, settings: Settings): Promise<LinkResult> 
   }
 
   let attempt = await request(start, settings);
-  // The EU portal now and then redirects a good link to a data page that answers 404: ask once more.
+  // A site may now and then redirect a good link to a page that answers 404 (the EU portal did,
+  // before its topic links went through its API): ask once more.
   const redirected404 = "status" in attempt.probe && attempt.probe.status === 404 && attempt.finalUrl.href !== start.href;
   if (worthRetrying(attempt.probe) || redirected404) {
     await sleep(settings.retryDelayMs);

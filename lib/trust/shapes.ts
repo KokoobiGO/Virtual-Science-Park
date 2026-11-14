@@ -52,7 +52,7 @@ export const QuoteCheckSummary = z.object({
 export type QuoteCheckSummary = z.infer<typeof QuoteCheckSummary>;
 
 /** kind "link_check", written by scripts/check-links.ts. */
-export const LinkCheckSummary = z.object({ checked: count, ok: count, broken: count, blocked: count });
+export const LinkCheckSummary = z.object({ checked: count, ok: count, broken: count, blocked: count, unverifiable: count.default(0) });
 export type LinkCheckSummary = z.infer<typeof LinkCheckSummary>;
 
 /**

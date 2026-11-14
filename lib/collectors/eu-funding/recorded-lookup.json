@@ -1,0 +1,130 @@
+{
+  "recordedAt": "2026-11-14T22:28:36.543Z",
+  "identifiers": [
+    "HORIZON-CL6-2027-01-CIRCBIO-01-two-stage",
+    "HORIZON-CL6-2027-01-CIRCBIO-01",
+    "HORIZON-CL5-2027-04-Two-Stage-D2-07",
+    "HORIZON-CL6-2027-01-CIRCBIO-99-two-stage"
+  ],
+  "response": {
+    "totalResults": 3,
+    "results": [
+      {
+        "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL6-2027-01-CIRCBIO-01",
+        "metadata": {
+          "identifier": [
+            "HORIZON-CL6-2027-01-CIRCBIO-01"
+          ],
+          "title": [
+            "Enhancing ecodesign and circularity of consumer electronics"
+          ],
+          "status": [
+            "31094501"
+          ],
+          "startDate": [
+            "2027-04-20T00:00:00.000+0000"
+          ],
+          "deadlineDate": [
+            "2027-09-22T00:00:00.000+0000"
+          ],
+          "deadlineModel": [
+            "single-stage"
+          ],
+          "callIdentifier": [
+            "HORIZON-CL6-2027-01"
+          ],
+          "typesOfAction": [
+            "HORIZON Innovation Actions"
+          ],
+          "url": [
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL6-2027-01-CIRCBIO-01"
+          ],
+          "esST_URL": [
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL6-2027-01-CIRCBIO-01"
+          ],
+          "descriptionByte": [
+            "<p class=\"topicdescriptionkind\">Expected Outcome:</p><p>Project results are expected to contribute to all of the following expected outcomes:</p><ul level=\"0\"><li>material and product manufacturers apply relevant ecodesign, including design for circularity and design for recycling principles in developing and manufacturing products that contribute significantly to EU climate and through reduction "
+          ]
+        }
+      },
+      {
+        "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL6-2027-01-CIRCBIO-01-two-stage",
+        "metadata": {
+          "identifier": [
+            "HORIZON-CL6-2027-01-CIRCBIO-01-two-stage"
+          ],
+          "title": [
+            "Deploying circular systemic solutions through living labs in cities and regions (Circular Cities and Regions Initiative topic)"
+          ],
+          "status": [
+            "31094501"
+          ],
+          "startDate": [
+            "2027-02-04T00:00:00.000+0000"
+          ],
+          "deadlineDate": [
+            "2027-04-08T00:00:00.000+0000",
+            "2027-09-16T00:00:00.000+0000"
+          ],
+          "deadlineModel": [
+            "two-stage"
+          ],
+          "callIdentifier": [
+            "HORIZON-CL6-2027-01-two-stage"
+          ],
+          "typesOfAction": [
+            "HORIZON Innovation Actions"
+          ],
+          "url": [
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL6-2027-01-CIRCBIO-01-two-stage"
+          ],
+          "esST_URL": [
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL6-2027-01-CIRCBIO-01-two-stage"
+          ],
+          "descriptionByte": [
+            "<p class=\"topicdescriptionkind\">Expected Outcome:</p><p>Project results are expected to contribute to all of the following expected outcomes:</p><ul level=\"0\"><li>increased circularity and reduced emissions of greenhouse gases and air pollutants in the economic sectors, services and product value chains at local and/or regional scale. This also includes an efficient valorisation of local resources"
+          ]
+        }
+      },
+      {
+        "url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-04-Two-Stage-D2-07",
+        "metadata": {
+          "identifier": [
+            "HORIZON-CL5-2027-04-Two-Stage-D2-07"
+          ],
+          "title": [
+            "Novel approaches towards next-generation battery concepts, leveraging the enabling role of innovative advanced materials (BATT4EU and IAM4EU Partnerships)"
+          ],
+          "status": [
+            "31094501"
+          ],
+          "startDate": [
+            "2026-12-15T00:00:00.000+0000"
+          ],
+          "deadlineDate": [
+            "2027-04-14T00:00:00.000+0000",
+            "2027-10-07T00:00:00.000+0000"
+          ],
+          "deadlineModel": [
+            "two-stage"
+          ],
+          "callIdentifier": [
+            "HORIZON-CL5-2027-04-Two-Stage"
+          ],
+          "typesOfAction": [
+            "HORIZON  Research and Innovation Actions"
+          ],
+          "url": [
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-04-Two-Stage-D2-07"
+          ],
+          "esST_URL": [
+            "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-04-Two-Stage-D2-07"
+          ],
+          "descriptionByte": [
+            "<p class=\"topicdescriptionkind\">Expected Outcome:</p><p>Proposals are expected to contribute to the generation of innovative battery concepts to safeguard future European competitiveness through innovative battery advanced materials and technologies contributing to green energy usage through enhanced energy storage and management capabilities.</p><p>Depending on the areas listed in the scope, prop"
+          ]
+        }
+      }
+    ]
+  }
+}

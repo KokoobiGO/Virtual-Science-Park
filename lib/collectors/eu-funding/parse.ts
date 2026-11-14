@@ -8,11 +8,11 @@ import { load } from "cheerio/slim";
 import { endOfSwedishDay } from "../swedish-time";
 import type { CollectedOpportunity } from "../types";
 import { EU_STATUS, type EuSearchHit } from "./api";
+import { euTopicUrl } from "./topic-url";
 
 /** At most this many topics are kept, the nearest deadlines first. */
 export const MAX_TOPICS = 150;
 const MAX_DESCRIPTION = 4000;
-const TOPIC_PAGE = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/";
 
 export function parseEuFunding(hits: EuSearchHit[], now: Date, limit = MAX_TOPICS): CollectedOpportunity[] {
   const byId = new Map<string, CollectedOpportunity>();
@@ -48,7 +48,8 @@ function toOpportunity(hit: EuSearchHit, now: Date): CollectedOpportunity | null
     externalId: id,
     kind: "funding",
     title,
-    url: TOPIC_PAGE + encodeURIComponent(id),
+    // The identifier as it is, suffix included: see topic-url.ts.
+    url: euTopicUrl(id),
     ...(description ? { description } : {}),
     ...(opensAt ? { opensAt } : {}),
     ...(deadline ? { deadline } : {}),

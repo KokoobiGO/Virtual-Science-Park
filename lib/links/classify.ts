@@ -8,9 +8,15 @@
  *   address we will not request.
  * - blocked: the site would not tell a script (401, 403, 429, a timeout or
  *   another answer we cannot read), so a person must check it in a browser.
+ * - unverifiable ("cannot verify by script"): a host known to answer 200
+ *   whether the page exists or not (see ./sources.ts). Never set here: such a
+ *   link is not requested at all.
+ *
+ * EU portal topic links are not judged by their HTTP answer either: the topic
+ * is looked up in the portal's API (./sources.ts).
  */
 
-export type LinkOutcome = "ok" | "broken" | "blocked";
+export type LinkOutcome = "ok" | "broken" | "blocked" | "unverifiable";
 
 /** How a request ended without an HTTP answer we can use. */
 export type FailureKind =

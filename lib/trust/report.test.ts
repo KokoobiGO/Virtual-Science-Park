@@ -96,7 +96,7 @@ describe("the stored summaries parse", () => {
 
   it("reads what scripts/check-links.ts stores", () => {
     const summary = { checked: 181, ok: 181, broken: 0, blocked: 0, startedAt: "2026-11-14T17:27:12.807Z", finishedAt: "2026-11-14T17:27:18.256Z" };
-    expect(LinkCheckSummary.parse(summary)).toEqual({ checked: 181, ok: 181, broken: 0, blocked: 0 });
+    expect(LinkCheckSummary.parse(summary)).toEqual({ checked: 181, ok: 181, broken: 0, blocked: 0, unverifiable: 0 });
   });
 
   it("refuses a red-team or privacy summary with more passed than run", () => {
