@@ -12,6 +12,7 @@ describe("menus by role", () => {
     expect(NAV.staff.map((i) => i.href)).toEqual([
       "/staff/compare",
       "/staff/ecosystem",
+      "/profile",
       "/staff/handoffs",
       "/explore",
       "/trust",

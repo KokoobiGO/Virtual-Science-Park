@@ -25,6 +25,7 @@ export const NAV: Record<AppRole, NavItem[]> = {
   staff: [
     { href: "/staff/compare", label: "Compare", backlog: "C9", description: "Two members side by side, from public data." },
     { href: "/staff/ecosystem", label: "Ecosystem map", backlog: "C17", description: "Members by technology area, with suggested connections." },
+    { href: "/profile", label: "Company profiles", backlog: "C5", description: "Every member's public profile, with its evidence." },
     { href: "/staff/handoffs", label: "Handoffs", backlog: "C11", description: "Questions members sent to BSP staff." },
     { href: "/explore", label: "Explore", backlog: "C14", description: "Search every funding call, testbed and event." },
     { href: "/trust", label: "Trust report", backlog: "C12", description: "How well the profiles and matches hold up." },
@@ -47,7 +48,6 @@ export const HOME: Record<AppRole, string> = {
 export const ROLE_ONLY: { prefix: string; role: AppRole }[] = [
   { prefix: "/staff", role: "staff" },
   { prefix: "/week", role: "member" },
-  { prefix: "/profile", role: "member" },
   { prefix: "/scout", role: "member" },
 ];
 
