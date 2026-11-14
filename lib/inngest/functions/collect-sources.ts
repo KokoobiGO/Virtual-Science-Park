@@ -4,6 +4,8 @@
  *   await inngest.send({ name: "app/sources.collect.requested", data: {} })
  *   await inngest.send({ name: "app/sources.collect.requested", data: { sources: ["vinnova"] } })
  *
+ * It also runs every night at 03:00 Swedish time (A23), for every source.
+ *
  * Each source is its own step, so one slow or broken source never stops the
  * others and no step comes near Netlify's 30 s limit. A collector that cannot
  * reach its source falls back to its recorded copy and says so (state "cached").
@@ -21,8 +23,15 @@ const CollectRequest = z.object({ sources: z.array(z.string()).optional() });
 export type CollectSourcesResult = { stored: StoredCollection[]; failed: { source: string; error: string }[] };
 
 export const collectSourcesJob = inngest.createFunction(
-  { id: "collect-sources", name: "Collect opportunities from the sources", retries: 1, triggers: [{ event: "app/sources.collect.requested" }] },
+  {
+    id: "collect-sources",
+    name: "Collect opportunities from the sources",
+    retries: 1,
+    triggers: [{ cron: "TZ=Europe/Stockholm 0 3 * * *" }, { event: "app/sources.collect.requested" }],
+  },
   async ({ event, step }): Promise<CollectSourcesResult> => {
+    const trigger = event.name === "inngest/scheduled.timer" ? "cron" : event.name;
+    // A cron run's data holds only the schedule, so no `sources`: every source is collected.
     const request = CollectRequest.safeParse(event.data ?? {});
     if (!request.success) throw new NonRetriableError(`Bad event data: ${request.error.message}`);
     const wanted = request.data.sources;
@@ -49,7 +58,7 @@ export const collectSourcesJob = inngest.createFunction(
         .insert(jobRuns)
         .values({
           job: "collect-sources",
-          trigger: event.name,
+          trigger,
           status: ok ? "succeeded" : "failed",
           // The function body runs again for every step, so the event's time is the stable start.
           startedAt: new Date(event.ts ?? Date.now()),

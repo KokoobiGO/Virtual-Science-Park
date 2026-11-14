@@ -59,6 +59,10 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run fetch:page -- <url>` | Print the clean text of one web page (A1); add `--save` to store it as a snapshot |
 | `npm run profile:status` | Count of profiled, thin, failed and not yet profiled members, with the reason for each thin or failed one (A8) |
 | `npm run collect -- <source\|all>` | Run one collector or all of them and store the opportunities (A9 to A13, A25, A26); add `--dry` to only print |
+| `npm run enrich` | Tag and embed opportunities and companies that have no embedding yet (A14); `--force`, `--limit N`, `--dry` |
+| `npm run similar -- <slug>` | The nearest opportunities and companies to one member, by embedding (A14) |
+| `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
+| `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 
 `npm test` runs unit tests always. The privacy tests in `tests/` also run when
 `.env.local` points at a database with `db:setup` done, and skip otherwise.
@@ -82,6 +86,10 @@ lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/members/         member list import (A2): BSP's member list and pages into companies
 lib/profiler/        profiler (A5, A6, A8): page text in, claims out; quote check with one retry; thin rule; storage
 lib/collectors/     collectors (A9 to A13, A25, A26): one folder per outside source, one shared store
+lib/tagger/         tagger (A14): which of the six tags a text is about
+lib/embeddings/     embedding texts and the enrich functions (A14)
+lib/links/          link checker (A20)
+lib/sources/        source health verdicts (A19)
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
 lib/quote-check.ts   quote verifier (A4): is a claim's quote in the stored page text, word for word?
 lib/inngest/         Inngest client and functions (S10)
@@ -268,6 +276,54 @@ event: app/sources.collect.requested   data: {}   or   { "sources": ["vinnova"] 
   (see `types.ts`), added to the list in `lib/collectors/index.ts`.
 - Import `cheerio/slim`, never `cheerio`: the main entry loads its own undici,
   which takes over Node's built-in fetch and can crash the process.
+
+## Tags and embeddings (A14)
+
+```
+event: app/enrich.requested   data: {}   or   { "force": true }
+```
+
+The `enrich` job fills `tags` and `embedding` on opportunities, and `tags`,
+`public_embedding` and `company_private.personal_embedding` on companies. It
+also runs every night at 03:30, after the collectors.
+
+- A row is picked up when its embedding is empty. Collectors clear an
+  opportunity's embedding when its text changes; a new profile clears the
+  company's. `force` does everything again.
+- Tags: the fast model answers yes or no for each of the six tags, ten texts a
+  call. Hand-curated testbeds keep their own tags. Zero tags is a valid answer.
+- The public embedding is built from active public claims only. The personal
+  one adds the company's private claims and priorities.
+- Voyage without billing allows 3 requests and 10,000 tokens a minute, so a
+  full run takes about 10 minutes with `npm run enrich` and longer as a job.
+
+## Source status, cached mode and schedules (A19, A23)
+
+- `DEMO_MODE=cached`: collectors use their recorded copies and `fetchSnapshot()`
+  returns the latest stored page instead of fetching. The member list import
+  still reads BSP's site live.
+- `npm run sources:status` reads `source_status`: `ok` (live, success within
+  48 hours), `stale`, `cached` (with the date of the copy) or `hand_entered`.
+- Schedules, Swedish time: collectors every night at 03:00, enrich at 03:30,
+  profile refresh on Mondays at 04:00 (`app/members.refresh.requested` starts
+  it by hand).
+- Profile refresh (`"refresh": true` on `app/company.profile.requested`): when
+  no page changed, nothing is asked of the model. Otherwise a field counts as
+  changed only when its value differs and it brings a quote the old claim did
+  not have; the new claim is stored as `suggested` and the old one stays active.
+- `isStale()` in `lib/profiler/stale.ts`: a claim older than 90 days.
+
+## Link checker (A20)
+
+`npm run check:links` asks for every opportunity's URL once (and every source
+of a week card) and stores one `eval_runs` row of kind `link_check`.
+
+- `ok`: a 2xx answer after redirects. `broken`: 404 or 410, no such host, a
+  refused connection, a TLS error, a 5xx twice, or a redirect to the site's own
+  `/404` page. `blocked`: 401, 403, 429 or a timeout, so a person must check.
+- Limits of the check: the EU portal answers 200 for any topic id, so "ok"
+  there only means the portal is up. Energimyndigheten also answers 200 for a
+  missing page.
 
 ## Member import (A2)
 

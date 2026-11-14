@@ -23,7 +23,11 @@
     "check:nvidia": "tsx --env-file-if-exists=.env.local scripts/check-nvidia.ts",
     "fetch:page": "tsx --env-file-if-exists=.env.local scripts/fetch-page.ts",
     "profile:status": "tsx --env-file-if-exists=.env.local scripts/profile-status.ts",
-    "collect": "tsx --env-file-if-exists=.env.local scripts/collect.ts"
+    "collect": "tsx --env-file-if-exists=.env.local scripts/collect.ts",
+    "enrich": "tsx --env-file-if-exists=.env.local scripts/enrich.ts",
+    "similar": "tsx --env-file-if-exists=.env.local scripts/similar.ts",
+    "check:links": "tsx --env-file-if-exists=.env.local scripts/check-links.ts",
+    "sources:status": "tsx --env-file-if-exists=.env.local scripts/sources-status.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.8.0",

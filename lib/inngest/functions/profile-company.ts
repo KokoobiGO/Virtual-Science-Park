@@ -11,6 +11,11 @@
  *
  * The company row gets a status (A8): "profiled" or "thin" when the profile is
  * stored, "failed" when the run gives up (see onFailure).
+ *
+ * With `refresh: true` (the weekly re-crawl, A23) the run stops after fetching
+ * when no page has changed, and otherwise stores only real changes, as
+ * suggested updates next to the active claims. The company's status and note
+ * stay as they are, also when the run fails.
  */
 import { eq, inArray } from "drizzle-orm";
 import { NonRetriableError } from "inngest";
@@ -28,13 +33,15 @@ import { inngest } from "../client";
 const ProfileRequest = z.object({
   slug: z.string().min(1),
   dryRun: z.boolean().default(false),
+  /** The weekly re-crawl (A23): skip unchanged pages, store changes as suggestions. */
+  refresh: z.boolean().default(false),
   /** Optional overrides, for trying things without a code change. */
   model: z.string().min(1).optional(),
   thinking: z.boolean().optional(),
 });
 
 /** What onFailure needs from the original event. Loose on purpose: it must not throw. */
-const FailedRequest = z.object({ slug: z.string().min(1), dryRun: z.boolean().optional() });
+const FailedRequest = z.object({ slug: z.string().min(1), dryRun: z.boolean().optional(), refresh: z.boolean().optional() });
 
 /** Longest error message kept in companies.profile_note. */
 const MAX_FAILURE_CHARS = 300;
@@ -59,6 +66,14 @@ export type CompanyProfileResult = {
   claims: DraftClaim[];
 };
 
+/** A refresh run that stopped because every page it fetched was the same as last time. */
+export type SkippedProfileResult = {
+  company: string;
+  skipped: "unchanged";
+  sources: { url: string }[];
+  failed: { url: string; error: string }[];
+};
+
 /** The snapshots as the profiler reads them: the company's own site first, then BSP's page about it. */
 async function loadSources(snapshotIds: string[]): Promise<ProfilerSource[]> {
   const rows = await getDb().select().from(snapshots).where(inArray(snapshots.id, snapshotIds));
@@ -80,7 +95,8 @@ export const profileCompanyJob = inngest.createFunction(
     // Runs once the job has used up its retries. The original event is inside the failure event.
     onFailure: async ({ event, error, step }) => {
       const request = FailedRequest.safeParse(event.data.event?.data);
-      if (!request.success || request.data.dryRun) return { marked: false };
+      // A failed refresh leaves the stored profile as it was, so its status stays too.
+      if (!request.success || request.data.dryRun || request.data.refresh) return { marked: false };
       const { slug } = request.data;
       return step.run("mark company failed", async () => {
         const rows = await getDb()
@@ -92,10 +108,10 @@ export const profileCompanyJob = inngest.createFunction(
       });
     },
   },
-  async ({ event, step }): Promise<CompanyProfileResult> => {
+  async ({ event, step }): Promise<CompanyProfileResult | SkippedProfileResult> => {
     const request = ProfileRequest.safeParse(event.data);
     if (!request.success) throw new NonRetriableError(`Bad event data: ${request.error.message}`);
-    const { slug, dryRun, model, thinking } = request.data;
+    const { slug, dryRun, refresh, model, thinking } = request.data;
     const company = await step.run("load company", async () => {
       const [row] = await getDb()
         .select({ id: companies.id, name: companies.name, website: companies.website, memberPage: companies.memberPage })
@@ -110,15 +126,26 @@ export const profileCompanyJob = inngest.createFunction(
       { url: company.memberPage, source: "bsp_member" },
     ];
     // One failed page must not stop the other: keep what works, and say why the rest failed.
-    const { snapshotIds, failed } = await step.run("fetch sources", async () => {
+    const { snapshotIds, unchanged, failed } = await step.run("fetch sources", async () => {
       const results = await Promise.allSettled(pages.map((page) => fetchSnapshot({ ...page, companyId: company.id })));
       return {
         snapshotIds: results.flatMap((r) => (r.status === "fulfilled" ? [r.value.snapshot.id] : [])),
+        /** Every page that was fetched has the same text as its stored snapshot. */
+        unchanged: results.every((r) => r.status === "rejected" || r.value.unchanged),
         failed: results.flatMap((r, i) => (r.status === "rejected" ? [{ url: pages[i].url, error: errorMessage(r.reason) }] : [])),
       };
     });
     if (!snapshotIds.length) {
       throw new NonRetriableError(`Could not fetch any page for ${company.name}: ${failed.map((f) => f.error).join("; ")}`);
+    }
+    // Nothing new to read: no model call, nothing stored.
+    if (refresh && unchanged) {
+      return {
+        company: company.name,
+        skipped: "unchanged",
+        sources: pages.filter((p) => !failed.some((f) => f.url === p.url)).map((p) => ({ url: p.url })),
+        failed,
+      };
     }
 
     const first = await step.run("profile", async () => {
@@ -162,7 +189,7 @@ export const profileCompanyJob = inngest.createFunction(
     if (dryRun) return { ...result, stored: null };
 
     const stored = await step.run("store profile", async () => {
-      const saved = await storeProfile(company.id, claims, assessment);
+      const saved = await storeProfile(company.id, claims, assessment, { refresh });
       await getDb()
         .insert(jobRuns)
         .values({
@@ -174,7 +201,7 @@ export const profileCompanyJob = inngest.createFunction(
           finishedAt: new Date(),
           inputTokens: result.tokens.input,
           outputTokens: result.tokens.output,
-          stats: { company: slug, quotes: result.quotes, retried: result.retried, dropped: result.dropped, stored: saved },
+          stats: { company: slug, refresh, quotes: result.quotes, retried: result.retried, dropped: result.dropped, stored: saved },
         });
       return saved;
     });
