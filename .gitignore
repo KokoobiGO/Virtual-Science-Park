@@ -48,3 +48,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Digest previews hold text from personal matches (private to each company)
+data/digest-preview/
