@@ -57,6 +57,7 @@ All four share `DEMO_USER_PASSWORD`. Share it with the team out of band.
 | `npm run check:claude` | One test call per Claude feature (S3); costs a few cents |
 | `npm run check:nvidia` | One test call per NVIDIA API feature (S3); free developer key |
 | `npm run fetch:page -- <url>` | Print the clean text of one web page (A1); add `--save` to store it as a snapshot |
+| `npm run profile:status` | Count of profiled, thin, failed and not yet profiled members, with the reason for each thin or failed one (A8) |
 
 `npm test` runs unit tests always. The privacy tests in `tests/` also run when
 `.env.local` points at a database with `db:setup` done, and skip otherwise.
@@ -78,7 +79,7 @@ lib/resend.ts        Resend email client, for the weekly digest (C18)
 lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clean text
 lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/members/         member list import (A2): BSP's member list and pages into companies
-lib/profiler/        profiler (A5, A6): page text in, claims out; quote check with one retry; storage
+lib/profiler/        profiler (A5, A6, A8): page text in, claims out; quote check with one retry; thin rule; storage
 lib/normalize.ts     text normaliser (A3): spacing, quote marks, dashes, capitals; for comparing only
 lib/quote-check.ts   quote verifier (A4): is a claim's quote in the stored page text, word for word?
 lib/inngest/         Inngest client and functions (S10)
@@ -190,7 +191,7 @@ language and a hash of the text. Quotes are checked against that stored text.
 - Jobs call `fetchSnapshot()` in a step, or send `app/snapshot.requested`.
   Staff can try a URL under "Page fetcher" at `/staff/checks`.
 
-## Profiler (A5, A6)
+## Profiler (A5, A6, A8)
 
 The `profile-company` job profiles one member: it stores the company's home
 page and its BSP member page as snapshots, asks the model for the eight profile
@@ -212,6 +213,27 @@ event: app/company.profile.requested   data: { "slug": "techinova" }
 - Each run is logged in `job_runs` with its tokens, retried and dropped fields.
 - Model: `nvidia/nemotron-3.5-lightning-30b-a3b` with thinking off, about 10 s
   a company. With thinking on it runs past Netlify's 30 s limit for one step.
+
+### Profiling all members
+
+```
+event: app/members.profile.requested   data: {}
+```
+
+The `profile-all-members` job sends one `app/company.profile.requested` event
+per member; `profile-company` runs at most two steps at once (NVIDIA's free
+key is rate limited). Each company then gets `profile_status` and `profile_note`:
+
+- `profiled`, or `thin` when fewer than 3 of the 7 factual fields (all but
+  `inferredInterests`) could be supported with quotes: "too little public info".
+- `failed` when the run gave up after its retry; the note has the error.
+- The note also says when the company's own website could not be read, or none is listed, and only
+  BSP's member page was used.
+
+Without `force` only members never profiled or `failed` last time are sent, so
+running it again picks up the rest. `"force": true` profiles everyone again;
+`"limit": 3` sends the first three by slug, for a test. Check progress with
+`npm run profile:status`.
 
 ## Member import (A2)
 

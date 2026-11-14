@@ -6,16 +6,20 @@
  * Nothing is deleted. The profiler's earlier claims become "superseded". Where
  * the member has their own active claim for a field, that stays in charge and
  * the profiler's new claim is stored as "suggested" for the member to accept.
+ *
+ * The company row gets the profile's status and note (A8) in the same
+ * transaction, so a thin flag never points at claims that were not stored.
  */
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import { claims, companies, evidence, snapshots } from "../db/schema";
 import type { ProfileField } from "../schemas";
+import type { ProfileAssessment } from "./assess";
 import type { DraftClaim } from "./output";
 
 export type StoredProfile = { active: number; suggested: number; superseded: number; evidence: number };
 
-export async function storeProfile(companyId: string, profile: DraftClaim[]): Promise<StoredProfile> {
+export async function storeProfile(companyId: string, profile: DraftClaim[], assessment: ProfileAssessment): Promise<StoredProfile> {
   const now = new Date();
   const snapshotIds = [...new Set(profile.flatMap((claim) => claim.evidence.map((e) => e.snapshotId)))];
 
@@ -83,7 +87,10 @@ export async function storeProfile(companyId: string, profile: DraftClaim[]): Pr
       }
     }
 
-    await tx.update(companies).set({ lastProfiledAt: now, updatedAt: now }).where(eq(companies.id, companyId));
+    await tx
+      .update(companies)
+      .set({ lastProfiledAt: now, profileStatus: assessment.status, profileNote: assessment.note, updatedAt: now })
+      .where(eq(companies.id, companyId));
     return stored;
   });
 }

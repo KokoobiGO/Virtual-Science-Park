@@ -38,6 +38,7 @@ import {
   OpportunityFormat,
   OpportunityKind,
   ProfileField,
+  ProfileStatus,
   QuoteLang,
   ScopeLabel,
   SourceState,
@@ -61,6 +62,7 @@ export const claimStatus = pgEnum("claim_status", values(ClaimStatus));
 export const claimAuthor = pgEnum("claim_author", values(ClaimAuthor));
 export const visibility = pgEnum("visibility", values(Visibility));
 export const profileField = pgEnum("profile_field", values(ProfileField));
+export const profileStatus = pgEnum("profile_status", values(ProfileStatus));
 export const claimReviewState = pgEnum("claim_review_state", [
   "active", // shown on the profile
   "suggested", // found by a re-crawl, waiting for the member to accept
@@ -120,6 +122,10 @@ export const companies = pgTable("companies", {
   /** Built from public claims only, for the public ranking. */
   publicEmbedding: vector({ dimensions: EMBEDDING_DIMENSIONS }),
   lastProfiledAt: timestamptz(),
+  /** How the last profiling run went (A8). Null: never profiled. */
+  profileStatus: profileStatus(),
+  /** One sentence on why the profile is thin or the run failed, or that the website could not be read. */
+  profileNote: text(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

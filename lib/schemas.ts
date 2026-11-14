@@ -128,6 +128,14 @@ export const ProfileField = z.enum([
 ]);
 export type ProfileField = z.infer<typeof ProfileField>;
 
+/**
+ * How a company's last profiling run went (A8). `thin`: too little public
+ * info to support most fields. `failed`: the run itself broke. Null on the
+ * company row means it was never profiled.
+ */
+export const ProfileStatus = z.enum(["profiled", "thin", "failed"]);
+export type ProfileStatus = z.infer<typeof ProfileStatus>;
+
 /** What a member can switch on as a priority. Always private. */
 export const UserPriority = z.enum(["funding", "testing", "partners", "events", "market"]);
 export type UserPriority = z.infer<typeof UserPriority>;

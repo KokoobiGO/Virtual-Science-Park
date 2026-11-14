@@ -8,6 +8,9 @@
  * With `dryRun: true` nothing but the page snapshots is stored and the claims
  * come back in the run's output. Each model call is its own step, because a
  * step may take 30 s at most on Netlify.
+ *
+ * The company row gets a status (A8): "profiled" or "thin" when the profile is
+ * stored, "failed" when the run gives up (see onFailure).
  */
 import { eq, inArray } from "drizzle-orm";
 import { NonRetriableError } from "inngest";
@@ -15,6 +18,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { companies, jobRuns, snapshots } from "@/lib/db/schema";
 import { runProfiler, type DraftClaim, type ProfilerSource } from "@/lib/profiler";
+import { assessProfile, type ProfileAssessment } from "@/lib/profiler/assess";
 import { storeProfile, type StoredProfile } from "@/lib/profiler/store";
 import { mergeRetry, retryFeedback, verifyDraftClaims } from "@/lib/profiler/verify";
 import type { ProfileField } from "@/lib/schemas";
@@ -29,6 +33,12 @@ const ProfileRequest = z.object({
   thinking: z.boolean().optional(),
 });
 
+/** What onFailure needs from the original event. Loose on purpose: it must not throw. */
+const FailedRequest = z.object({ slug: z.string().min(1), dryRun: z.boolean().optional() });
+
+/** Longest error message kept in companies.profile_note. */
+const MAX_FAILURE_CHARS = 300;
+
 export type CompanyProfileResult = {
   company: string;
   sources: { url: string; chars: number }[];
@@ -42,6 +52,9 @@ export type CompanyProfileResult = {
   retried: ProfileField[];
   /** Fields that failed again and are stored as "missing". */
   dropped: ProfileField[];
+  /** "thin" when too few fields could be supported with quotes (lib/profiler/assess.ts). */
+  status: ProfileAssessment["status"];
+  note: string | null;
   stored: StoredProfile | null;
   claims: DraftClaim[];
 };
@@ -54,8 +67,31 @@ async function loadSources(snapshotIds: string[]): Promise<ProfilerSource[]> {
     .map((s) => ({ snapshotId: s.id, source: s.source, url: s.url, lang: s.lang, text: s.contentText }));
 }
 
+const errorMessage = (reason: unknown) => (reason instanceof Error ? reason.message : String(reason));
+
 export const profileCompanyJob = inngest.createFunction(
-  { id: "profile-company", name: "Profile one company", retries: 1, triggers: [{ event: "app/company.profile.requested" }] },
+  {
+    id: "profile-company",
+    name: "Profile one company",
+    retries: 1,
+    // NVIDIA's free key is rate limited. Inngest counts steps, not runs: at most two steps of this job run at once.
+    concurrency: { limit: 2 },
+    triggers: [{ event: "app/company.profile.requested" }],
+    // Runs once the job has used up its retries. The original event is inside the failure event.
+    onFailure: async ({ event, error, step }) => {
+      const request = FailedRequest.safeParse(event.data.event?.data);
+      if (!request.success || request.data.dryRun) return { marked: false };
+      const { slug } = request.data;
+      return step.run("mark company failed", async () => {
+        const rows = await getDb()
+          .update(companies)
+          .set({ profileStatus: "failed", profileNote: `Profiling failed: ${errorMessage(error).slice(0, MAX_FAILURE_CHARS)}` })
+          .where(eq(companies.slug, slug))
+          .returning({ id: companies.id });
+        return { marked: rows.length > 0 };
+      });
+    },
+  },
   async ({ event, step }): Promise<CompanyProfileResult> => {
     const request = ProfileRequest.safeParse(event.data);
     if (!request.success) throw new NonRetriableError(`Bad event data: ${request.error.message}`);
@@ -69,16 +105,21 @@ export const profileCompanyJob = inngest.createFunction(
       return row;
     });
 
-    // One failed page must not stop the other: keep what works.
-    const snapshotIds = await step.run("fetch sources", async () => {
-      const pages = [
-        ...(company.website ? [{ url: company.website, source: "company_site" }] : []),
-        { url: company.memberPage, source: "bsp_member" },
-      ];
+    const pages = [
+      ...(company.website ? [{ url: company.website, source: "company_site" }] : []),
+      { url: company.memberPage, source: "bsp_member" },
+    ];
+    // One failed page must not stop the other: keep what works, and say why the rest failed.
+    const { snapshotIds, failed } = await step.run("fetch sources", async () => {
       const results = await Promise.allSettled(pages.map((page) => fetchSnapshot({ ...page, companyId: company.id })));
-      return results.flatMap((r) => (r.status === "fulfilled" ? [r.value.snapshot.id] : []));
+      return {
+        snapshotIds: results.flatMap((r) => (r.status === "fulfilled" ? [r.value.snapshot.id] : [])),
+        failed: results.flatMap((r, i) => (r.status === "rejected" ? [{ url: pages[i].url, error: errorMessage(r.reason) }] : [])),
+      };
     });
-    if (!snapshotIds.length) throw new NonRetriableError(`Could not fetch any page for ${company.name}.`);
+    if (!snapshotIds.length) {
+      throw new NonRetriableError(`Could not fetch any page for ${company.name}: ${failed.map((f) => f.error).join("; ")}`);
+    }
 
     const first = await step.run("profile", async () => {
       const sources = await loadSources(snapshotIds);
@@ -101,6 +142,7 @@ export const profileCompanyJob = inngest.createFunction(
       : null;
 
     const { claims, dropped } = mergeRetry(first, retry);
+    const assessment = assessProfile(claims, { fetched: pages.filter((p) => !failed.some((f) => f.url === p.url)), failed });
     const result: Omit<CompanyProfileResult, "stored"> = {
       company: company.name,
       sources: first.sources,
@@ -113,12 +155,14 @@ export const profileCompanyJob = inngest.createFunction(
       quotes: { found: first.quotes.found + (retry?.quotes.found ?? 0), total: first.quotes.total + (retry?.quotes.total ?? 0) },
       retried: first.failed.map((f) => f.field),
       dropped,
+      status: assessment.status,
+      note: assessment.note,
       claims,
     };
     if (dryRun) return { ...result, stored: null };
 
     const stored = await step.run("store profile", async () => {
-      const saved = await storeProfile(company.id, claims);
+      const saved = await storeProfile(company.id, claims, assessment);
       await getDb()
         .insert(jobRuns)
         .values({
