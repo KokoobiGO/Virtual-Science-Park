@@ -113,7 +113,6 @@ describe("ScoutClient in Swedish", () => {
     expect(html).toContain(">Klar<");
     expect(html).toContain("Förberedda frågor (öppnas direkt i demoläget):");
     expect(html).toContain(">Era sammanställningar</h2>");
-    expect(html).toContain("Varje sammanställning sparas här för ert företag");
     expect(html).toContain(`${options.length} alternativ`);
     expect(html).toMatch(/Ställd 1 dec\. 10:00/);
     expect(html).toContain(">Fråga Scout</button>");
@@ -172,8 +171,7 @@ describe("ScoutClient in Swedish", () => {
     expect(waiting).toContain("Väntar på första steget…");
 
     const empty = render(null, "sv");
-    expect(empty).toContain("Inga sammanställningar än.");
-    expect(empty).toContain("Skriv en fråga ovan och tryck på Fråga Scout. Sammanställningen visas här");
+    expect(empty).toContain("Inga sammanställningar än. Ställ en fråga ovan.");
     expect(empty).toContain("Inga än. Varje fråga ni ställer sparas här.");
     expectNoEnglish(empty);
   });

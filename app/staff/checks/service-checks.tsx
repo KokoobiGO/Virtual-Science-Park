@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, CircleCheck, CircleDashed, Info, LoaderCircle, Play } from "lucide-react";
+import { CircleAlert, CircleCheck, CircleDashed, Info, LoaderCircle, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,32 @@ type Outcome = CheckResult & { hint?: string | null };
 
 /** Each result is a word and an icon, never colour alone. */
 const LOOK = {
-  PASS: { variant: "success", Icon: CircleCheck },
-  FAIL: { variant: "destructive", Icon: CircleAlert },
-  NOTE: { variant: "info", Icon: Info },
+  PASS: { className: "text-success", Icon: CircleCheck },
+  FAIL: { className: "text-destructive", Icon: CircleAlert },
+  NOTE: { className: "text-info", Icon: Info },
 } as const;
 
 /**
- * Runs every check of one service in parallel, one request each to
+ * One service as one row: its name, one status word, and the Run button. The
+ * checks and what the service answered sit folded under "Details".
+ *
+ * Runs every check of the service in parallel, one request each to
  * `${endpoint}?check=<id>`, and shows results as they arrive. Words in the
  * reader's language (C19); check names and results as the server sends them.
  */
-export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; button: string; checks: Check[] }) {
+export function ServiceChecks({
+  title,
+  text,
+  endpoint,
+  button,
+  checks,
+}: {
+  title: string;
+  text: string;
+  endpoint: string;
+  button: string;
+  checks: Check[];
+}) {
   const t = useT("checks");
   const [outcomes, setOutcomes] = useState<Record<string, Outcome | "running">>({});
   const running = Object.values(outcomes).includes("running");
@@ -45,67 +60,79 @@ export function ServiceChecks({ endpoint, button, checks }: { endpoint: string; 
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={runAll} aria-disabled={running || undefined} className="press aria-disabled:opacity-60">
-          {running ? <LoaderCircle aria-hidden className="animate-spin" /> : <Play aria-hidden />}
+    <section className="flex flex-col gap-2 py-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h2 className="min-w-0 flex-1 font-medium break-words">{title}</h2>
+        {running ? (
+          <Status Icon={LoaderCircle} spin label={t("service.badgeRunning")} />
+        ) : allDone ? (
+          <Status {...(problems ? LOOK.FAIL : LOOK.PASS)} label={t(`service.statuses.${problems ? "FAIL" : "PASS"}`)} />
+        ) : (
+          <Status Icon={CircleDashed} className="text-muted-foreground" label={t("service.notRun")} />
+        )}
+        <Button size="sm" onClick={runAll} aria-disabled={running || undefined} className="press aria-disabled:opacity-60">
           {running ? t("service.running") : button}
         </Button>
-        {allDone ? (
-          <span
-            key={`${done}-${problems}`}
-            className={`flex animate-pop items-center gap-1.5 text-sm font-medium ${problems ? "text-destructive" : "text-success"}`}
-          >
-            {problems ? <CircleAlert aria-hidden className="size-4" /> : <CircleCheck aria-hidden className="size-4" />}
-            {problems ? t("service.summaryProblems", { count: problems, total: checks.length }) : t("service.summaryOk")}
-          </span>
-        ) : null}
       </div>
       {/* Always in the page, so screen readers hear the progress. */}
       <p role="status" className="sr-only">
         {Object.keys(outcomes).length ? t("service.progress", { done, total: checks.length }) : ""}
       </p>
-      <ul className="flex flex-col divide-y rounded-lg border bg-card shadow-card">
-        {checks.map((check) => {
-          const outcome = outcomes[check.id];
-          return (
-            <li key={check.id} className="flex flex-col gap-1 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                {outcome === "running" ? (
-                  <Badge variant="outline">
-                    <LoaderCircle aria-hidden className="animate-spin" />
-                    {t("service.badgeRunning")}
-                  </Badge>
-                ) : outcome ? (
-                  <StatusBadge status={outcome.status} label={t(`service.statuses.${outcome.status}`)} />
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    <CircleDashed aria-hidden />
-                    {t("service.notRun")}
-                  </Badge>
-                )}
-                <span className="font-medium break-words">{check.label}</span>
-              </div>
-              {outcome && outcome !== "running" && (
-                <p className="animate-slide-down text-sm break-words text-muted-foreground">{outcome.detail}</p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
       {hint && (
         <p role="alert" className="animate-fade text-sm break-words text-destructive">
           {hint}
         </p>
       )}
-    </div>
+      <details className="text-sm">
+        <summary className="w-fit cursor-pointer text-muted-foreground hover:text-foreground">{t("service.details")}</summary>
+        <div className="mt-2 flex animate-slide-down flex-col gap-3">
+          <p className="text-muted-foreground">{text}</p>
+          <ul className="flex flex-col gap-3">
+            {checks.map((check) => {
+              const outcome = outcomes[check.id];
+              return (
+                <li key={check.id} className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {outcome === "running" ? (
+                      <Badge variant="outline">
+                        <LoaderCircle aria-hidden className="animate-spin" />
+                        {t("service.badgeRunning")}
+                      </Badge>
+                    ) : outcome ? (
+                      <StatusBadge status={outcome.status} label={t(`service.statuses.${outcome.status}`)} />
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        {t("service.notRun")}
+                      </Badge>
+                    )}
+                    <span className="break-words">{check.label}</span>
+                  </div>
+                  {outcome && outcome !== "running" && <p className="break-words text-muted-foreground">{outcome.detail}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </details>
+    </section>
   );
 }
 
-function StatusBadge({ status, label }: { status: Outcome["status"]; label: string }) {
-  const { variant, Icon } = LOOK[status];
+function Status({ Icon, label, className = "", spin = false }: { Icon: LucideIcon; label: string; className?: string; spin?: boolean }) {
   return (
-    <Badge variant={variant} className="animate-pop">
+    <span className={`flex items-center gap-1.5 text-sm font-medium ${className}`}>
+      <Icon aria-hidden className={`size-4 ${spin ? "animate-spin" : ""}`} />
+      {label}
+    </span>
+  );
+}
+
+const BADGE = { PASS: "success", FAIL: "destructive", NOTE: "info" } as const;
+
+function StatusBadge({ status, label }: { status: Outcome["status"]; label: string }) {
+  const { Icon } = LOOK[status];
+  return (
+    <Badge variant={BADGE[status]} className="animate-pop">
       <Icon aria-hidden />
       {label}
     </Badge>

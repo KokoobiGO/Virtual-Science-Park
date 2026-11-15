@@ -24,9 +24,8 @@ export function ItemStatusLabel({
 export function MatchNote({ match, locale = DEFAULT_LOCALE }: { match: MatchInfo; locale?: Locale }) {
   const t = createTranslator(locale, "explore");
   return (
-    <p className="rounded-lg bg-muted px-3 py-2 text-sm break-words">
-      <span className="font-medium">{t("match.note", { position: match.position })}</span>{" "}
-      {match.why ?? <span className="text-muted-foreground">{t("match.notJudged")}</span>}
+    <p className="text-sm break-words text-muted-foreground">
+      <span className="font-medium text-foreground">{t("match.note", { position: match.position })}</span> {match.why ?? t("match.notJudged")}
     </p>
   );
 }
@@ -59,7 +58,7 @@ export function NoResults({
 }) {
   const active = hasActiveFilters(filters);
   return (
-    <div className="flex animate-rise items-start gap-3 rounded-xl border border-dashed bg-card/50 p-6 text-sm text-muted-foreground">
+    <div className="flex animate-rise items-start gap-3 py-6 text-sm text-muted-foreground">
       {active ? <SearchX aria-hidden className="mt-0.5 size-5 shrink-0" /> : <Inbox aria-hidden className="mt-0.5 size-5 shrink-0" />}
       <div className="flex flex-col items-start gap-2">
         <p>{active ? filtered : empty}</p>

@@ -35,25 +35,24 @@ async function SourcesFrame() {
   const t = createTranslator(locale, "sources");
   return (
     <>
-      <div className="flex animate-rise flex-col gap-2">
+      <div className="flex animate-rise flex-col gap-1">
         <h1 className="text-title">{t("title")}</h1>
-        <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
+        <p className="text-muted-foreground">{t("intro")}</p>
       </div>
-      {/* The meanings come first, so the labels in the table below already read as words the reader knows. */}
-      <section aria-labelledby="legend" className="flex animate-rise flex-col gap-3 rounded-xl border bg-card p-4 shadow-card sm:p-5">
-        <div className="flex flex-col gap-1">
-          <h2 id="legend" className="text-heading">
-            {t("legendTitle")}
-          </h2>
-          <p className="max-w-prose text-sm text-muted-foreground">{t("legendIntro")}</p>
-        </div>
-        <StateMeanings locale={locale} />
-      </section>
       <Suspense fallback={<DataStatusPanelSkeleton locale={locale} />}>
         <div className="animate-fade">
           <Sources locale={locale} />
         </div>
       </Suspense>
+      {/* What each label means, closed by default: the labels are words already, so most readers never need it. */}
+      <details className="group text-sm">
+        <summary className="w-fit cursor-pointer rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+          {t("legendTitle")}
+        </summary>
+        <div className="pt-4">
+          <StateMeanings locale={locale} />
+        </div>
+      </details>
     </>
   );
 }

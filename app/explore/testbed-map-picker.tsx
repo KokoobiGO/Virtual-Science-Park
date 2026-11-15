@@ -76,7 +76,7 @@ export function TestbedMapPicker({
         {/* Keyed by the pin, so each new choice slides in. */}
         <div key={card ? selected : "hint"} className="animate-slide-down">
           {card ?? (
-            <p className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
               <MousePointerClick aria-hidden className="size-4 shrink-0" />
               {t("map.pickHint")}
             </p>

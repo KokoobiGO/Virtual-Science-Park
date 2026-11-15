@@ -68,7 +68,7 @@ describe("InjectionDemoView", () => {
     expect(html).toContain("14 Nov 2026, 20:50");
   });
 
-  it("labels the run as a recorded copy and gives each card a heading (C20, D20)", () => {
+  it("labels the run as a recorded copy and gives each part a heading (C20, D20)", () => {
     const html = render(result);
     expect(html).toContain('data-data-status="cached"');
     expect(html).toContain("Cached copy · 14 Nov 2026");

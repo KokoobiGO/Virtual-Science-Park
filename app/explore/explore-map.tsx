@@ -53,12 +53,9 @@ export function ExploreMap({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1 text-sm">
-        <p className="text-muted-foreground" aria-live="polite">
-          {placed}
-        </p>
-        <p className="text-muted-foreground">{t("map.notice")}</p>
-      </div>
+      <p className="text-xs text-muted-foreground" aria-live="polite">
+        {placed} {t("map.notice")}
+      </p>
 
       <h2 className="sr-only">{t("map.heading")}</h2>
       <TestbedMapPicker label={t("map.mapLabel", { count: map.pins.length })} drawing={<SwedenSketch map={map} t={t} />} pins={pins} cards={cards} />
@@ -69,17 +66,16 @@ export function ExploreMap({
 
       {noPlace.length ? (
         <section className="flex flex-col gap-3" aria-labelledby="no-location-heading">
-          <div className="flex flex-col gap-1">
-            <h2 id="no-location-heading" className="text-heading">
-              {t("map.noLocationTitle")}
-            </h2>
-            <p className="text-sm text-muted-foreground">{t("map.noLocationIntro")}</p>
-          </div>
-          <div className="stagger grid gap-3 md:grid-cols-2">
+          <h2 id="no-location-heading" className="text-heading">
+            {t("map.noLocationTitle")}
+          </h2>
+          <ul className="stagger flex flex-col divide-y">
             {noPlace.map(({ item }) => (
-              <div key={item.id}>{cardFor(item, null)}</div>
+              <li key={item.id} className="py-4 first:pt-0">
+                {cardFor(item, null)}
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
 
@@ -88,11 +84,13 @@ export function ExploreMap({
           <h2 id="outside-heading" className="text-heading">
             {t("map.outsideTitle")}
           </h2>
-          <div className="stagger grid gap-3 md:grid-cols-2">
+          <ul className="stagger flex flex-col divide-y">
             {outside.map(({ item, outsideTown }) => (
-              <div key={item.id}>{cardFor(item, { town: outsideTown!, source: t("map.outsideSource") })}</div>
+              <li key={item.id} className="py-4 first:pt-0">
+                {cardFor(item, { town: outsideTown!, source: t("map.outsideSource") })}
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : null}
     </div>
@@ -146,20 +144,20 @@ function SwedenSketch({ map, t }: { map: TestbedMap; t: T }) {
 
 function Legend({ t }: { t: T }) {
   return (
-    <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:gap-6" aria-label={t("map.legendLabel")}>
+    <ul className="flex flex-wrap gap-x-6 gap-y-1.5 text-xs text-muted-foreground" aria-label={t("map.legendLabel")}>
       <li className="flex items-center gap-2">
-        <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-primary bg-primary" />
+        <span aria-hidden className="size-3.5 shrink-0 rounded-full border-2 border-primary bg-primary" />
         {t("map.legendVerified")}
       </li>
       <li className="flex items-center gap-2">
-        <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-primary bg-background" />
-        {t("map.legendNotVerified")}
+        <span aria-hidden className="size-3.5 shrink-0 rounded-full border-2 border-primary bg-background" />
+        {t("map.notVerified")}
       </li>
     </ul>
   );
 }
 
-/** A test facility's card: what it is, where it is and why, the member's match note, and links to the source and the list. */
+/** A test facility: what it is, where it is and why, the member's match note, and links to the source and the list. No box of its own: the picker panel or a divided list places it. */
 function TestbedCard({
   item,
   match,
@@ -176,27 +174,28 @@ function TestbedCard({
   const verified = item.verified === true;
   const notVerifiedWhy = t("map.notVerifiedWhy");
   return (
-    <article className="flex h-full min-w-0 flex-col gap-2 rounded-xl border bg-card p-4 text-card-foreground shadow-card">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <Badge variant="secondary">{createTranslator(t.locale, "common")("kinds.testbed")}</Badge>
+    <article className="flex h-full min-w-0 flex-col gap-1.5">
+      <h3 className="text-base">
+        <SourceLink url={item.url} title={item.title} locale={t.locale} />
+      </h3>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        <Badge variant="outline" className="text-muted-foreground">
+          {createTranslator(t.locale, "common")("kinds.testbed")}
+        </Badge>
         <ItemStatusLabel item={item} locale={t.locale} />
         {verified ? null : (
           <Badge variant="muted" title={notVerifiedWhy}>
             {t("map.notVerified")}
           </Badge>
         )}
-        <span className="break-words text-muted-foreground">{item.source}</span>
+        <span className="break-words">{item.source}</span>
       </div>
-      <h3 className="text-base">
-        <SourceLink url={item.url} title={item.title} locale={t.locale} />
-      </h3>
       {place ? (
         <p className="text-sm break-words">
           <span className="font-medium">{place.town}.</span> <span className="text-muted-foreground">{place.source}</span>
         </p>
       ) : null}
-      {item.description ? <p className="line-clamp-4 text-sm break-words text-muted-foreground">{item.description}</p> : null}
-      {verified ? null : <p className="text-xs text-muted-foreground">{notVerifiedWhy}</p>}
+      {item.description ? <p className="line-clamp-3 text-sm break-words text-muted-foreground">{item.description}</p> : null}
       {match ? <MatchNote match={match} locale={t.locale} /> : null}
       {/* A plain <a>, not <Link>: a client-side navigation does not set :target, so the row would not be highlighted. */}
       <a href={listHref} className="inline-flex w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline">

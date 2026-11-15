@@ -1,4 +1,3 @@
-import { Globe, PencilLine, Quote } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -59,7 +58,7 @@ async function ProfileForViewer({ locale }: { locale: Locale }) {
     return (
       <div className="flex flex-col gap-3">
         <h1 className="text-title">{t("title")}</h1>
-        <p className="max-w-prose rounded-xl border border-dashed p-6 text-muted-foreground">{t("notLinked")}</p>
+        <p className="max-w-prose text-muted-foreground">{t("notLinked")}</p>
       </div>
     );
   }
@@ -77,9 +76,7 @@ async function OwnProfile({ viewer, companyId, locale }: { viewer: Viewer; compa
     <>
       <CompanyHeader company={profile.company} locale={locale} />
       <Announcer />
-      <AboutProfile locale={locale} />
-
-      <div className="flex animate-rise flex-col gap-3">
+      <div className="flex animate-rise flex-col gap-2">
         <h2 className="text-lg font-semibold">{t("prioritiesTitle")}</h2>
         <p className="text-sm text-muted-foreground">{t("prioritiesIntro")}</p>
         <PrioritySwitches
@@ -98,37 +95,9 @@ async function OwnProfile({ viewer, companyId, locale }: { viewer: Viewer; compa
             {t("seePublic")}
           </Link>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {t("profileIntro")}
-          {open ? ` ${t("suggestionsWaiting", { count: open })}` : ""}
-        </p>
+        {open ? <p className="text-sm text-muted-foreground">{t("suggestionsWaiting", { count: open })}</p> : null}
         <FieldList fields={fields} evidence={profile.evidence} editable locale={locale} />
       </div>
     </>
-  );
-}
-
-/** What the profile is, where it comes from and what the member can do with it, in three short lines. */
-function AboutProfile({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale, "profile");
-  const points = [
-    { key: "built", Icon: Globe },
-    { key: "evidence", Icon: Quote },
-    { key: "correct", Icon: PencilLine },
-  ] as const;
-  return (
-    <section aria-labelledby="about-profile" className="flex animate-rise flex-col gap-3 rounded-xl border bg-info-soft/60 p-4 sm:p-5">
-      <h2 id="about-profile" className="font-semibold">
-        {t("about.title")}
-      </h2>
-      <ul className="stagger grid gap-3 text-sm sm:grid-cols-3">
-        {points.map(({ key, Icon }) => (
-          <li key={key} className="flex gap-2.5">
-            <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
-            <span>{t(`about.${key}`)}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }

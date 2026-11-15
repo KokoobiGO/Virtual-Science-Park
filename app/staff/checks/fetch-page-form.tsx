@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, CircleCheck, Download, LoaderCircle } from "lucide-react";
+import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export function FetchPageForm() {
             aria-describedby={state.kind === "error" ? "snapshot-error" : undefined}
           />
           <Button type="submit" aria-disabled={state.kind === "running" || undefined} className="press aria-disabled:opacity-60">
-            {state.kind === "running" ? <LoaderCircle aria-hidden className="animate-spin" /> : <Download aria-hidden />}
+            {state.kind === "running" ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
             {state.kind === "running" ? t("fetch.running") : t("fetch.submit")}
           </Button>
         </div>
@@ -75,7 +75,7 @@ export function FetchPageForm() {
       </p>
 
       {state.kind === "done" && (
-        <div className="flex animate-rise flex-col gap-2 rounded-lg border bg-card px-4 py-3 shadow-card">
+        <div className="flex animate-rise flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="success" className="animate-pop">
               <CircleCheck aria-hidden />

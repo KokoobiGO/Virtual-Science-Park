@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { dateLabel, dateStatus, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/translate";
-import { tagChip } from "./labels";
 import { ItemStatusLabel, MatchNote, NoResults, SourceLink } from "./opportunity-bits";
 import { ScrollToRow } from "./scroll-to-row";
 
@@ -36,11 +35,11 @@ export function ExploreList({
         : t("list.countSome", { shown, total });
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium" aria-live="polite">
+      <p className="text-xs text-muted-foreground" aria-live="polite">
         {count}
       </p>
       {items.length ? (
-        <ul className="stagger flex flex-col gap-2">
+        <ul className="stagger flex flex-col divide-y">
           {items.map((item) => (
             <ExploreRow key={item.id} item={item} match={matches?.get(item.id) ?? null} now={now} locale={locale} />
           ))}
@@ -53,40 +52,28 @@ export function ExploreList({
   );
 }
 
+/** One opportunity as a plain row: the title, one quiet meta line (kind, labels, source, date), two lines of description and the member's match note. */
 function ExploreRow({ item, match, now, locale }: { item: ExploreItem; match: MatchInfo | null; now: Date; locale: Locale }) {
   const t = createTranslator(locale, "explore");
   const tc = createTranslator(locale, "common");
   const status = dateStatus(item, now);
   return (
     // `target:` styles: "Show it in the list" on the map lands here with a plain link, so the row is :target and stays marked; <ScrollToRow> flashes it once.
-    <li
-      id={`opportunity-${item.id}`}
-      className="lift flex scroll-mt-24 flex-col gap-2 rounded-xl border bg-card px-4 py-3 shadow-card target:border-primary target:bg-primary/5 target:ring-2 target:ring-primary/30"
-      data-kind={item.kind}
-    >
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <Badge variant="secondary">{tc(`kinds.${item.kind}`)}</Badge>
+    <li id={`opportunity-${item.id}`} className="-mx-3 flex scroll-mt-24 flex-col gap-1.5 px-3 py-4 transition-colors target:bg-primary/10 target:ring-1 target:ring-primary/40" data-kind={item.kind}>
+      <SourceLink url={item.url} title={item.title} locale={locale} />
+      {/* The kind stays a badge, so e2e/helpers.ts (checkHandEnteredLabels) finds this line, with its source, by its first badge. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+        <Badge variant="outline" className="text-muted-foreground">
+          {tc(`kinds.${item.kind}`)}
+        </Badge>
         <ItemStatusLabel item={item} locale={locale} />
         {status === "closing_soon" ? <Badge>{t("list.closingSoon")}</Badge> : null}
         {status === "closed" ? <Badge variant="outline">{t("list.closed")}</Badge> : null}
-        <span className="break-words text-muted-foreground">{item.source}</span>
-        <span aria-hidden className="text-muted-foreground">
-          ·
-        </span>
-        <span className={status === "closing_soon" ? "font-medium" : "text-muted-foreground"}>{dateLabel(item, now, locale)}</span>
+        <span className="break-words">{item.source}</span>
+        <span aria-hidden>·</span>
+        <span className={status === "closing_soon" ? "font-medium text-foreground" : undefined}>{dateLabel(item, now, locale)}</span>
       </div>
-      <SourceLink url={item.url} title={item.title} locale={locale} />
       {item.description ? <p className="line-clamp-2 text-sm break-words text-muted-foreground">{item.description}</p> : null}
-      {item.tags.length ? (
-        <p className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-          <span className="sr-only">{t("list.tags")}</span>
-          {item.tags.map((tag) => (
-            <span key={tag} className="rounded-md border px-1.5 py-0.5">
-              {tagChip(tag, locale)}
-            </span>
-          ))}
-        </p>
-      ) : null}
       {match ? <MatchNote match={match} locale={locale} /> : null}
     </li>
   );

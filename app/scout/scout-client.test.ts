@@ -108,8 +108,7 @@ describe("ScoutClient", () => {
     expect(html).toContain("Scout is working on it");
     expect(html).toContain(done.progress[1].text.replace(/"/g, "&quot;").slice(0, 40));
     const empty = render(null);
-    expect(empty).toContain("No briefs yet.");
-    expect(empty).toContain("Write a question above and press Ask Scout");
+    expect(empty).toContain("No briefs yet. Ask a question above.");
     expect(empty).toContain("None yet.");
   });
 
@@ -120,7 +119,7 @@ describe("ScoutClient", () => {
     const current = html.slice(html.indexOf('aria-current="step"'), html.indexOf("</li>", html.indexOf('aria-current="step"')));
     expect(current).toContain("Now:");
     expect(current).toContain(done.progress[2].text.replace(/"/g, "&quot;").slice(0, 30));
-    expect(html).toContain("A brief usually takes one to four minutes.");
+    expect(html).toContain("This takes 1–4 minutes");
     expect(render(done, true)).not.toContain('aria-current="step"');
   });
 

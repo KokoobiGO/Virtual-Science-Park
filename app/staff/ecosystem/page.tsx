@@ -8,7 +8,6 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
 import { unconnected } from "@/lib/staff-views/ecosystem";
 import { loadEcosystem } from "@/lib/staff-views/query";
-import { Info } from "lucide-react";
 import { StaffPageIntro } from "../page-intro";
 import { EcosystemView } from "./ecosystem-view";
 
@@ -36,18 +35,19 @@ async function EcosystemFrame({ searchParams }: Pick<PageProps<"/staff/ecosystem
   const t = createTranslator(locale, "ecosystem");
   return (
     <LocaleProvider locale={locale}>
-      <StaffPageIntro title={t("title")} intro={t("intro")} todo={t("todo")}>
-        <p role="note" className="flex w-fit max-w-full items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft px-3 py-2 text-sm text-warning">
-          <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-          <span className="min-w-0 break-words">
-            <span className="font-medium">{t("suggestionLabel")}.</span> {t("disclaimer")}
+      {/* The one line under the title is the disclaimer every suggested introduction carries. */}
+      <StaffPageIntro
+        title={t("title")}
+        intro={
+          <span role="note">
+            {t("suggestionLabel")}. {t("disclaimer")}
           </span>
-        </p>
-      </StaffPageIntro>
+        }
+      />
       <Suspense
         fallback={
           <LoadingState label={t("loading")}>
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
               <Skeleton className="aspect-[760/440] w-full rounded-xl" />
               <div className="flex flex-col gap-1.5">
                 {[0, 1, 2, 3].map((i) => (
@@ -80,23 +80,20 @@ async function Ecosystem({ searchParams, locale }: Pick<PageProps<"/staff/ecosys
       {connections.length ? (
         <EcosystemView connections={connections} openId={openId} />
       ) : (
-        <p className="animate-fade rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        <p className="animate-fade text-sm text-muted-foreground">
           {t.rich("empty", { code: (chunk) => <code className="font-mono">{chunk}</code> })}
         </p>
       )}
       <div className="flex animate-rise flex-col gap-2">
-        <h2 className="text-heading">{t("aloneTitle", { count: alone.length })}</h2>
+        <h2 className="text-sm font-medium">{t("aloneTitle", { count: alone.length })}</h2>
         {alone.length ? (
-          <>
-            <p className="text-sm text-muted-foreground">{t("aloneIntro")}</p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {alone.map((m) => (
-                <li key={m.id} className="break-words">
-                  {m.name}
-                </li>
-              ))}
-            </ul>
-          </>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {alone.map((m) => (
+              <li key={m.id} className="break-words">
+                {m.name}
+              </li>
+            ))}
+          </ul>
         ) : (
           <p className="text-sm text-muted-foreground">{t("aloneNone")}</p>
         )}

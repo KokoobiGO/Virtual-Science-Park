@@ -1,6 +1,5 @@
 "use client";
 
-import { ArrowLeft, RotateCw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,8 @@ export function errorReference(error: unknown): string | null {
 export type ErrorPage = keyof Messages["errors"]["pages"];
 
 /**
- * What an error.tsx shows (C20): what went wrong in plain words, what to do,
- * a Try again button and a way out. Focus moves to the heading so a screen
+ * What an error.tsx shows (C20): what went wrong in one line (with the
+ * reference to quote, when there is one), a Try again button and a quiet way out. Focus moves to the heading so a screen
  * reader hears it at once. The error's own message is not shown: in
  * production it is a generic text, and it can hold details users need not see.
  *
@@ -53,30 +52,28 @@ export function RouteError({
   }, [error]);
 
   return (
-    <section className="stagger mx-auto flex w-full max-w-3xl flex-col items-start gap-4 px-4 py-12 md:py-20">
-      <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive" aria-hidden>
-        <TriangleAlert className="size-6" />
-      </span>
+    <section className="mx-auto flex w-full max-w-3xl animate-rise flex-col items-start gap-4 px-4 py-12 md:py-20">
       <h1 ref={heading} tabIndex={-1} className="text-title outline-none">
         {title ?? t(`pages.${page}.title`)}
       </h1>
       <p className="max-w-prose text-muted-foreground">
-        {what ?? t(`pages.${page}.what`)}{" "}
-        {reference
-          ? t.rich("adviceWithReference", {
+        {what ?? t(`pages.${page}.what`)}
+        {reference ? (
+          <>
+            {" "}
+            {t.rich("adviceWithReference", {
               reference: <code className="font-mono text-sm break-all text-foreground">{reference}</code>,
-            })
-          : t("advice")}
+            })}
+          </>
+        ) : null}
       </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" size="lg" className="px-4" onClick={() => retry()}>
-          <RotateCw aria-hidden data-icon="inline-start" />
+      <div className="mt-2 flex flex-wrap items-center gap-5">
+        <Button type="button" size="lg" className="px-5" onClick={() => retry()}>
           {t("tryAgain")}
         </Button>
-        <Button variant="outline" size="lg" className="px-4" render={<Link href={back?.href ?? "/"} />} nativeButton={false}>
-          <ArrowLeft aria-hidden data-icon="inline-start" />
+        <Link href={back?.href ?? "/"} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
           {back?.label ?? t(`pages.${page}.back`)}
-        </Button>
+        </Link>
       </div>
     </section>
   );

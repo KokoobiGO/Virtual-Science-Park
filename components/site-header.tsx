@@ -26,10 +26,7 @@ export function SiteHeader() {
           className="group/brand -mx-1 flex items-center gap-2.5 rounded-md px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <LogoMark />
-          <span className="flex flex-col leading-tight">
-            <span className="font-heading text-[0.95rem] font-semibold tracking-tight">Virtual Science Park</span>
-            <span className="text-xs text-muted-foreground">Blue Science Park</span>
-          </span>
+          <span className="font-heading text-[0.95rem] font-medium tracking-tight">Virtual Science Park</span>
         </Link>
         <Suspense fallback={<div className="h-8 flex-1" aria-hidden />}>
           <HeaderNav />
@@ -75,10 +72,10 @@ async function HeaderNav() {
       extra={
         <>
           {languageSwitch}
-          <Badge variant={viewer.role === "staff" ? "default" : "secondary"}>{common(`roles.${viewer.role}`)}</Badge>
-          <span className="max-w-48 truncate text-sm text-muted-foreground" data-testid="signed-in-as" title={companyName ?? viewer.email ?? undefined}>
-            {companyName ?? viewer.email}
-          </span>
+          <Badge variant="secondary" data-testid="signed-in-as" title={companyName ?? viewer.email ?? undefined}>
+            <span>{common(`roles.${viewer.role}`)}</span>
+            <span className="sr-only">: {companyName ?? viewer.email}</span>
+          </Badge>
           <form action={signOut}>
             <Button type="submit" variant="outline" size="sm">
               {t("signOut")}

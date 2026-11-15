@@ -13,7 +13,7 @@ import { ExploreList } from "./explore-list";
 import { ExploreMap } from "./explore-map";
 import { ExploreTimeline } from "./explore-timeline";
 import { FilterForm, ViewTabs } from "./filter-form";
-import { tagChip, tagName } from "./labels";
+import { tagName } from "./labels";
 
 /** C19: /explore in Swedish. The data (titles, sources, the judge's why) stays as stored. */
 
@@ -115,9 +115,6 @@ describe("the list in Swedish", () => {
     expect(html).toContain("Inlagt för hand");
     expect(html).toContain("Möjlig matchning för er, nummer 1 i er rangordning.");
     expect(html).toContain("Inte bedömd än, så det finns ingen motivering nedskriven.");
-    expect(html).toContain('<span class="sr-only">Taggar:</span>');
-    expect(html).toContain(">marin<");
-    expect(html).toContain(">ai<");
     expect(html).toContain(" (öppnas i en ny flik)");
   });
 
@@ -167,7 +164,6 @@ describe("the filters and view tabs in Swedish", () => {
     for (const option of ["Funding call", "Test facility", "Marine", "Defence", "Sensor", "Cyber", "AI", "Energy", "Open now", "Closing within 30 days", "No date", "All kinds", "All tags", "Any date"]) {
       expect(html).toContain(`>${option}</option>`);
     }
-    for (const tag of ["marine", "defence", "sensor", "cyber", "ai", "energy"]) expect(tagChip(tag, "en")).toBe(tag);
     expect(tagName("not-a-tag", "sv")).toBe("not-a-tag");
   });
 });
@@ -178,8 +174,6 @@ describe("the timeline in Swedish", () => {
   it("says the sections, months, counts and labels in Swedish", () => {
     expect(html).toContain(">Sista dagar för utlysningar</h2>");
     expect(html).toContain(">Evenemang</h2>");
-    expect(html).toContain("4 utlysningar vars sista dag inte har passerat");
-    expect(html).toContain("1 daterat evenemang från i dag och framåt, efter datum. 1 återkommande serie har inget sparat datum och listas efter dem.");
     expect(html).toContain('aria-label="Sista dagar per månad"');
     expect(html).toContain("Januari 2027");
     expect(html).toContain(">jan.</span>");
@@ -216,7 +210,7 @@ describe("the map in Swedish", () => {
 
   it("says the count, notice, legend, sections and card labels in Swedish", () => {
     expect(html).toContain("Alla 2 testbäddar: 1 på kartan, 1 listade under den.");
-    expect(html).toContain("En översiktsskiss, inte en exakt karta");
+    expect(html).toContain("En förenklad skiss: varje nål sitter på sin ort.");
     expect(html).toContain(">Testbäddar på kartan</h2>");
     expect(html).toContain('aria-label="Skisskarta över södra Sverige med 1 testbädd"');
     expect(html).toContain('aria-label="Teckenförklaring"');

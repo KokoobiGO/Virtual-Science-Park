@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, Info, LoaderCircle, MessageCircleQuestion, SendHorizontal, TriangleAlert } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DataStatusLabel } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
@@ -138,11 +138,11 @@ export function Sources({ citations }: { citations: Citation[] }) {
   const t = useT("copilot");
   if (!citations.length) return null;
   return (
-    <div className="flex flex-col gap-1.5 rounded-md bg-muted/60 px-2.5 py-2">
-      <p id={heading} className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+    <div className="flex flex-col gap-1">
+      <p id={heading} className="text-xs text-muted-foreground">
         {t("sources")}
       </p>
-      <ol aria-labelledby={heading} className="flex flex-col gap-1.5 text-xs">
+      <ol aria-labelledby={heading} className="flex flex-col gap-1 text-xs">
         {citations.map((c) => (
           <li key={c.n} className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 wrap-anywhere">
             <span className="text-muted-foreground">[{c.n}]</span>
@@ -151,10 +151,7 @@ export function Sources({ citations }: { citations: Citation[] }) {
             {c.dates.length > 0 && <span className="text-muted-foreground">· {c.dates.join(", ")}</span>}
             {c.label && <DataStatusLabel kind={c.label} date={c.cachedAt} locale={t.locale} />}
             {c.warning && (
-              <span className="flex basis-full items-start gap-1 text-warning">
-                <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
-                {c.warning}
-              </span>
+              <span className="basis-full text-warning">{c.warning}</span>
             )}
           </li>
         ))}
@@ -163,44 +160,25 @@ export function Sources({ citations }: { citations: Citation[] }) {
   );
 }
 
-/** What an empty conversation shows: what the Copilot answers, what it will not do, and questions to start with. */
+/** What an empty conversation shows: questions to start with, as quiet chips. */
 export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, event: MouseEvent) => void; busy: boolean }) {
-  const tryId = useId();
   const t = useT("copilot");
   return (
-    <div className="flex animate-fade flex-col gap-4 text-sm">
-      <div className="flex flex-col gap-2">
-        <p className="font-medium">{t("empty.title")}</p>
-        <p className="flex items-start gap-2 text-muted-foreground">
-          <MessageCircleQuestion aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
-          <span>{t("empty.can")}</span>
-        </p>
-        <p className="flex items-start gap-2 text-muted-foreground">
-          <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
-          <span>{t("empty.note")}</span>
-        </p>
-      </div>
-      <div className="flex flex-col gap-2">
-        <p id={tryId} className="text-muted-foreground">
-          {t("empty.try")}
-        </p>
-        <ul aria-labelledby={tryId} className="flex stagger flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <li key={s} className="max-w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                className="press h-auto max-w-full rounded-full px-3 py-1.5 text-left whitespace-normal"
-                onClick={(event) => onAsk(s, event)}
-                disabled={busy}
-              >
-                {s}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <ul aria-label={t("empty.try")} className="flex animate-fade flex-wrap gap-2">
+      {SUGGESTIONS.map((s) => (
+        <li key={s} className="max-w-full">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="press h-auto max-w-full rounded-full px-3 py-1.5 text-left font-normal whitespace-normal text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground"
+            onClick={(event) => onAsk(s, event)}
+            disabled={busy}
+          >
+            {s}
+          </Button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -239,6 +217,7 @@ export function CopilotPanel({ className }: { className?: string }) {
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const statusId = useId();
+  const hintId = useId();
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
@@ -347,30 +326,30 @@ export function CopilotPanel({ className }: { className?: string }) {
   const canSend = !busy && input.trim().length > 0;
 
   return (
-    <section className={cn("flex min-h-0 min-w-0 flex-col gap-3 rounded-xl p-4 ring-1 ring-foreground/10", className)} aria-label="Copilot">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <h2 className="text-base font-semibold">Copilot</h2>
-          <p className="text-sm text-muted-foreground">{t("intro")}</p>
-        </div>
-        {entries.length > 0 && (
-          <Button variant="outline" size="sm" onClick={reset} disabled={busy}>
+    <section className={cn("flex min-h-0 min-w-0 flex-col gap-4", className)} aria-label="Copilot">
+      {entries.length > 0 && (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={reset} disabled={busy}>
             {t("newConversation")}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="flex min-h-40 min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
-        {entries.length === 0 && <EmptyConversation onAsk={askSuggestion} busy={busy} />}
+      <div className="flex min-h-40 min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
+        {entries.length === 0 && (
+          <div className="mt-auto">
+            <EmptyConversation onAsk={askSuggestion} busy={busy} />
+          </div>
+        )}
 
         {entries.length > 0 && (
-          <ol aria-label={t("conversation")} className="flex min-w-0 flex-col gap-3">
+          <ol aria-label={t("conversation")} className="flex min-w-0 flex-col gap-5">
             {entries.map((entry) => {
               if (entry.role === "user") {
                 return (
                   <li
                     key={entry.id}
-                    className="max-w-[85%] animate-rise self-end rounded-lg bg-secondary px-3 py-2 text-sm wrap-anywhere whitespace-pre-wrap text-secondary-foreground"
+                    className="max-w-[85%] animate-rise self-end rounded-2xl bg-secondary px-3.5 py-2 text-sm wrap-anywhere whitespace-pre-wrap text-secondary-foreground"
                   >
                     <span className="sr-only">{`${t("youAsked")} `}</span>
                     {entry.text}
@@ -379,18 +358,17 @@ export function CopilotPanel({ className }: { className?: string }) {
               }
               if (entry.role === "error") {
                 return (
-                  <li key={entry.id} className="flex animate-rise items-start gap-1.5">
-                    <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
+                  <li key={entry.id} className="animate-rise">
                     <p className="text-sm text-destructive">{entry.text}</p>
                   </li>
                 );
               }
               const { reply } = entry;
               return (
-                <li key={entry.id} className="flex max-w-[95%] min-w-0 animate-rise flex-col gap-2 rounded-lg border bg-card px-3 py-2.5 shadow-xs">
+                <li key={entry.id} className="flex max-w-[95%] min-w-0 animate-rise flex-col gap-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="sr-only">{t("answered")}</span>
-                    <Badge variant={SCOPE_VARIANT[reply.label]} title={t(`scope.${reply.label}.title`)} data-testid="scope-chip">
+                    <Badge variant={SCOPE_VARIANT[reply.label]} className="h-auto px-1.5 py-0 text-[0.7rem]" title={t(`scope.${reply.label}.title`)} data-testid="scope-chip">
                       {t(`scope.${reply.label}.label`)}
                     </Badge>
                   </div>
@@ -403,7 +381,7 @@ export function CopilotPanel({ className }: { className?: string }) {
                         <span className="text-xs font-medium text-muted-foreground">{t("handoff.sent")}</span>
                       ) : (
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="xs"
                           onClick={() => void sendToStaff(entry.id, reply)}
                           disabled={entry.handoff === "sending"}
@@ -423,13 +401,10 @@ export function CopilotPanel({ className }: { className?: string }) {
         )}
 
         {status && (
-          <div className="flex w-fit max-w-[95%] animate-fade flex-col gap-1 rounded-lg border border-dashed px-3 py-2">
-            <p id={statusId} className="flex items-center gap-2 text-sm text-foreground">
-              <ThinkingDots />
-              {statusText(status, locale)}…
-            </p>
-            <p className="text-xs text-muted-foreground">{t("thinking")}</p>
-          </div>
+          <p id={statusId} className="flex animate-fade items-center gap-2 text-sm text-muted-foreground">
+            <ThinkingDots />
+            {statusText(status, locale)}…
+          </p>
         )}
         <div ref={endRef} />
       </div>
@@ -439,22 +414,28 @@ export function CopilotPanel({ className }: { className?: string }) {
         {announcement}
       </p>
 
-      <form onSubmit={submit} className="flex gap-2">
-        <Input
-          ref={inputRef}
-          aria-label={t("question.label")}
-          placeholder={t("question.placeholder")}
-          value={input}
-          maxLength={2000}
-          onChange={(event) => setInput(event.target.value)}
-          // Read-only rather than disabled while a turn runs, so focus stays in the field.
-          readOnly={busy}
-          aria-describedby={status ? statusId : undefined}
-        />
-        <Button type="submit" disabled={!canSend} focusableWhenDisabled aria-busy={busy || undefined} className="press data-disabled:opacity-50">
-          {busy ? <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" /> : <SendHorizontal aria-hidden />}
-          {t("ask")}
-        </Button>
+      <form onSubmit={submit} className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Input
+            ref={inputRef}
+            aria-label={t("question.label")}
+            placeholder={t("question.placeholder")}
+            value={input}
+            maxLength={2000}
+            onChange={(event) => setInput(event.target.value)}
+            // Read-only rather than disabled while a turn runs, so focus stays in the field.
+            readOnly={busy}
+            aria-describedby={status ? `${hintId} ${statusId}` : hintId}
+            className="h-10 rounded-full px-4"
+          />
+          <Button type="submit" disabled={!canSend} focusableWhenDisabled aria-busy={busy || undefined} className="press h-10 px-5 data-disabled:opacity-50">
+            {busy ? <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" /> : null}
+            {t("ask")}
+          </Button>
+        </div>
+        <p id={hintId} className="px-1 text-xs text-muted-foreground">
+          {t("hint")}
+        </p>
       </form>
     </section>
   );

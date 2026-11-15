@@ -1,7 +1,6 @@
-import { Sparkles } from "lucide-react";
 import { ClaimBadge } from "@/components/claim-badge";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/translate";
 import { fieldHeadingId, formatDate, valueItems, type ClaimRow, type FieldView } from "@/lib/profile-view/claims";
@@ -30,7 +29,7 @@ export function FieldList({
   locale?: Locale;
 }) {
   return (
-    <ol className="stagger flex flex-col gap-4">
+    <ol className="stagger flex flex-col divide-y divide-border border-y">
       {fields.map((view) => (
         <li key={view.field}>
           <FieldCard view={view} evidence={evidence} editable={editable} locale={locale} />
@@ -56,18 +55,18 @@ function FieldCard({
   const headingId = fieldHeadingId(view.field);
 
   return (
-    <Card size="sm">
-      <CardHeader>
+    // A plain row in the list, not a boxed card: the divider between rows is enough.
+    <Card size="sm" className="gap-2 rounded-none bg-transparent py-5 shadow-none ring-0">
+      <CardHeader className="flex flex-wrap items-center gap-x-3 gap-y-1 px-0">
         <CardTitle>
           {/* tabIndex -1: focus comes back here after a suggestion is accepted or rejected. */}
-          <h3 id={headingId} tabIndex={-1} className="outline-none focus-visible:underline">
+          <h3 id={headingId} tabIndex={-1} title={view.hint} className="text-base font-semibold outline-none focus-visible:underline">
             {view.label}
           </h3>
         </CardTitle>
-        <CardDescription>{view.hint}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
         <ClaimMeta view={view} locale={locale} />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 px-0">
         {editable ? (
           <ClaimEditor
             field={view.field}
@@ -159,12 +158,9 @@ function Suggestion({
 }) {
   const t = createTranslator(locale, "profile");
   return (
-    <div className="flex animate-rise flex-col gap-2 rounded-lg border border-dashed border-primary/50 bg-info-soft/50 p-3">
+    <div className="flex animate-rise flex-col gap-2 border-l-2 border-primary/60 pl-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-          <Sparkles aria-hidden className="size-3.5 text-primary" />
-          {t("suggestion.title")}
-        </span>
+        <span className="font-medium text-foreground">{t("suggestion.title")}</span>
         <ClaimBadge status={suggestion.status} locale={locale} />
         <span>
           {t.rich("suggestion.found", {
@@ -172,7 +168,6 @@ function Suggestion({
           })}
         </span>
       </div>
-      <p className="text-sm text-muted-foreground">{t("suggestion.explain")}</p>
       <ClaimValue field={field} claim={suggestion} locale={locale} />
       <EvidenceViewer quotes={evidence[suggestion.id] ?? []} locale={locale} />
       <SuggestionReview claimId={suggestion.id} fieldLabel={label} returnFocusTo={headingId} />

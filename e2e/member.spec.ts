@@ -37,7 +37,8 @@ function weekCards(page: Page): Locator {
 async function describeCard(card: Locator) {
   const text = await card.innerText();
   const title = (await card.locator("h3").first().innerText().catch(() => "(no title)")).trim();
-  const parts = (await card.locator("h4").allInnerTexts()).map((h) => h.trim().toLowerCase());
+  // allTextContents: "What is uncertain" sits in a closed Details toggle, where innerText is empty.
+  const parts = (await card.locator("h4").allTextContents()).map((h) => h.trim().toLowerCase());
   const sourceLinks = await card.locator('[data-slot="card-content"] a[href^="http"]').count();
   return { text, title, parts, sourceLinks };
 }

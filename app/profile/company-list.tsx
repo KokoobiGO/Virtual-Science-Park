@@ -14,11 +14,11 @@ export async function CompanyList({ viewer, locale }: { viewer: Viewer; locale: 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{t("list.title")}</h1>
+        <h1 className="text-title">{t("list.title")}</h1>
         <p className="text-muted-foreground">{t("list.intro", { count: companies.length })}</p>
       </div>
       {companies.length === 0 ? (
-        <p className="rounded-xl border border-dashed p-6 text-muted-foreground">
+        <p className="text-muted-foreground">
           {t.rich("list.empty", {
             link: (chunk) => (
               <Link href="/staff/checks" className="text-primary underline-offset-4 hover:underline">
@@ -28,10 +28,10 @@ export async function CompanyList({ viewer, locale }: { viewer: Viewer; locale: 
           })}
         </p>
       ) : (
-        <ul className="stagger flex flex-col gap-2">
+        <ul className="stagger flex flex-col divide-y divide-border border-y">
           {companies.map((c) => (
-            <li key={c.slug} className="lift flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border bg-card px-4 py-3 shadow-card">
-              <Link href={`/profile/${c.slug}`} className="min-w-0 font-medium break-words text-primary underline-offset-4 hover:underline">
+            <li key={c.slug} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
+              <Link href={`/profile/${c.slug}`} className="min-w-0 font-medium break-words underline-offset-4 hover:underline">
                 {c.name}
               </Link>
               <span className="text-sm text-muted-foreground">{[c.industry, c.town].filter(Boolean).join(", ")}</span>

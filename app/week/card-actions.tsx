@@ -113,9 +113,9 @@ export function CardActions({ opportunityId, title, sourceUrl, calendarHref, ini
           </Button>
         ) : null}
         <Button
-          variant={saved ? "secondary" : "outline"}
+          variant={saved ? "secondary" : "ghost"}
           size="sm"
-          className="press"
+          className="press text-muted-foreground aria-pressed:text-foreground"
           aria-pressed={saved}
           disabled={pending}
           onClick={toggleSaved}
@@ -124,25 +124,22 @@ export function CardActions({ opportunityId, title, sourceUrl, calendarHref, ini
           {t(saved ? "actions.saved" : "actions.save")}
         </Button>
         {calendarHref ? (
-          <Button variant="outline" size="sm" className="press" render={<a href={calendarHref} download />} nativeButton={false}>
+          <Button variant="ghost" size="sm" className="press text-muted-foreground" render={<a href={calendarHref} download />} nativeButton={false}>
             <CalendarPlus aria-hidden />
             {t("actions.addToCalendar")}
           </Button>
         ) : null}
-        <Button variant="outline" size="sm" className="press" disabled={pending || askedBsp} onClick={ask}>
+        <Button variant="ghost" size="sm" className="press text-muted-foreground" disabled={pending || askedBsp} onClick={ask}>
           <StateIcon icon={askedBsp ? Check : MessageCircleQuestion} pop={popFor("ask")} />
           {t(askedBsp ? "actions.sentToBsp" : "actions.askBsp")}
         </Button>
 
         {/* Feedback teaches the ranking; set apart so it does not read as one more thing to do. */}
-        <div role="group" aria-label={t("actions.feedbackPrompt")} className="flex flex-wrap items-center gap-2 sm:ml-auto">
-          <span aria-hidden className="text-xs text-muted-foreground">
-            {t("actions.feedbackPrompt")}
-          </span>
+        <div role="group" aria-label={t("actions.feedbackPrompt")} className="flex flex-wrap items-center gap-1 sm:ml-auto">
           <Button
             variant={feedback === "useful" ? "secondary" : "ghost"}
-            size="sm"
-            className="press"
+            size="xs"
+            className="press text-muted-foreground aria-pressed:text-foreground"
             aria-pressed={feedback === "useful"}
             disabled={pending}
             onClick={() => choose("useful")}
@@ -152,8 +149,8 @@ export function CardActions({ opportunityId, title, sourceUrl, calendarHref, ini
           </Button>
           <Button
             variant={feedback === "not_relevant" ? "secondary" : "ghost"}
-            size="sm"
-            className="press"
+            size="xs"
+            className="press text-muted-foreground aria-pressed:text-foreground"
             aria-pressed={feedback === "not_relevant"}
             disabled={pending}
             onClick={() => choose("not_relevant")}

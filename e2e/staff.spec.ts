@@ -120,6 +120,8 @@ test("9h. /trust: the red-team table shows group display names, not raw ids", as
   await open(page, "/trust", "Trust report");
   const section = main(page).locator('[data-slot="card"]').filter({ has: page.getByRole("heading", { level: 2, name: "Red-team tests" }) });
   await expect(section, "the Red-team tests section").toHaveCount(1);
+  // Each section is a closed <details>: open it, so the table's text is rendered.
+  await section.locator("summary").first().click();
   const labels = (await section.locator("tbody tr > :first-child").allInnerTexts()).map((t) => t.trim());
   test.info().annotations.push({ type: "groups", description: labels.join("; ") });
   expect(labels.length, "the red-team run should be measured (one row per group)").toBeGreaterThan(0);

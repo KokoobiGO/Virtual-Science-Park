@@ -88,7 +88,7 @@ function LauncherSheet() {
               {t("close")}
             </Dialog.Close>
           </div>
-          <CopilotPanel className="flex-1 rounded-none pt-1 ring-0" />
+          <CopilotPanel className="flex-1 px-4 pt-1 pb-4" />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
