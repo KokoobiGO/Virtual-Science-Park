@@ -9,11 +9,11 @@ import { missingClaim, type DraftClaim } from "./output";
 import { buildProfilerUserMessage, type ProfilerSource } from "./prompt";
 import { mergeRetry, retryFeedback, verifyDraftClaims } from "./verify";
 
-const { nvidiaChat } = vi.hoisted(() => ({ nvidiaChat: vi.fn() }));
-vi.mock("../nvidia", () => ({ NVIDIA_MODELS: { main: "test-model" }, nvidiaChat }));
+const { modelChat } = vi.hoisted(() => ({ modelChat: vi.fn() }));
+vi.mock("../model", () => ({ MODEL_FOR: { profiler: { model: "test-model", effort: "medium" } }, modelChat }));
 
 afterEach(() => {
-  nvidiaChat.mockReset();
+  modelChat.mockReset();
 });
 
 const SNAPSHOT = "4f6c1a8e-2d3b-4c5d-8e9f-0a1b2c3d4e5f";
@@ -149,16 +149,16 @@ describe("runProfiler", () => {
   const retry = { fields: ["summary" as const], feedback: "Answer again." };
 
   it("records on the run that the page was flagged, and sends the same prompt as for any page", async () => {
-    nvidiaChat.mockResolvedValue(answer());
+    modelChat.mockResolvedValue(answer());
     const run = await runProfiler("Acme Marin", [source(plantedText)], { retry });
     expect(run.injection.flagged).toBe(true);
     expect(run.injection.pages[0].snapshotId).toBe(SNAPSHOT);
-    const request = nvidiaChat.mock.calls[0][0] as { messages: { role: string; content: string }[] };
+    const request = modelChat.mock.calls[0][0] as { messages: { role: string; content: string }[] };
     expect(request.messages[1].content).toBe(`${buildProfilerUserMessage("Acme Marin", [source(plantedText)])}\n\nAnswer again.`);
   });
 
   it("records nothing for a normal page", async () => {
-    nvidiaChat.mockResolvedValue(answer());
+    modelChat.mockResolvedValue(answer());
     const run = await runProfiler("Acme Marin", [source(normalText)], { retry });
     expect(run.injection).toEqual({ flagged: false, label: null, pages: [] });
     expect(run.claims).toHaveLength(1);

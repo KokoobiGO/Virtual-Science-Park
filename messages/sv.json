@@ -469,10 +469,10 @@
   "checks": {
     "title": "Tjänstekontroller",
     "intro": "Testanrop till de externa tjänsterna. De körs på servern med den här driftsättningens miljövariabler, så ingen nyckel når webbläsaren.",
-    "nvidia": {
-      "title": "NVIDIA API",
-      "text": "Ett anrop per funktion som planen bygger på.",
-      "button": "Kör NVIDIA-kontrollerna"
+    "models": {
+      "title": "Claude API",
+      "text": "Ett anrop per modellfunktion som appen bygger på, på Claude Haiku 5.5 och Claude Sonnet 5.5. Kostar långt under en amerikansk cent.",
+      "button": "Kör Claude-kontrollerna"
     },
     "inngest": {
       "title": "Inngest",

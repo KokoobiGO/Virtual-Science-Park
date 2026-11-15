@@ -6,7 +6,7 @@
  *   tsx scripts/trends.ts marine cyber --dry  only these areas
  *   tsx scripts/trends.ts                    write and store every area's note for this week
  *
- * Reads DATABASE_URL and NVIDIA_API_KEY from .env.local (run it with
+ * Reads DATABASE_URL and ANTHROPIC_API_KEY from .env.local (run it with
  * --env-file-if-exists=.env.local). Storing replaces the area's note for this
  * week, if there is one. One model call per area, two when the first note
  * fails its checks.

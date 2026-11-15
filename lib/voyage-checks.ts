@@ -2,7 +2,7 @@
  * Live check for Voyage AI (S2), run from /staff/checks with this deploy's
  * VOYAGE_API_KEY. It embeds one short text and passes only on a 1024-dimension vector.
  */
-import type { CheckResult } from "./nvidia-checks";
+import type { CheckResult } from "./model-checks";
 import { VOYAGE_MODEL, VoyageApiError, voyageBaseUrl, voyageEmbed } from "./voyage";
 
 export const VOYAGE_CHECKS = {

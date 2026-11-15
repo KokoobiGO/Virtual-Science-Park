@@ -11,7 +11,7 @@
  * this run did not confirm are deleted. `limit` judges only the first few
  * pairs, for a test; the store step still replaces the whole table.
  *
- * A rate limit (429) from NVIDIA fails the step and Inngest tries it again a
+ * A rate limit (429) from Claude fails the step and Inngest tries it again a
  * minute later.
  */
 import { NonRetriableError, RetryAfterError } from "inngest";
@@ -22,7 +22,7 @@ import { JUDGE_TIMEOUT_MS } from "@/lib/connections/judge";
 import { storeConnections, type StoredConnections } from "@/lib/connections/store";
 import { getDb } from "@/lib/db";
 import { jobRuns } from "@/lib/db/schema";
-import { NvidiaApiError } from "@/lib/nvidia";
+import { ModelApiError } from "@/lib/model";
 import { inngest } from "../client";
 
 const FindConnectionsRequest = z.object({
@@ -36,7 +36,7 @@ async function retryLaterOn429<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (error) {
-    if (error instanceof NvidiaApiError && error.status === 429) throw new RetryAfterError(error.message, "60s", { cause: error });
+    if (error instanceof ModelApiError && error.status === 429) throw new RetryAfterError(error.message, "60s", { cause: error });
     throw error;
   }
 }
@@ -46,7 +46,7 @@ export const findConnectionsJob = inngest.createFunction(
     id: "find-connections",
     name: "Find possible connections between members",
     retries: 2,
-    // One run at a time: NVIDIA's free key is rate limited, and the store step replaces the table.
+    // One run at a time: the Claude key is rate limited, and the store step replaces the table.
     concurrency: { limit: 1 },
     triggers: [{ event: "app/connections.requested" }],
   },

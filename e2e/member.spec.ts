@@ -302,7 +302,7 @@ test("5. Scout: the stored brief for the demo question opens with cited options"
 });
 
 test.describe("6. Copilot", () => {
-  // The model is the shared free NVIDIA endpoint: one question per test, one retry after a "busy" reply.
+  // The model is Claude (rate limited per key): one question per test, one retry after a "busy" reply.
   test.describe.configure({ timeout: 150_000 });
   // Each question stores a chat turn for the company, and the app has no way to delete one.
   test.skip(!!process.env.E2E_SKIP_COPILOT, "E2E_SKIP_COPILOT is set: the Copilot questions are not asked");

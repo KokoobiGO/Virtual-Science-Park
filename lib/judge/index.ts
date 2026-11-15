@@ -3,14 +3,14 @@
  * to five ranked opportunities and answers keep or reject, why, a next step
  * and the uncertainties for each. verify.ts checks the reply in code.
  *
- * The backlog names Sonnet; while we test with NVIDIA's free key it is
- * NVIDIA_MODELS.main, with thinking off (on, one call takes longer than a job
- * step may). The prompt and schema do not depend on the provider.
+ * The model is MODEL_FOR.judge (Haiku 5.5): a narrow keep-or-reject call made
+ * about 1,400 times a full run. Thinking is off: on, one call can take longer
+ * than a job step may. The prompt and schema do not depend on the provider.
  *
  * API errors (a 429, a timeout) are thrown for the caller to handle; an answer
  * that fails a check comes back in `failed`, with the reasons.
  */
-import { NVIDIA_MODELS, nvidiaChat } from "../nvidia";
+import { MODEL_FOR, modelChat } from "../model";
 import { judgeJsonSchema } from "./output";
 import { buildJudgeUserMessage, JUDGE_SYSTEM_PROMPT, type JudgeOpportunity } from "./prompt";
 import { checkJudgeReply, type CheckedEntry, type FailedEntry } from "./verify";
@@ -52,21 +52,19 @@ export async function judgeBatch(
   if (!opportunities.length) throw new Error("judgeBatch: no opportunities to judge.");
   const ids = opportunities.map((o) => o.id);
   if (new Set(ids).size !== ids.length) throw new Error("judgeBatch: every opportunity needs its own id.");
-  const model = options.model ?? NVIDIA_MODELS.main;
+  const model = options.model ?? MODEL_FOR.judge.model;
   const started = Date.now();
 
-  const response = await nvidiaChat(
+  const response = await modelChat(
     {
       model,
       max_tokens: 2000,
-      // A retry at 0 tends to repeat the same words; a little variation gets it out.
-      temperature: options.feedback ? 0.3 : 0,
       messages: [
         { role: "system", content: JUDGE_SYSTEM_PROMPT },
         { role: "user", content: buildJudgeUserMessage(company, opportunities, { today: options.today, feedback: options.feedback }) },
       ],
       response_format: { type: "json_schema", json_schema: { name: "match_judgements", schema: judgeJsonSchema(ids), strict: true } },
-      chat_template_kwargs: { enable_thinking: false },
+      effort: MODEL_FOR.judge.effort,
     },
     { timeoutMs: options.timeoutMs ?? JUDGE_TIMEOUT_MS },
   );

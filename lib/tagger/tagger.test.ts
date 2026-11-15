@@ -90,19 +90,20 @@ describe("tagTexts", () => {
     vi.unstubAllEnvs();
   });
 
-  /** Stands in for the NVIDIA API: answers each call with the next reply. */
+  /** Stands in for the Claude Messages API: answers each call with the next reply. */
   function fakeApi(replies: unknown[]) {
-    vi.stubEnv("NVIDIA_API_KEY", "test-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
     const fetchMock = vi.fn(async () => {
       const reply = replies.shift();
-      return new Response(
-        JSON.stringify({
-          model: "test",
-          choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify(reply) } }],
-          usage: { prompt_tokens: 100, completion_tokens: 10, total_tokens: 110 },
-        }),
-        { status: 200 },
-      );
+      return Response.json({
+        id: "msg_test",
+        type: "message",
+        role: "assistant",
+        model: "claude-haiku-5-5",
+        content: [{ type: "text", text: JSON.stringify(reply) }],
+        stop_reason: "end_turn",
+        usage: { input_tokens: 100, output_tokens: 10 },
+      });
     });
     vi.stubGlobal("fetch", fetchMock);
     return fetchMock;

@@ -6,8 +6,8 @@ source of every line. Nothing is ever called "eligible": the system only says
 "potential match", and the decision stays with people.
 
 One Next.js 16 app (TypeScript) on Netlify, one Supabase Postgres database
-with pgvector, Inngest for scheduled jobs, NVIDIA's free model API for every
-model call, and Voyage AI for embeddings. The interface is in English and,
+with pgvector, Inngest for scheduled jobs, Claude (Haiku 5.5 and Sonnet 5.5,
+through the Claude API) for every model call, and Voyage AI for embeddings. The interface is in English and,
 on part of the screens so far, Swedish. `docs/solution-explainer.md` is the
 one-page overview; `docs/handover.md` is the current state of the work;
 `docs/deploy-checklist.md` is how to deploy.
@@ -45,20 +45,20 @@ What each feature needs:
 |---|---|
 | Anything at all (database, sign-in) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `DATABASE_URL`, `DEMO_USER_PASSWORD` |
 | Jobs on your machine | `INNGEST_DEV=1` (already set in `.env.example`) |
-| Every model call: profiler, tagger, judge, trend notes, connections, Scout, Copilot | `NVIDIA_API_KEY` (free key from build.nvidia.com) |
+| Every model call: profiler, tagger, judge, trend notes, connections, Scout, Copilot | `ANTHROPIC_API_KEY` (a paid Claude API key, `sk-ant-...`, from platform.claude.com) |
 | Embeddings: enrich, Scout's store search | `VOYAGE_API_KEY` |
 | Scout's general web search (optional; without a key Scout uses the store and the funders' own searches) | `TAVILY_API_KEY`, or `BRAVE_SEARCH_API_KEY` (Tavily is used when both are set) |
 | The weekly digest email | `RESEND_API_KEY`, and `APP_URL` for the links in it |
-| Optional | `DEMO_MODE` (`live` or `cached`), `SCOUT_MAX_SEARCHES` (default 6), `NVIDIA_MODEL_FAST` / `NVIDIA_MODEL_MAIN`, `NVIDIA_API_BASE_URL`, `VOYAGE_BASE_URL`, `VOYAGE_MODEL`, `INNGEST_API_BASE_URL` |
+| Optional | `DEMO_MODE` (`live` or `cached`), `SCOUT_MAX_SEARCHES` (default 6), `ANTHROPIC_API_BASE_URL`, `VOYAGE_BASE_URL`, `VOYAGE_MODEL`, `INNGEST_API_BASE_URL` |
 | The deployed site only | `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY`, `APP_URL` (and no `INNGEST_DEV`) |
 | Tests only | `COPILOT_LIVE=1` runs the live classifier test; `BASE_URL` and `E2E_SKIP_COPILOT=1` for `npm run e2e` |
 
-`ANTHROPIC_API_KEY` and `ANTHROPIC_API_BASE_URL` are leftovers: only
-`lib/llm.ts` and `scripts/check-claude.ts` read them, and the app does not use
-them (see "Leftovers" at the end).
+Since 2026-11-15 the app no longer reads `NVIDIA_API_KEY`,
+`NVIDIA_API_BASE_URL`, `NVIDIA_MODEL_FAST` or `NVIDIA_MODEL_MAIN`; an old
+`.env.local` can keep them, they do nothing.
 
 Never commit `.env.local`, and never paste a key into a chat or an issue.
-`npm run check:services` and `npm run check:nvidia` test the keys and print
+`npm run check:services` and `npm run check:models` test the keys and print
 PASS or FAIL without showing a value.
 
 ### Option A: a local database
@@ -158,8 +158,7 @@ member is profiled from public pages but has no sign-in.
 | `npm run supabase:start` / `supabase:stop` | Local Supabase in Docker |
 | `npm run inngest:dev` | Local Inngest dev server and run history |
 | `npm run check:services` | One test call per hosted service (S2) |
-| `npm run check:claude` | Leftover: one test call per Claude feature (S3). Not used; the app runs on NVIDIA |
-| `npm run check:nvidia` | One test call per NVIDIA API feature (S3); free developer key |
+| `npm run check:models` | One test call per Claude API feature the app uses (S3): model IDs, a basic Haiku message, Sonnet structured output, Sonnet tool calling; well under one US cent |
 | `npm run fetch:page -- <url>` | Print the clean text of one web page (A1); add `--save` to store it as a snapshot |
 | `npm run profile:status` | Count of profiled, thin, failed and not yet profiled members, with the reason for each thin or failed one (A8) |
 | `npm run collect -- <source\|all>` | Run one collector or all of them and store the opportunities (A9 to A13, A25, A26); add `--dry` to only print |
@@ -177,7 +176,7 @@ member is profiled from public pages but has no sign-in.
 | `npm run scout -- <slug> "<question>"` | Run one Scout brief from the command line, stored and recorded in `job_runs` (B3, B4); `--prerun` also writes `data/scout-briefs/<slug>.json` (B15); `--dry` stores nothing |
 | `npm run injection:demo` | Send the planted test page through the profiler and the judge and write `data/injection-demo/result.json` (B13); needs `npm run dev`; `--extract-only`, `--url`, `--slug` |
 | `npm run session:sheets` | Write the staff-session rating sheets to `data/staff-session/` from the database (D7) |
-| `npm run cost` | Tokens and model calls per full run and per member per month, from the real runs, plus one Scout brief and one Copilot turn; $0 on NVIDIA's free API (A24) |
+| `npm run cost` | Tokens and model calls per full run and per member per month, from the real runs, plus one Scout brief and one Copilot turn, priced at Claude list prices (A24) |
 | `npm run check:links` | Check every opportunity's source link and store the result for the Trust report (A20); `--dry`, `--limit N` |
 | `npm run sources:status` | One line per data source: ok, stale, cached or hand-entered (A19) |
 | `npm run e2e` | Playwright walk-through of the demo screens against the running site (`BASE_URL`, default http://localhost:3000); signs in with `DEMO_USER_PASSWORD`; `E2E_SKIP_COPILOT=1` skips the two Copilot questions (D13). See "Playwright walk-through" |
@@ -244,11 +243,10 @@ lib/auth.ts          signed-in user, role and company (S7)
 lib/db/user.ts       Drizzle as the signed-in user, so RLS applies
 lib/navigation.ts    menu per role, landing page per role, role-only paths
 lib/demo-accounts.ts the four demo accounts
-lib/nvidia.ts        NVIDIA API model IDs and a fetch client (S3): every model call goes through it
-lib/llm.ts           leftover: Claude model IDs and tool versions (S3); not used by the app
+lib/model.ts         the model layer (S3): modelChat() on the Claude API, MODEL_FOR says which step uses which model
 lib/voyage.ts        Voyage AI embeddings client (voyage-4, 1024 dimensions)
 lib/resend.ts        Resend email client, for the weekly digest (C18)
-lib/*-checks.ts      the service checks for /staff/checks (NVIDIA, Voyage, Resend, Inngest)
+lib/*-checks.ts      the service checks for /staff/checks (Claude, Voyage, Resend, Inngest)
 lib/fetcher/         page fetcher (A1): download a page, turn the HTML into clean text
 lib/snapshots.ts     a URL in, a stored snapshot out (A1); jobs and scripts only
 lib/members/         member list import (A2): BSP's member list and pages into companies
@@ -354,55 +352,79 @@ every access token; users cannot change it. The policies in
 - Jobs use `DATABASE_URL` (the table owner) and bypass RLS. Never use
   `getDb()` from a request path: use `withUserDb()` or the Supabase server client.
 
-## NVIDIA API (S3)
+## Claude API (S3)
 
-Every model call in the app goes to NVIDIA's free developer API; the project
-owner decided on 2026-11-14 to stay on it. Model IDs live in `lib/nvidia.ts`. The API is OpenAI-compatible chat completions at
-`https://integrate.api.nvidia.com/v1`, called with plain `fetch`, so there is
-no SDK version to pin.
+Since 2026-11-15 every model call in the app goes to the Claude API. Before
+that the app ran on NVIDIA's free developer API (see "Model choice"); that
+code (`lib/nvidia.ts`, `lib/llm.ts`, `check:nvidia`, `check:claude`) is gone.
+
+Every call goes through `modelChat()` in `lib/model.ts`, built on the official
+`@anthropic-ai/sdk` (Claude Messages API, beta endpoint). Callers keep one
+small chat format (system, user, assistant and tool messages; function tools;
+a JSON schema for the answer); `modelChat()` turns it into a Claude request
+and the answer back, so the agents, their tests and the stored Inngest steps
+do not depend on the provider. `MODEL_FOR` in the same file says which step
+uses which model:
+
+| Step | Model | Effort |
+|---|---|---|
+| Copilot scope classifier | Claude Haiku 5.5 (`claude-haiku-5-5`) | low |
+| Tagger | Claude Haiku 5.5 | low |
+| Match judge (about 1,400 calls a full run) | Claude Haiku 5.5 | medium |
+| Profiler | Claude Sonnet 5.5 (`claude-sonnet-5-5`) | medium |
+| Connections | Claude Sonnet 5.5 | medium |
+| Trend notes | Claude Sonnet 5.5 | medium |
+| Scout | Claude Sonnet 5.5 | medium |
+| Copilot answers | Claude Sonnet 5.5 | low |
 
 | Feature | What we use | Note |
 |---|---|---|
-| Models | `nvidia/nemotron-3.5-super-vl-120b-a12b` for both slots: fast (scope classifier, tagging) and main (profiler, judge, trend notes, connections, Scout, Copilot) | Since 2026-11-14, 21:56; see "Model choice" below. Before that both slots used `nvidia/nemotron-3.5-lightning-30b-a3b` |
-| Thinking | Off: `chat_template_kwargs: {enable_thinking: false}` | With it on, one call can run past Netlify's 30 s step limit |
-| Structured outputs | `response_format: {type: "json_schema", ...}`; `nvext.guided_json` is refused | The check reports which of the two the endpoint accepted |
-| Tool calling | `tools` + `tool_choice: "auto"`, answer with a `role: "tool"` message | No Tool Runner: the agent loops (Copilot, Scout) are ours |
-| Web search | None | No search on NVIDIA's side. Scout brings its own (see "Scout") |
-| Rate limit | 429 at roughly 30 to 45 requests a minute | Jobs run at most two model steps at once; scripts wait a minute and try again |
+| Thinking | Off everywhere: Haiku `thinking: {type: "disabled"}`, Sonnet `{type: "between_tools"}` (Sonnet 5.5 rejects "disabled") | Every prompt, token cap and time limit was tuned with it off; the profiler can opt in (`thinking: true`) |
+| Structured outputs | `output_config.format` with a JSON schema | Limits Claude does not enforce (`maxItems` and the like) are moved into descriptions by the SDK; the code checks them as before |
+| Tool calling | `tools` + `tool_choice: "auto"` | The agent loops (Copilot, Scout) are ours; they send Claude's reply blocks back unchanged and use prompt caching |
+| Refusals | Sonnet requests use the server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) | Haiku has none |
+| Errors | The SDK retries 429, 5xx and dropped connections itself; then `ModelApiError` | Jobs run at most two model steps at once and a 429 fails the step, which Inngest tries again; scripts wait a minute and try again |
+| Web search | None on Claude's side | Scout brings its own (see "Scout") |
 
-`npm run check:nvidia` makes one test call per row with the key in
-`.env.local`, and explains a 401 or 403 answer. The same checks run on the
-deploy, with Netlify's key, at `/staff/checks` (staff only; the key stays on
-the server). `NVIDIA_MODEL_FAST` / `NVIDIA_MODEL_MAIN` override the models
-without a code change. The "Model IDs" row only checks that a model is listed,
-not that the key may call it.
+`npm run check:models` (`scripts/check-models.ts`, `lib/model-checks.ts`)
+makes one test call per feature with the key in `.env.local`: the model IDs,
+a basic Haiku message, Sonnet structured output and Sonnet tool calling. It
+costs well under one US cent and explains a 401 or 403 answer. The same checks
+run on the deploy, with Netlify's key, under "Claude API" at `/staff/checks`
+(staff only; the key stays on the server, the route is `/api/checks/models`).
+The models are set in code; there is no environment variable to override
+them.
 
-## Model choice
+Claude's speed and quality on this app's evals have not been measured yet.
+Every eval, profile, judgement and recorded run in this README is from
+before 2026-11-15, on NVIDIA's models; where a section says "the new model"
+it means NVIDIA's `nvidia/nemotron-3.5-super-vl-120b-a12b` (14 Nov evening).
 
-`docs/model-choice.md` holds the benchmark behind the model, run on
-2026-11-14 with our free key: a ping, a 3,000-token prompt, structured output,
-tool calls, then the real judge prompt (3 batches of 5 opportunities with
-known keep or reject answers) and the real tagger prompt (10 texts with known
-tags).
+## Model choice (NVIDIA, 2026-11-14)
+
+`docs/model-choice.md` holds the benchmark behind the NVIDIA model the app
+used until 2026-11-15, run on 2026-11-14 with the free NVIDIA key: a ping, a
+3,000-token prompt, structured output, tool calls, then the real judge prompt
+(3 batches of 5 opportunities with known keep or reject answers) and the real
+tagger prompt (10 texts with known tags). It did not test Claude.
 
 - Of 13 models tried, 6 answered and 4 were fast enough for the quality
-  test. The others answer 404 "Not found for account" for a free key, give no
-  answer within 60 s, or are overloaded.
+  test. The others answered 404 "Not found for account" for a free key, gave
+  no answer within 60 s, or were overloaded.
 - `nvidia/nemotron-3.5-super-vl-120b-a12b` scored best: 15 of 15 judge
   verdicts right, 14 of 15 judge entries through the code checks on the first
   answer, 10 of 10 texts tagged right, about 6 s a call. The old
   `nemotron-3.5-lightning-30b-a3b` got 14, 11 and 7 at the same speed.
-- Decision (project owner, 2026-11-14): both slots use the super-vl model.
-  `NVIDIA_MODEL_MAIN` and `NVIDIA_MODEL_FAST` override it without a code
-  change.
+- Decision (project owner, 2026-11-14): both NVIDIA model slots used the
+  super-vl model from 21:56 that evening, until the move to Claude.
 - The samples are small (15 judge entries, 10 texts): read the scores as a
   strong hint, not a proof. The benchmark script itself was lost; the table
   in the doc is its saved output.
 - Still from the lightning model, not redone: every company profile (14 Nov,
   afternoon), the stored connections (18:55), the injection demo run (20:49)
-  and the two Scout pre-run briefs (20:51, 20:55). Whether to re-profile with
-  the new model is open (`docs/handover.md`). The judgements were redone with
-  the new model that evening, and a second re-judge with the tightened judge
+  and the two Scout pre-run briefs (20:51, 20:55). Whether to re-profile on
+  Claude is open (`docs/handover.md`). The judgements were redone with the
+  super-vl model that evening, and a second re-judge with the tightened judge
   prompt was running at 23:30 (see "Judge"). The tags were being redone with
   it too; this README does not record when that finished.
 
@@ -415,7 +437,7 @@ tags).
    `db:demo-users`).
 2. **Netlify**: the site deploys from `main` on GitHub. Set the variables
    listed in section 3 of `docs/deploy-checklist.md` (never `INNGEST_DEV`;
-   leave `NVIDIA_MODEL_FAST` and `NVIDIA_MODEL_MAIN` empty) and redeploy after
+   `ANTHROPIC_API_KEY` is needed for every model call) and redeploy after
    each change. Put the production URL in `APP_URL`.
 3. **Inngest**: add `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` to Netlify,
    redeploy, then sync the app so Inngest Cloud knows its functions:
@@ -427,7 +449,8 @@ tags).
    It answers `Successfully registered`. Sync again after a deploy that adds
    or changes a function (or use Resync in the Inngest dashboard). "Run Inngest
    check" at `/staff/checks` sends the heartbeat event and waits for its run.
-4. **NVIDIA**, **Voyage AI** and **Resend**: add the keys. "Run NVIDIA
+4. **Claude API**, **Voyage AI** and **Resend**: add the keys
+   (`ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `RESEND_API_KEY`). "Run Claude
    checks" at `/staff/checks` makes the test calls with the deployed key;
    "Run Voyage check" embeds one text; "Run Resend check" sends one email to
    Resend's test inbox (nobody gets it).
@@ -497,10 +520,12 @@ event: app/company.profile.requested   data: { "slug": "techinova" }
 - Nothing is deleted: the profiler's earlier claims become `superseded`. Where
   the member has their own claim for a field, the new one is `suggested`.
 - Each run is logged in `job_runs` with its tokens, retried and dropped fields.
-- Model: the main slot of `lib/nvidia.ts` with thinking off. The stored
-  profiles were made on 2026-11-14 with `nvidia/nemotron-3.5-lightning-30b-a3b`,
-  about 10 s a company. With thinking on it runs past Netlify's 30 s limit for
-  one step.
+- Model: `MODEL_FOR.profiler` in `lib/model.ts`, Claude Sonnet 5.5 at effort
+  medium with thinking off (a run can opt in). Its time per company on Claude
+  is not measured yet. The stored profiles were made on 2026-11-14, before the
+  move to Claude, with `nvidia/nemotron-3.5-lightning-30b-a3b`, about 10 s a
+  company; with thinking on, that model ran past Netlify's 30 s limit for one
+  step.
 
 ### Profiling all members
 
@@ -509,8 +534,8 @@ event: app/members.profile.requested   data: {}
 ```
 
 The `profile-all-members` job sends one `app/company.profile.requested` event
-per member; `profile-company` runs at most two steps at once (NVIDIA's free
-key is rate limited). Each company then gets `profile_status` and `profile_note`:
+per member; `profile-company` runs at most two steps at once (the Claude key
+is rate limited). Each company then gets `profile_status` and `profile_note`:
 
 - `profiled`, or `thin` when fewer than 3 of the 7 factual fields (all but
   `inferredInterests`) could be supported with quotes: "too little public info".
@@ -1106,7 +1131,7 @@ Proof that instructions hidden in a web page do not steer the system.
   changes or blocks text. Its English and Swedish rules are narrow on
   purpose, so a clean result means "nothing obvious", not "safe".
 - Last recorded run: 2026-11-14 19:49 UTC, with
-  `nvidia/nemotron-3.5-lightning-30b-a3b` (before the model switch). All four
+  `nvidia/nemotron-3.5-lightning-30b-a3b` (before the switch to the super-vl model, and before Claude). All four
   steps passed. The detector flagged 4 places; the extractor kept only the
   off-screen text. The profiler found 7 of 7 quotes and ignored the
   instructions. In both judge runs the first answer was refused by the code
@@ -1216,10 +1241,18 @@ opportunities are kept out of every ranking.
 **Tags** (23:20): 79 of 190 opportunities and 27 of 56 members had no tag.
 
 **Model use** (`npm run cost`, read 23:25): one run of everything took
-4,585,962 tokens and 1,730 model calls; $0 on NVIDIA's free API. This
+4,585,962 tokens and 1,730 model calls (free at the time, on NVIDIA's API). This
 over-counts: the judge line adds up every recorded judge run, re-judges
 included. One Scout brief: 34,897 input and 1,943 output tokens, 8 calls.
 Copilot turns do not record tokens yet.
+
+`npm run cost` now prices each step at Claude list prices (Haiku $0.10 and
+$0.50 per million input and output tokens for prompts up to 100K, Sonnet $2
+and $10). On the same recorded runs that gives about $2.12 for everything
+once, $9.17 a month with everything redone weekly, $0.16 per member per month
+(56 members) and $0.08 for one Scout brief before prompt caching. The tokens
+were counted by NVIDIA's tokenizer, so these are estimates until Claude runs
+are recorded.
 
 **Evals** (`eval_runs`):
 
@@ -1246,7 +1279,8 @@ tag and link numbers above change with it.
 
 **Reused:** Next.js, React, Tailwind and shadcn/ui; Supabase (Postgres,
 sign-in, row-level security) with pgvector; Drizzle; Inngest for jobs and
-schedules; NVIDIA's model API; Voyage AI embeddings; Resend; Mozilla
+schedules; the Claude API (NVIDIA's free model API until 2026-11-15); Voyage
+AI embeddings; Resend; Mozilla
 Readability, cheerio and linkedom for page text; Zod; Vitest and Playwright.
 Data comes from public sources: BSP's and Tech Concept Lab's websites,
 Vinnova's open data and funding search, the EU Funding & Tenders search and
@@ -1269,9 +1303,10 @@ screen.
 
 Collected from the sections above and the code, 2026-11-14.
 
-- **Free model, small tests.** Every model call runs on NVIDIA's free API. The
-  model was picked on small samples (15 judge entries, 10 texts). The
-  profiles, the stored connections, the injection demo run and the two Scout
+- **Claude not measured yet.** Since 2026-11-15 every model call runs on
+  Claude Haiku 5.5 or Sonnet 5.5, but no eval has been run on Claude: every
+  result in this README is from NVIDIA's free models, and the NVIDIA model was
+  picked on small samples (15 judge entries, 10 texts). The profiles, the stored connections, the injection demo run and the two Scout
   pre-run briefs were made with the smaller lightning model. With it, the
   profiler's retry saved 2 of 87 failed fields and about one area in six
   failed the trend-note checks. Tags are noisy: at 23:20, 79 of 190
@@ -1282,8 +1317,10 @@ Collected from the sections above and the code, 2026-11-14.
   clearly unrelated. The prompt was tightened (commit `97013d0`) and a second
   re-judge was running at 23:30; its numbers go in the "TO FILL" block under
   "Data status". No person has rated the keep or reject line yet.
-- **Rate limits.** NVIDIA answers 429 above roughly 30 to 45 requests a
-  minute; Voyage without billing allows 3 requests a minute.
+- **Rate limits and cost.** Claude's limits are the tier limits of the
+  account behind `ANTHROPIC_API_KEY`, and every token is paid (see "Model
+  use" under "Data status" for the estimate); the SDK retries a 429 itself.
+  Voyage without billing allows 3 requests a minute.
 - **Scout's live and web search are not proven end to end.** The funders'
   live searches answered in real runs, but no full brief from a live search
   has been shown (both runs ran out of time on rate limits), and Tavily and
@@ -1345,7 +1382,8 @@ Collected from the sections above and the code, 2026-11-14.
    draft answer key first).
 2. After the second re-judge: fill in the "TO FILL" block, and look at the
    judge's keep and reject line with staff.
-3. Decide whether to re-profile every member with the new model; re-run
+3. Measure Claude: run `npm run eval` (red team included) on Claude, decide
+   whether to re-profile every member on it, and re-run
    `npm run injection:demo` and the two Scout pre-run briefs with it.
 4. Show one full Scout brief built from a live funder search; try Tavily or
    Brave once a key is set.
@@ -1358,11 +1396,3 @@ Collected from the sections above and the code, 2026-11-14.
    runs.
 9. Open the left-out RISE testbed pages by hand. Later: a location column for
    testbeds instead of the coordinates in the seed file.
-
-## Leftovers
-
-The project owner decided on 2026-11-14 that the app runs on NVIDIA's free
-API only. `lib/llm.ts`, `scripts/check-claude.ts` (`npm run check:claude`),
-the `@anthropic-ai/sdk` dependency and the `ANTHROPIC_*` names in
-`.env.example` are leftovers from before that decision; nothing in the app
-calls them. Their earlier notes are in git history.

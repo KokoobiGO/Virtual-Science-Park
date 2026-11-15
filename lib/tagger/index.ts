@@ -3,10 +3,10 @@
  * (marine, defence, sensor, cyber, ai, energy). One model call per batch of up
  * to ten texts.
  *
- * The backlog names Haiku for this; while we test with NVIDIA's free key it is
- * NVIDIA_MODELS.fast. The prompt and schema do not depend on the provider.
+ * The model is MODEL_FOR.tagger (Haiku 5.5), thinking off. The prompt and
+ * schema do not depend on the provider.
  */
-import { NVIDIA_MODELS, nvidiaChat } from "../nvidia";
+import { MODEL_FOR, modelChat } from "../model";
 import type { OpportunityTag } from "../schemas";
 import { parseTaggerReply, taggerJsonSchema, TaggerOutputError } from "./output";
 import { buildTaggerUserMessage, MAX_TAG_BATCH, TAGGER_SYSTEM_PROMPT, textId } from "./prompt";
@@ -55,22 +55,21 @@ export async function tagTexts(items: { id: string; text: string }[], options: T
 /** One batch, keyed by the prompt ids T1, T2, ... */
 async function tagBatch(texts: string[], options: TaggerOptions): Promise<Map<string, OpportunityTag[]>> {
   const ids = texts.map((_, i) => textId(i));
-  const model = options.model ?? NVIDIA_MODELS.fast;
+  const model = options.model ?? MODEL_FOR.tagger.model;
   const deadline = Date.now() + TIMEOUT_MS;
 
   for (let attempt = 1; ; attempt++) {
-    const response = await nvidiaChat(
+    const response = await modelChat(
       {
         model,
         max_tokens: 800,
-        temperature: 0,
         messages: [
           { role: "system", content: TAGGER_SYSTEM_PROMPT },
           { role: "user", content: buildTaggerUserMessage(texts) },
         ],
         response_format: { type: "json_schema", json_schema: { name: "tags", schema: taggerJsonSchema(ids), strict: true } },
         // Thinking makes a call several times slower and tagging does not need it.
-        chat_template_kwargs: { enable_thinking: false },
+        effort: MODEL_FOR.tagger.effort,
       },
       { timeoutMs: Math.max(1_000, deadline - Date.now()) },
     );

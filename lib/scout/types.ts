@@ -67,6 +67,19 @@ export type ProgressKind = z.infer<typeof ProgressKind>;
 export const ProgressStep = z.object({ at: z.string(), kind: ProgressKind, text: z.string() });
 export type ProgressStep = z.infer<typeof ProgressStep>;
 
+/**
+ * The live check of a cited link just before the brief was stored (link-check.ts).
+ * A "broken" link never reaches a stored brief: its option is left out.
+ */
+export const LinkCheck = z.object({
+  outcome: z.enum(["ok", "blocked", "unverifiable", "unchecked"]),
+  /** ISO date-time. */
+  checkedAt: z.string(),
+  /** Why it is not "ok", in plain words; empty when it is. */
+  reason: z.string(),
+});
+export type LinkCheck = z.infer<typeof LinkCheck>;
+
 /** Where an option's citation points and when it was read. */
 export const Citation = z.object({
   url: z.string(),
@@ -93,6 +106,8 @@ export const Citation = z.object({
   liveRetrievedAt: z.string().nullable().optional(),
   /** INJECTION_LABEL when the result's text looks like instructions to an AI; it was treated as data. */
   injection: z.string().nullable().optional(),
+  /** The live link check before the brief was stored. Optional, so briefs stored before it still parse. */
+  linkCheck: LinkCheck.optional(),
 });
 export type Citation = z.infer<typeof Citation>;
 
@@ -128,6 +143,8 @@ export const BriefStats = z.object({
   pagesRead: z.number(),
   /** Options the writer gave that failed the checks and were left out. */
   dropped: z.number(),
+  /** Options left out because their cited link was broken when checked. Optional for older briefs. */
+  linksDropped: z.number().optional(),
   model: z.string(),
 });
 export type BriefStats = z.infer<typeof BriefStats>;

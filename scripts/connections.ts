@@ -8,9 +8,9 @@
  * Judges the candidate pairs two at a time and prints each verdict as it
  * goes. Without `--dry` it then stores the pairs that passed (replacing every
  * pair stored before) and prints the stored pairs. `--limit N` judges only the
- * N most similar pairs. Reads DATABASE_URL and NVIDIA_API_KEY from .env.local.
+ * N most similar pairs. Reads DATABASE_URL and ANTHROPIC_API_KEY from .env.local.
  *
- * A rate limit (429) from NVIDIA is waited out: 30 s, then 60 s, and so on,
+ * A rate limit (429) from Claude is waited out: 30 s, then 60 s, and so on,
  * six times at most for the same two pairs.
  */
 import { CONNECTION_DISCLAIMER } from "../lib/connections";
@@ -18,7 +18,7 @@ import { listCandidates } from "../lib/connections/candidates";
 import { connectionsToStore, judgeCandidates, PAIRS_PER_STEP, summarize, type PairVerdict } from "../lib/connections/find";
 import { listStoredConnections, storeConnections } from "../lib/connections/store";
 import { closeDb } from "../lib/db";
-import { NvidiaApiError } from "../lib/nvidia";
+import { ModelApiError } from "../lib/model";
 
 const MAX_ATTEMPTS = 6;
 
@@ -66,7 +66,7 @@ async function main() {
         verdicts.push(...part);
         break;
       } catch (error) {
-        if (!(error instanceof NvidiaApiError && error.status === 429) || attempt >= MAX_ATTEMPTS) throw error;
+        if (!(error instanceof ModelApiError && error.status === 429) || attempt >= MAX_ATTEMPTS) throw error;
         rateLimits++;
         const waitS = 30 * attempt;
         console.log(`  rate limited on pairs ${i + 1}-${i + pairs.length} (attempt ${attempt}): ${error.message.slice(0, 160)}; waiting ${waitS} s`);

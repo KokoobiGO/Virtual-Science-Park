@@ -1,11 +1,11 @@
 /**
- * The assistant (B7): the main model with the Copilot's tools, in our own
- * loop (the NVIDIA API has no tool runner). At most MAX_TOOL_ROUNDS rounds of
+ * The assistant (B7): MODEL_FOR.copilot (Sonnet 5.5) with the Copilot's tools,
+ * in our own loop, so the deadline and the output check stay ours. At most MAX_TOOL_ROUNDS rounds of
  * tool calls; after that the model must answer with what it has. Every call
  * gets a timeout that ends before the turn's deadline, because Netlify cuts a
  * request off at 30 s.
  */
-import { NVIDIA_MODELS, nvidiaChat, type ChatMessage, type ToolCall } from "../nvidia";
+import { MODEL_FOR, modelChat, type ChatMessage, type ToolCall } from "../model";
 import type { ChatFn, HistoryTurn } from "./classifier";
 import { ASSISTANT_HISTORY_TURNS, historyMessage, toolResultBlock } from "./prompt";
 import type { Citation } from "./sources";
@@ -120,7 +120,7 @@ export function textToolCalls(content: string | null | undefined): ToolCall[] {
   return calls;
 }
 
-export async function runAssistant({ system, history, message, execute, deadline, chat = nvidiaChat, now = Date.now, onStatus, nudgeWithoutTools }: AssistantInput): Promise<AssistantRun> {
+export async function runAssistant({ system, history, message, execute, deadline, chat = modelChat, now = Date.now, onStatus, nudgeWithoutTools }: AssistantInput): Promise<AssistantRun> {
   const messages: ChatMessage[] = [
     { role: "system", content: system },
     ...history.slice(-ASSISTANT_HISTORY_TURNS).map((turn): ChatMessage => ({ role: turn.role, content: historyMessage(turn) })),
@@ -137,13 +137,13 @@ export async function runAssistant({ system, history, message, execute, deadline
 
     const response = await chat(
       {
-        model: NVIDIA_MODELS.main,
+        model: MODEL_FOR.copilot.model,
         max_tokens: 700,
-        temperature: 0,
         messages,
         tools: TOOL_DEFINITIONS,
         tool_choice: finalRound ? "none" : "auto",
-        chat_template_kwargs: { enable_thinking: false },
+        effort: MODEL_FOR.copilot.effort,
+        cache: true,
       },
       { timeoutMs: Math.min(ASSISTANT_CALL_TIMEOUT_MS, remaining) },
     );
@@ -165,7 +165,13 @@ export async function runAssistant({ system, history, message, execute, deadline
       continue;
     }
 
-    messages.push({ role: "assistant", content: reply?.tool_calls?.length ? (reply.content ?? null) : cleanReply(reply?.content) || null, tool_calls: calls });
+    messages.push({
+      role: "assistant",
+      content: reply?.tool_calls?.length ? (reply.content ?? null) : cleanReply(reply?.content) || null,
+      tool_calls: calls,
+      // Claude's blocks as returned, thinking included: a tool loop must send them back unchanged.
+      ...(reply?.blocks ? { blocks: reply.blocks } : {}),
+    });
     for (const [index, call] of calls.entries()) {
       const name = call.function?.name ?? "";
       if (index >= MAX_CALLS_PER_ROUND) {
@@ -194,7 +200,7 @@ export async function reviseAnswer({
   run,
   feedback,
   deadline,
-  chat = nvidiaChat,
+  chat = modelChat,
   now = Date.now,
 }: {
   run: AssistantRun;
@@ -208,13 +214,13 @@ export async function reviseAnswer({
   try {
     const response = await chat(
       {
-        model: NVIDIA_MODELS.main,
+        model: MODEL_FOR.copilot.model,
         max_tokens: 700,
-        temperature: 0,
         messages: [...run.messages, { role: "assistant", content: run.text }, { role: "user", content: feedback }],
         tools: TOOL_DEFINITIONS,
         tool_choice: "none",
-        chat_template_kwargs: { enable_thinking: false },
+        effort: MODEL_FOR.copilot.effort,
+        cache: true,
       },
       { timeoutMs: Math.min(ASSISTANT_CALL_TIMEOUT_MS, remaining - MIN_CALL_MS) },
     );

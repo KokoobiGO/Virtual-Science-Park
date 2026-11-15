@@ -34,8 +34,10 @@ and `main` is an ancestor of `dev`, so the merge is a fast-forward.
    configuration, then Environment variables) against the table in
    section 3. What a morning setup may have wrong for tonight's code:
    - `INNGEST_DEV` must not exist on Netlify.
-   - `NVIDIA_MODEL_MAIN` and `NVIDIA_MODEL_FAST` should be absent or empty:
-     a value there overrides the code's model (`nvidia/nemotron-3.5-super-vl-120b-a12b`).
+   - `ANTHROPIC_API_KEY` must be set: since 2026-11-15 every model call goes
+     to Claude (`lib/model.ts`). The old `NVIDIA_API_KEY`, `NVIDIA_API_BASE_URL`,
+     `NVIDIA_MODEL_FAST` and `NVIDIA_MODEL_MAIN` are no longer read and can be
+     deleted.
    - `DEMO_MODE` should be absent or `live` (see section 3).
    - `APP_URL` must be the live URL: the digest email's links use it (new
      since the morning; empty means links to http://localhost:3000).
@@ -54,7 +56,7 @@ and `main` is an ancestor of `dev`, so the merge is a fast-forward.
    (`set local`, `set_config(..., true)`). Keep the session pooler in
    `.env.local` for `npm run db:migrate`.
 4. **The nightly jobs start running once Inngest is re-synced** (section 6),
-   on the hosted database, with the free NVIDIA key: collect 03:00, enrich
+   on the hosted database, with the Claude key (paid per token): collect 03:00, enrich
    03:30, match 04:30 (which may judge and rebuild cards), heartbeat 06:00
    every day; profile refresh 04:00, trend notes 05:00 and week cards 06:00
    on Mondays (the first Monday is 16 Nov). A local `npm run inngest:dev`
@@ -123,7 +125,7 @@ them for all deploy contexts and scopes (builds and functions):
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes (build and runtime) | sign-in, every page |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes (build and runtime) | sign-in, every page |
 | `DATABASE_URL` | Yes | every page (as the signed-in user) and every job |
-| `NVIDIA_API_KEY` | Yes | Copilot, Scout, every model job, `/staff/checks` |
+| `ANTHROPIC_API_KEY` | Yes | Copilot, Scout, every model job, `/staff/checks` |
 | `VOYAGE_API_KEY` | Yes | enrich job, Scout's store search (falls back to keywords without it) |
 | `INNGEST_EVENT_KEY` | Yes | every button and edit that starts a job; `/staff/checks` |
 | `INNGEST_SIGNING_KEY` | Yes | `/api/inngest` (Inngest Cloud calls), `/staff/checks` run results |
@@ -132,11 +134,10 @@ them for all deploy contexts and scopes (builds and functions):
 | `INNGEST_DEV` | **Must be absent** | with `1` the app sends events to a local dev server and `/staff/checks` says so |
 | `DEMO_MODE` | Optional: absent or `live` | `cached` makes the nightly collectors use the recorded copies, page fetches use stored pages, and Scout answer the two pre-run questions from `data/scout-briefs/`. Only for a deliberate offline demo |
 | `SCOUT_MAX_SEARCHES` | Optional | searches per Scout brief, 1 to 20; default 6 (the morning `.env.example` said 8; both work) |
-| `NVIDIA_MODEL_FAST`, `NVIDIA_MODEL_MAIN` | Optional, leave empty | override the model |
-| `NVIDIA_API_BASE_URL`, `VOYAGE_BASE_URL`, `VOYAGE_MODEL`, `INNGEST_API_BASE_URL` | Optional, leave empty | defaults are in the code |
+| `ANTHROPIC_API_BASE_URL`, `VOYAGE_BASE_URL`, `VOYAGE_MODEL`, `INNGEST_API_BASE_URL` | Optional, leave empty | defaults are in the code |
 | `DEMO_USER_PASSWORD` | No | scripts and the e2e suite only (harmless if present) |
 | `SUPABASE_SECRET_KEY` | No | scripts and tests only (`npm run db:demo-users`, `check:services`) |
-| `ANTHROPIC_API_KEY`, `ANTHROPIC_API_BASE_URL` | No | leftovers |
+| `NVIDIA_API_KEY`, `NVIDIA_API_BASE_URL`, `NVIDIA_MODEL_FAST`, `NVIDIA_MODEL_MAIN` | No | no longer read since 2026-11-15; delete them |
 | `COPILOT_LIVE`, `BASE_URL`, `E2E_SKIP_COPILOT` | No | tests on your machine only |
 
 Netlify needs a redeploy after a variable changes. Change variables before
@@ -151,7 +152,7 @@ app is built for 30 s per request:
 - **Jobs (Inngest).** `/api/inngest` runs one step per request
   (`checkpointing: false` in `lib/inngest/client.ts`), and every model call,
   search and page read is its own step. Model calls in jobs time out at 26 s
-  (`lib/scout/agent.ts` `MODEL_TIMEOUT_MS`; thinking is off, see README "NVIDIA
+  (`lib/scout/agent.ts` `MODEL_TIMEOUT_MS`; thinking is off, see README "Claude
   API"). A step cut off at 30 s is retried by Inngest.
 - **Copilot (`POST /api/chat`).** One turn has a 23 s budget
   (`TURN_BUDGET_MS` in `lib/copilot/turn.ts`), at most 12 s per model call,
@@ -253,7 +254,7 @@ As `staff@demo.vsp.test`:
    yet". That proves `data/injection-demo/result.json` shipped with the
    function.
 9. `/staff/checks`: "Run Inngest check" passes (the heartbeat runs in
-   Inngest Cloud); "Run NVIDIA checks" and "Run Voyage check" pass.
+   Inngest Cloud); "Run Claude checks" and "Run Voyage check" pass.
 
 ## 8. Run the walk-through against the live site
 

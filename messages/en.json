@@ -469,10 +469,10 @@
   "checks": {
     "title": "Service checks",
     "intro": "Test calls to the hosted services. They run on the server with this deploy's environment variables, so no key reaches the browser.",
-    "nvidia": {
-      "title": "NVIDIA API",
-      "text": "One call per feature the plan relies on.",
-      "button": "Run NVIDIA checks"
+    "models": {
+      "title": "Claude API",
+      "text": "One call per model feature the app relies on, on Claude Haiku 5.5 and Claude Sonnet 5.5. Costs well under one US cent.",
+      "button": "Run Claude checks"
     },
     "inngest": {
       "title": "Inngest",

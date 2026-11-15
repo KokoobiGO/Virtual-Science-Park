@@ -7,7 +7,7 @@
  *   npm run enrich                        everything without an embedding
  *   npm run enrich -- --force             everything again (curated testbed tags stay)
  *
- * Reads DATABASE_URL, NVIDIA_API_KEY and VOYAGE_API_KEY from .env.local.
+ * Reads DATABASE_URL, ANTHROPIC_API_KEY and VOYAGE_API_KEY from .env.local.
  *
  * A Voyage key without billing allows 3 requests and 10,000 tokens a minute
  * (measured on 2026-11-14), so the script waits before each Voyage request
@@ -27,7 +27,7 @@ import {
   type EnrichOptions,
   type EnrichResult,
 } from "../lib/embeddings/enrich";
-import { NvidiaApiError } from "../lib/nvidia";
+import { ModelApiError } from "../lib/model";
 import { OpportunityTag } from "../lib/schemas";
 import { VoyageApiError } from "../lib/voyage";
 
@@ -108,7 +108,7 @@ async function runChunk(label: string, work: (options: EnrichOptions) => Promise
       console.log(`${label}: ${result.enriched} enriched, ${result.tagged} tagged (${result.zeroTags} no tag; ${tagLine(result)}), ${seconds} s`);
       return result;
     } catch (error) {
-      const limited = (error instanceof VoyageApiError || error instanceof NvidiaApiError) && error.status === 429;
+      const limited = (error instanceof VoyageApiError || error instanceof ModelApiError) && error.status === 429;
       if (!limited || attempt >= MAX_ATTEMPTS) throw error;
       if (error instanceof VoyageApiError) pace.full();
       console.log(`${label}: rate limited (${error.message.slice(0, 120)}); trying again in 60 s`);

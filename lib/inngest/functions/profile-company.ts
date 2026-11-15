@@ -89,7 +89,7 @@ export const profileCompanyJob = inngest.createFunction(
     id: "profile-company",
     name: "Profile one company",
     retries: 1,
-    // NVIDIA's free key is rate limited. Inngest counts steps, not runs: at most two steps of this job run at once.
+    // The Claude key is rate limited. Inngest counts steps, not runs: at most two steps of this job run at once.
     concurrency: { limit: 2 },
     triggers: [{ event: "app/company.profile.requested" }],
     // Runs once the job has used up its retries. The original event is inside the failure event.

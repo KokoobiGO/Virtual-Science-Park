@@ -6,7 +6,7 @@ import { LocaleProvider } from "@/lib/i18n/client";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
 import { INNGEST_CHECKS } from "@/lib/inngest-checks";
-import { NVIDIA_CHECKS } from "@/lib/nvidia-checks";
+import { MODEL_CHECKS } from "@/lib/model-checks";
 import { RESEND_CHECKS } from "@/lib/resend-checks";
 import { VOYAGE_CHECKS } from "@/lib/voyage-checks";
 import { FetchPageForm } from "./fetch-page-form";
@@ -48,9 +48,9 @@ async function ChecksContent() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-heading">{t("nvidia.title")}</h2>
-        <p className="text-sm text-muted-foreground">{t("nvidia.text")}</p>
-        <ServiceChecks endpoint="/api/checks/nvidia" button={t("nvidia.button")} checks={list(NVIDIA_CHECKS)} />
+        <h2 className="text-heading">{t("models.title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("models.text")}</p>
+        <ServiceChecks endpoint="/api/checks/models" button={t("models.button")} checks={list(MODEL_CHECKS)} />
       </div>
 
       <div className="flex flex-col gap-3">

@@ -11,7 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import { sql } from "drizzle-orm";
 import { closeDb, getDb } from "../lib/db";
 import { inngest } from "../lib/inngest/client";
-import { getAnthropic } from "../lib/llm";
+import { getAnthropic } from "../lib/model";
 import { VOYAGE_MODEL, voyageBaseUrl, voyageEmbed } from "../lib/voyage";
 import { RESEND_TEST_INBOX, sendEmail } from "../lib/resend";
 

@@ -1,5 +1,5 @@
 /**
- * Scout's agent (B3): our own tool loop on NVIDIA's chat API, then one
+ * Scout's agent (B3): our own tool loop on Claude (MODEL_FOR.scout), then one
  * structured call that writes the brief, then the checks in verify.ts.
  *
  * 1. The question itself is searched first, so the model starts from real
@@ -25,10 +25,10 @@
  * same decisions. A whole run stays under RUN_BUDGET_MS: no research after
  * loopBudgetMs, no writing after writeBudgetMs, no retry after retryBudgetMs.
  *
- * The backlog names Claude; while we test with NVIDIA's free key it is
- * NVIDIA_MODELS.main with thinking off.
+ * The model is MODEL_FOR.scout (Sonnet 5.5) with thinking off. The loop sends
+ * Claude's reply blocks back unchanged, as a tool loop must.
  */
-import { NVIDIA_MODELS, NvidiaApiError, nvidiaChat, type ChatMessage, type ChatRequest, type ChatResponse, type ToolCall } from "../nvidia";
+import { MODEL_FOR, ModelApiError, modelChat, type ChatMessage, type ChatRequest, type ChatResponse, type ToolCall } from "../model";
 import { OpportunityKind } from "../schemas";
 import {
   budgetLine,
@@ -46,6 +46,7 @@ import {
   writerJsonSchema,
   type WriterOption,
 } from "./prompt";
+import type { CheckedLink } from "./link-check";
 import type { LiveSearch } from "./live-sources";
 import { maxSearches, type StoreSearch } from "./search";
 import { NO_WEB_KEY, WEB_SEARCHES_PER_RUN, type WebSearchOutcome } from "./web-search";
@@ -53,6 +54,7 @@ import {
   MAX_OPTIONS,
   MIN_OPTIONS,
   NO_WEB_NOTE,
+  type LinkCheck,
   type PageRead,
   type ProgressKind,
   type ProgressStep,
@@ -68,7 +70,7 @@ export type StepRunner = <T>(name: string, work: () => Promise<T>) => Promise<T>
 
 export const runDirectly: StepRunner = (_name, work) => work();
 
-export const isRateLimit = (error: unknown) => error instanceof NvidiaApiError && error.status === 429;
+export const isRateLimit = (error: unknown) => error instanceof ModelApiError && error.status === 429;
 
 /** Netlify cuts a job step off after 30 s; one model call stops before that. */
 export const MODEL_TIMEOUT_MS = 26_000;
@@ -141,7 +143,7 @@ type WebState = "untried" | "used" | "unavailable" | "no-key" | "off";
 type ModelStep =
   | { kind: "time" }
   | { kind: "error"; message: string }
-  | { kind: "reply"; content: string | null; toolCalls: ToolCall[]; usage: ChatResponse["usage"] | null };
+  | { kind: "reply"; content: string | null; toolCalls: ToolCall[]; usage: ChatResponse["usage"] | null; blocks?: unknown[] | null };
 
 type WriteStep =
   | { kind: "time" }
@@ -157,6 +159,11 @@ export type ScoutDeps = {
   /** The keyed web provider (web-search.ts searchWeb). Null when off (cached mode). */
   searchWeb: ((query: string) => Promise<WebSearchOutcome>) | null;
   readPage: (url: string) => Promise<PageRead>;
+  /**
+   * Checks the cited links live before the brief is stored (link-check.ts checkCitedLinks). Null or left out:
+   * no check (cached mode, which reads nothing live, and tests that do not need it).
+   */
+  checkLinks?: ((urls: string[]) => Promise<CheckedLink[]>) | null;
   /** Called inside a unit of work with the whole progress list so far. */
   saveProgress?: (progress: ProgressStep[]) => Promise<void>;
   /** Called inside the last unit of work. */
@@ -276,11 +283,23 @@ export function toScoutOption(option: WriterOption, source: SourceRecord): Scout
   };
 }
 
+/** The progress lines for the link check: one line when all is well, one per left-out or unconfirmed link otherwise. */
+export function linkProgress(results: readonly CheckedLink[], kept: readonly { option: WriterOption; source: SourceRecord }[]): ProgressDraft[] {
+  const titleOf = (url: string) => collapse(kept.find((k) => k.source.url === url)?.option.title ?? url).slice(0, 120);
+  const broken = results.filter((r) => r.outcome === "broken");
+  const unsure = results.filter((r) => r.outcome !== "ok" && r.outcome !== "broken");
+  const ok = results.length - broken.length - unsure.length;
+  const lines: ProgressDraft[] = [{ kind: "check", text: `Checked ${plural(results.length, "cited link")} live: ${ok} open${broken.length ? `, ${broken.length} gone` : ""}${unsure.length ? `, ${unsure.length} not confirmed` : ""}.` }];
+  for (const r of broken) lines.push({ kind: "check", text: `Left out "${titleOf(r.url)}": its source page is gone (${r.reason}).` });
+  for (const r of unsure) lines.push({ kind: "check", text: `Kept "${titleOf(r.url)}", but its link is not confirmed: ${r.reason}.` });
+  return lines;
+}
+
 export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<ScoutResult> {
   const run = deps.run ?? runDirectly;
-  const chat = deps.chat ?? nvidiaChat;
+  const chat = deps.chat ?? modelChat;
   const now = deps.now ?? Date.now;
-  const model = deps.model ?? NVIDIA_MODELS.main;
+  const model = deps.model ?? MODEL_FOR.scout.model;
   const limits = { ...defaultLimits(), ...deps.limits };
   const today = new Date(input.startedAt);
 
@@ -517,12 +536,18 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
       }
       try {
         const response = await chat(
-          { model, max_tokens: 700, temperature: 0, messages: asked, tools: SCOUT_TOOLS, tool_choice: "auto", chat_template_kwargs: { enable_thinking: false } },
+          { model, max_tokens: 700, messages: asked, tools: SCOUT_TOOLS, tool_choice: "auto", effort: MODEL_FOR.scout.effort, cache: true },
           { timeoutMs: MODEL_TIMEOUT_MS },
         );
         const message = response.choices[0]?.message;
         return {
-          value: { kind: "reply" as const, content: message?.content ?? null, toolCalls: message?.tool_calls ?? [], usage: response.usage ?? null },
+          value: {
+            kind: "reply" as const,
+            content: message?.content ?? null,
+            toolCalls: message?.tool_calls ?? [],
+            usage: response.usage ?? null,
+            blocks: message?.blocks ?? null,
+          },
           progress: [],
         };
       } catch (error) {
@@ -555,7 +580,7 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
       continue;
     }
 
-    messages.push({ role: "assistant", content: reply.content, tool_calls: calls });
+    messages.push({ role: "assistant", content: reply.content, tool_calls: calls, ...(reply.blocks ? { blocks: reply.blocks } : {}) });
     let finished = false;
     for (const call of calls) {
       const args = parseArgs(call.function.arguments);
@@ -615,14 +640,12 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
           {
             model,
             max_tokens: 4000,
-            // A retry at 0 tends to repeat the same words; a little variation gets it out.
-            temperature: attempt === 1 ? 0 : 0.2,
             messages: [
               { role: "system", content: WRITER_SYSTEM_PROMPT },
               { role: "user", content: buildWriterUserMessage({ question: input.question, companyName: input.company.name, profileText: input.profileText, today, sources, feedback }) },
             ],
             response_format: { type: "json_schema", json_schema: { name: "scout_brief", schema: writerJsonSchema(ids), strict: true } },
-            chat_template_kwargs: { enable_thinking: false },
+            effort: MODEL_FOR.scout.effort,
           },
           { timeoutMs: MODEL_TIMEOUT_MS },
         );
@@ -672,9 +695,39 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
   // answer on sources not used yet fill up to MAX_OPTIONS. Every kept option passed every check on its own.
   const ordered = attempts.length === 2 && attempts[0].checked.accepted.length > attempts[1].checked.accepted.length ? attempts : [...attempts].reverse();
   const best = ordered[0].checked;
-  const kept = mergeAccepted(ordered.map((a) => a.checked));
-  if (!kept.length) return fail("No option passed the checks, so no brief was stored.");
-  const options = kept.map(({ option, source }) => toScoutOption(option, source));
+  const merged = mergeAccepted(ordered.map((a) => a.checked));
+  if (!merged.length) return fail("No option passed the checks, so no brief was stored.");
+
+  // 4. Every cited link, checked live before the brief counts as done. A broken link leaves its option out;
+  // a link that could not be confirmed stays, and the page says so.
+  const checkLinks = deps.checkLinks;
+  const linkStep = checkLinks
+    ? await unit<{ at: string; results: CheckedLink[] }>("check links", async () => {
+        const urls = merged.map(({ source }) => source.url);
+        const at = new Date(now()).toISOString();
+        try {
+          const results = await checkLinks(urls);
+          return { value: { at, results }, progress: linkProgress(results, merged) };
+        } catch (error) {
+          const reason = `the check failed (${errorText(error)})`;
+          return {
+            value: { at, results: urls.map((url) => ({ url, outcome: "unchecked" as const, reason })) },
+            progress: [{ kind: "check" as const, text: `Could not check the cited links (${errorText(error)}); they are marked as not confirmed.` }],
+          };
+        }
+      })
+    : null;
+  const linkByUrl = new Map((linkStep?.results ?? []).map((r) => [r.url, r]));
+  const kept = merged.filter(({ source }) => linkByUrl.get(source.url)?.outcome !== "broken");
+  const linksDropped = merged.length - kept.length;
+  if (!kept.length) return fail("Every option's cited link was broken when checked, so no brief was stored. Ask again to start a new search.");
+  const options = kept.map(({ option, source }) => {
+    const scoutOption = toScoutOption(option, source);
+    const link = linkByUrl.get(source.url);
+    if (!link || !linkStep) return scoutOption;
+    const linkCheck: LinkCheck = { outcome: link.outcome as LinkCheck["outcome"], checkedAt: linkStep.at, reason: link.outcome === "ok" ? "" : link.reason };
+    return { ...scoutOption, citation: { ...scoutOption.citation, linkCheck } };
+  });
   // The writer's summary only when its answer is used whole; otherwise a plain one from the kept options.
   const summary = (kept.length === best.accepted.length ? best.summary : null) ?? codeSummary(options.map((o) => ({ kind: o.kind, sourceName: o.citation.sourceName })));
   const notes: string[] = [];
@@ -685,6 +738,7 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
   const onlyFound = options.length < MIN_OPTIONS ? options.length : null;
   if (onlyFound !== null) notes.push(`Only ${plural(onlyFound, "option")} found that fit the question and passed the checks.`);
   const dropped = best.failed.length;
+  if (linksDropped) notes.push(`Left out ${plural(linksDropped, "option")} whose source page was gone when Scout checked the links.`);
 
   const brief = await unit("store brief", async () => {
     const finishedAt = now();
@@ -703,6 +757,7 @@ export async function runScout(input: ScoutInput, deps: ScoutDeps): Promise<Scou
         searches,
         pagesRead,
         dropped,
+        ...(linkStep ? { linksDropped } : {}),
         model,
       },
       createdAt: input.createdAt ?? new Date(input.startedAt).toISOString(),

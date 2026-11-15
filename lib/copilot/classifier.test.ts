@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ChatRequest, ChatResponse } from "../nvidia";
+import type { ChatRequest, ChatResponse } from "../model";
 import { buildClassifierUserMessage, classifyTurn, overrideGuard, parseClassifierReply, usableQuestion, type ChatFn } from "./classifier";
 
 const reply = (content: string): ChatResponse => ({ model: "fake", choices: [{ finish_reason: "stop", message: { role: "assistant", content } }] });
@@ -19,7 +19,8 @@ describe("classifyTurn", () => {
     const { chat, requests } = fakeChat('{"label":"in_scope","question":""}');
     const result = await classifyTurn([], "Which test facilities could we use for an underwater sensor?", { chat });
     expect(result).toMatchObject({ label: "in_scope", question: null, decidedBy: "model", modelCalls: 1 });
-    expect(requests[0].chat_template_kwargs).toEqual({ enable_thinking: false });
+    expect(requests[0].model).toBe("claude-haiku-5-5");
+    expect(requests[0].thinking).toBeFalsy();
     expect(requests[0].response_format?.type).toBe("json_schema");
   });
 

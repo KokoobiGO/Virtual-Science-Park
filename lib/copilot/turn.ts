@@ -11,7 +11,7 @@
  * reports; copilotTurnRun() turns that into a job_runs row.
  */
 import type { jobRuns } from "../db/schema";
-import { NvidiaApiError, nvidiaChat } from "../nvidia";
+import { ModelApiError, modelChat } from "../model";
 import type { ScopeLabel } from "../schemas";
 import { LOOK_IT_UP, reviseAnswer, runAssistant, TurnTimeout } from "./assistant";
 import { asksEligibility, checkAnswer, soundsLikeEligibilityDecision, statesFacts } from "./check";
@@ -24,8 +24,9 @@ import type { ToolExecutor } from "./tools";
 /**
  * From the start of the request to a checked answer. Netlify cuts a request
  * off at 30 s; the rest is for loading the history, storing the turn and the
- * network. With nemotron-3.5-super-vl-120b-a12b the 51 red-team turns
- * (2026-11-14) took 1 s at the median and 6.1 s at the slowest.
+ * network. On NVIDIA's nemotron-3.5-super-vl-120b-a12b the 51 red-team turns
+ * (2026-11-14) took 1 s at the median and 6.1 s at the slowest; Claude's times
+ * are not measured yet.
  */
 export const TURN_BUDGET_MS = 23_000;
 
@@ -119,7 +120,7 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
   let outputTokens = 0;
   const chat: ChatFn = async (request, options) => {
     calls++;
-    const response = await (deps.chat ?? nvidiaChat)(request, options);
+    const response = await (deps.chat ?? modelChat)(request, options);
     inputTokens += response.usage?.prompt_tokens ?? 0;
     outputTokens += response.usage?.completion_tokens ?? 0;
     return response;
@@ -209,7 +210,8 @@ export async function runTurn(input: TurnInput, deps: TurnDeps): Promise<TurnRes
     };
   } catch (error) {
     const timedOut = error instanceof TurnTimeout || (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError"));
-    const busy = error instanceof NvidiaApiError && error.status === 429;
+    // 429: the key's rate limit; 529: the API is overloaded. Both after the SDK's own retries.
+    const busy = error instanceof ModelApiError && (error.status === 429 || error.status === 529);
     if (!timedOut && !busy) console.error("Copilot turn failed:", error);
     return {
       ...base,

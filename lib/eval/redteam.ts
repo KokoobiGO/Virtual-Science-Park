@@ -15,8 +15,9 @@
  *      as withUserDb gives each step its own transaction.
  *   4. Roll everything back.
  *
- * The NVIDIA key is shared and allows about 30 requests a minute. A turn that
- * met a 429 is rolled back to its savepoint, and sent again after a minute.
+ * The Claude key has a rate limit per minute. A turn that met a 429 (after the
+ * SDK's own retries) is rolled back to its savepoint, and sent again after a
+ * minute.
  *
  * The summary is RedTeamSummary (lib/trust/shapes.ts) plus the failures, the
  * model and the turn times; a full run also writes eval/redteam-last-run.json.
@@ -30,7 +31,7 @@ import type { ChatFn } from "../copilot/classifier";
 import { getDb } from "../db";
 import { companies, opportunities } from "../db/schema";
 import type { UserTx } from "../db/user";
-import { NVIDIA_MODELS, NvidiaApiError, nvidiaChat } from "../nvidia";
+import { MODEL_FOR, ModelApiError, modelChat } from "../model";
 import type { EvalResult } from "./result";
 import {
   checkTurn,
@@ -97,7 +98,7 @@ async function plant(tx: UserTx, o: PlantedOpportunity) {
   await tx.insert(opportunities).values({ ...o, retrievedAt: new Date() });
 }
 
-/** nvidiaChat that notes each call: which step, how long, and the error. */
+/** modelChat that notes each call: which step, how long, and the error. */
 function recordingChat() {
   const calls: TurnResult["calls"] = [];
   let rateLimited = false;
@@ -105,12 +106,12 @@ function recordingChat() {
     const step = request.response_format ? "classifier" : "assistant";
     const started = Date.now();
     try {
-      const response = await nvidiaChat(request, options);
+      const response = await modelChat(request, options);
       calls.push({ step, ms: Date.now() - started });
       return response;
     } catch (error) {
-      if (error instanceof NvidiaApiError && error.status === 429) rateLimited = true;
-      calls.push({ step, ms: Date.now() - started, error: error instanceof NvidiaApiError ? `HTTP ${error.status}` : error instanceof Error ? error.name : String(error) });
+      if (error instanceof ModelApiError && error.status === 429) rateLimited = true;
+      calls.push({ step, ms: Date.now() - started, error: error instanceof ModelApiError ? `HTTP ${error.status}` : error instanceof Error ? error.name : String(error) });
       throw error;
     }
   };
@@ -156,12 +157,12 @@ async function runCase(group: string, c: RedTeamCase, account: string, companyId
               reply: { label: "in_scope", text: "", citations: 0, handoffSent: false, outcome: "busy", seconds: 0, modelCalls: recorder.calls.length },
               calls: recorder.calls,
               retries,
-              problems: [`the NVIDIA key answered 429 (too many requests) ${MAX_RETRIES + 1} times`],
+              problems: [`the Claude key answered 429 (too many requests) ${MAX_RETRIES + 1} times`],
             });
             break;
           }
           retries++;
-          log(`  ${c.id}: 429 from the NVIDIA key, sending the turn again in ${RATE_LIMIT_WAIT_MS / 1000} s`);
+          log(`  ${c.id}: 429 from the Claude key, sending the turn again in ${RATE_LIMIT_WAIT_MS / 1000} s`);
           await sleep(RATE_LIMIT_WAIT_MS);
         }
       }
@@ -211,7 +212,7 @@ export async function redTeam(options: RedTeamOptions = {}, log: (line: string) 
     ...groups,
     passed: cases.filter((c) => c.passed).length,
     total: cases.length,
-    model: { fast: NVIDIA_MODELS.fast, main: NVIDIA_MODELS.main },
+    model: { fast: MODEL_FOR.classifier.model, main: MODEL_FOR.copilot.model },
     failures: cases
       .filter((c) => !c.passed)
       .map((c) => ({ case: c.id, group: c.group, problems: c.error ? [`could not run: ${c.error}`] : c.turns.flatMap((t, i) => t.problems.map((p) => `turn ${i + 1}: ${p}`)) })),

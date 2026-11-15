@@ -7,7 +7,7 @@
  * functions in the same order as the profile-company job with
  * `refresh: true` (lib/inngest/functions/profile-company.ts): fetchSnapshot,
  * runProfiler, verifyDraftClaims, mergeRetry, assessProfile, storeProfile.
- * Only the page download (fetchPage) and the model call (nvidiaChat) are
+ * Only the page download (fetchPage) and the model call (modelChat) are
  * stubbed: no request leaves the machine and no model is called.
  *
  * Every write happens inside a transaction that is rolled back, so the
@@ -20,7 +20,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { closeDb, getDb } from "../lib/db";
 import { claims, companies, evidence, snapshots } from "../lib/db/schema";
 import type { UserTx } from "../lib/db/user";
-import type { ChatResponse } from "../lib/nvidia";
+import type { ChatResponse } from "../lib/model";
 import { claimsInCharge, profileView } from "../lib/profile-view/claims";
 import { planEdit } from "../lib/profile-view/edit";
 import { runProfiler } from "../lib/profiler";
@@ -30,15 +30,15 @@ import { mergeRetry, verifyDraftClaims } from "../lib/profiler/verify";
 import { ProfileField } from "../lib/schemas";
 import { fetchSnapshot } from "../lib/snapshots";
 
-const { fetchPage, nvidiaChat } = vi.hoisted(() => ({ fetchPage: vi.fn(), nvidiaChat: vi.fn() }));
+const { fetchPage, modelChat } = vi.hoisted(() => ({ fetchPage: vi.fn(), modelChat: vi.fn() }));
 
 vi.mock("../lib/fetcher/fetch-page", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/fetcher/fetch-page")>()),
   fetchPage: (url: string) => fetchPage(url),
 }));
-vi.mock("../lib/nvidia", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../lib/nvidia")>()),
-  nvidiaChat: (...args: unknown[]) => nvidiaChat(...args),
+vi.mock("../lib/model", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/model")>()),
+  modelChat: (...args: unknown[]) => modelChat(...args),
 }));
 
 const configured = Boolean(process.env.DATABASE_URL);
@@ -111,7 +111,7 @@ describe.skipIf(!configured)("weekly re-crawl: a changed page becomes a suggeste
     sitePage = SITE_OLD;
     fetchPage.mockReset();
     fetchPage.mockImplementation(async (url: string) => ({ url, status: 200, html: html(url === site ? sitePage : MEMBER_PAGE) }));
-    nvidiaChat.mockReset();
+    modelChat.mockReset();
   });
   afterEach(() => vi.unstubAllEnvs());
   afterAll(closeDb);
@@ -123,7 +123,7 @@ describe.skipIf(!configured)("weekly re-crawl: a changed page becomes a suggeste
       .values({ slug: `test-recrawl-${id}`, name: "Testbolaget AB", website: site, memberPage })
       .returning({ id: companies.id, name: companies.name });
 
-    nvidiaChat.mockResolvedValueOnce(FIRST_ANSWER);
+    modelChat.mockResolvedValueOnce(FIRST_ANSWER);
     const first = await profileRun(tx, company, { refresh: false });
     expect(first).toMatchObject({ stored: { active: 8, suggested: 0, superseded: 0, evidence: 3 } });
 
@@ -178,16 +178,16 @@ describe.skipIf(!configured)("weekly re-crawl: a changed page becomes a suggeste
 
       // The Monday re-crawl with the pages as they were: one fetch per page, no model call, nothing stored.
       expect(await profileRun(tx, company, { refresh: true })).toEqual({ skipped: "unchanged" });
-      expect(nvidiaChat).toHaveBeenCalledTimes(1);
+      expect(modelChat).toHaveBeenCalledTimes(1);
       expect(await claimRows(tx, company.id)).toHaveLength(before.length);
 
       // The company's own site changes; the next re-crawl reads the new text.
       sitePage = SITE_NEW;
-      nvidiaChat.mockResolvedValueOnce(CHANGED_ANSWER);
+      modelChat.mockResolvedValueOnce(CHANGED_ANSWER);
       const run = await profileRun(tx, company, { refresh: true });
       if (!("stored" in run)) throw new Error("The changed page should have been profiled.");
-      expect(nvidiaChat).toHaveBeenCalledTimes(2);
-      expect(JSON.stringify(nvidiaChat.mock.calls[1][0])).toContain(LIDAR);
+      expect(modelChat).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(modelChat.mock.calls[1][0])).toContain(LIDAR);
       expect(run.stored).toEqual({ active: 0, suggested: 1, superseded: 0, evidence: 2 });
 
       const after = await claimRows(tx, company.id);
@@ -232,7 +232,7 @@ describe.skipIf(!configured)("weekly re-crawl: a changed page becomes a suggeste
     await rolledBack(async (tx) => {
       const { company, corrected } = await setUp(tx);
       sitePage = SITE_NEW;
-      nvidiaChat.mockResolvedValueOnce(CHANGED_ANSWER);
+      modelChat.mockResolvedValueOnce(CHANGED_ANSWER);
       const run = await profileRun(tx, company, { refresh: false });
       if (!("stored" in run)) throw new Error("A full run always profiles.");
 

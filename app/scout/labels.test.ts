@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Citation } from "@/lib/scout/types";
-import { askFailure, citationStatus, NETWORK_FAILURE, retrievalText, scoutTitle, withSiteName } from "./labels";
+import { askFailure, citationStatus, euPortalHint, linkCheckText, NETWORK_FAILURE, retrievalText, scoutTitle, withSiteName } from "./labels";
 
 const citation = (extra: Partial<Citation> = {}): Citation => ({
   url: "https://example.se/x",
@@ -71,5 +71,34 @@ describe("a failed start", () => {
     for (const failure of [signedOut, busy, askFailure(400, null), askFailure(502, null), NETWORK_FAILURE]) {
       if (failure.message !== "Scout is for member companies only.") expect(failure.message).toContain("Your question is still in the box.");
     }
+  });
+});
+
+describe("linkCheckText", () => {
+  const page = "https://example.se/facility-1";
+  const eu = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-26";
+  const checkedAt = "2026-11-14T23:52:00Z";
+
+  it("says when a link was checked live, and that an EU topic was confirmed in the portal's search", () => {
+    expect(linkCheckText({ url: page, linkCheck: { outcome: "ok", checkedAt, reason: "" } })).toEqual({ text: "link checked live 15 Nov, 00:52", confirmed: true });
+    expect(linkCheckText({ url: eu, linkCheck: { outcome: "ok", checkedAt, reason: "" } })?.text).toBe("topic confirmed in the EU portal's search 15 Nov, 00:52");
+  });
+
+  it("says why a link is not confirmed", () => {
+    expect(linkCheckText({ url: page, linkCheck: { outcome: "blocked", checkedAt, reason: "the site answered 403 to a script" } })).toEqual({
+      text: "link not confirmed on 15 Nov, 00:52: the site answered 403 to a script",
+      confirmed: false,
+    });
+  });
+
+  it("says nothing for a brief stored before the check", () => {
+    expect(linkCheckText({ url: page })).toBeNull();
+  });
+});
+
+describe("euPortalHint", () => {
+  it("is shown for EU portal topic links only", () => {
+    expect(euPortalHint("https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-26")).toMatch(/Page not found/);
+    expect(euPortalHint("https://www.vinnova.se/e/some-call/")).toBeNull();
   });
 });

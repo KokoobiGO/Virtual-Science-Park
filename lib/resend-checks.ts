@@ -3,7 +3,7 @@
  * RESEND_API_KEY. It sends one email to Resend's test inbox, so no person
  * receives it; the email shows as delivered in the Resend dashboard.
  */
-import type { CheckResult } from "./nvidia-checks";
+import type { CheckResult } from "./model-checks";
 import { RESEND_TEST_INBOX, ResendApiError, sendEmail } from "./resend";
 
 export const RESEND_CHECKS = {

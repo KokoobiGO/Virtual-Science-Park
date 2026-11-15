@@ -53,7 +53,8 @@ describe("Trust report sections (C20, D20)", () => {
 
   it("states the model the app runs on now, and no longer the old one alone", () => {
     const out = render(createElement(KnownLimitsSection));
-    expect(KNOWN_LIMITS.join(" ")).toContain("nvidia/nemotron-3.5-super-vl-120b-a12b");
+    expect(KNOWN_LIMITS.join(" ")).toContain("Claude Haiku 5.5");
+    expect(KNOWN_LIMITS.join(" ")).toContain("Claude Sonnet 5.5");
     expect(KNOWN_LIMITS.join(" ")).not.toContain("NVIDIA Nemotron 3.5 Lightning");
     expect(KNOWN_LIMITS.join(" ")).not.toMatch(/marked simulated/);
     expect(out).toMatch(/<h2>Known limits<\/h2>/);

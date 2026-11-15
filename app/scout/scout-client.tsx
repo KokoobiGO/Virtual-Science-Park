@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { recordedAt, type BriefListItem, type BriefView, type OptionKind, type ProgressStep, type ScoutOption } from "@/lib/scout/types";
-import { askFailure, citationStatus, day, NETWORK_FAILURE, retrievalText, scoutTitle, when, withSiteName, type AskFailure } from "./labels";
+import { askFailure, citationStatus, day, euPortalHint, linkCheckText, NETWORK_FAILURE, retrievalText, scoutTitle, when, withSiteName, type AskFailure } from "./labels";
 
 /** How often the page asks for a running brief's progress. */
 const POLL_MS = 2_000;
@@ -413,6 +413,8 @@ function ProgressList({ steps }: { steps: ProgressStep[] }) {
 function OptionCard({ index, option, saved, onSave }: { index: number; option: ScoutOption; saved: boolean; onSave: (opportunityId: string, saved: boolean) => void }) {
   const { citation } = option;
   const status = citationStatus(citation);
+  const link = linkCheckText(citation);
+  const euHint = euPortalHint(citation.url);
   return (
     <Card className="min-w-0">
       <CardHeader>
@@ -479,7 +481,14 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
             <span>{citation.origin === "store" ? "From the opportunity store" : "From web search"}</span>
             <span aria-hidden>·</span>
             <span>{retrievalText(citation)}</span>
+            {link ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className={link.confirmed ? undefined : "text-warning"}>{link.text}</span>
+              </>
+            ) : null}
           </p>
+          {euHint ? <p className="break-words">{euHint}</p> : null}
         </div>
         {option.opportunityId && (
           <Button type="button" size="sm" variant={saved ? "secondary" : "outline"} onClick={() => onSave(option.opportunityId!, !saved)}>
