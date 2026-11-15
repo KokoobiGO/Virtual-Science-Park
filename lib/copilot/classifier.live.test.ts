@@ -1,18 +1,18 @@
 /**
  * Six seed cases for the scope classifier (B5) against the real model: two in
  * scope, one unclear, two out of scope, one override attempt. Makes six
- * NVIDIA calls, so it runs on demand only:
+ * Claude calls, so it runs on demand only:
  *
  *   COPILOT_LIVE=1 npx vitest run lib/copilot/classifier.live.test.ts
  *
- * Skipped without NVIDIA_API_KEY or without COPILOT_LIVE=1. The cases run one
+ * Skipped without ANTHROPIC_API_KEY or without COPILOT_LIVE=1. The cases run one
  * after the other (the free key allows about 30 requests a minute).
  */
 import { describe, expect, it } from "vitest";
 import type { ScopeLabel } from "../schemas";
 import { classifyTurn, type HistoryTurn } from "./classifier";
 
-const live = Boolean(process.env.NVIDIA_API_KEY) && process.env.COPILOT_LIVE === "1";
+const live = Boolean(process.env.ANTHROPIC_API_KEY) && process.env.COPILOT_LIVE === "1";
 
 const SEED_CASES: { name: string; history?: HistoryTurn[]; message: string; label: ScopeLabel }[] = [
   { name: "in scope: test facilities", message: "Which test facilities could we use for an underwater sensor?", label: "in_scope" },

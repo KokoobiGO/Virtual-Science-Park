@@ -57,7 +57,7 @@ import { JUDGE_TIMEOUT_MS } from "../lib/judge";
 import { judgeJsonSchema } from "../lib/judge/output";
 import { buildJudgeUserMessage, JUDGE_SYSTEM_PROMPT, type JudgeOpportunity } from "../lib/judge/prompt";
 import { checkJudgeReply, retryFeedback, type CheckedReply } from "../lib/judge/verify";
-import { NVIDIA_MODELS, NvidiaApiError, nvidiaChat } from "../lib/nvidia";
+import { MODEL_FOR, ModelApiError, modelChat } from "../lib/model";
 import { runProfiler, type DraftClaim, type ProfilerSource } from "../lib/profiler";
 import { buildProfilerUserMessage } from "../lib/profiler/prompt";
 import { mergeRetry, verifyDraftClaims } from "../lib/profiler/verify";
@@ -85,7 +85,7 @@ async function withBackoff<T>(label: string, work: () => Promise<T>): Promise<T>
     try {
       return await work();
     } catch (error) {
-      if (!(error instanceof NvidiaApiError && error.status === 429) || waits >= MAX_RATE_LIMIT_WAITS) throw error;
+      if (!(error instanceof ModelApiError && error.status === 429) || waits >= MAX_RATE_LIMIT_WAITS) throw error;
       console.log(`  [${label}] rate limited; trying again in ${RATE_LIMIT_WAIT_MS / 1000} s`);
       await sleep(RATE_LIMIT_WAIT_MS);
     }
@@ -185,17 +185,16 @@ async function profilerStep(variant: Variant, pageUrl: string, lang: ProfilerSou
 /** The same request as judgeBatch (lib/judge/index.ts), kept here so the raw reply can be shown before the checks. */
 async function judgeCall(company: { name: string; profileText: string }, opportunity: JudgeOpportunity, feedback?: string) {
   const ids = [opportunity.id];
-  const response = await nvidiaChat(
+  const response = await modelChat(
     {
-      model: NVIDIA_MODELS.main,
+      model: MODEL_FOR.judge.model,
       max_tokens: 2000,
-      temperature: feedback ? 0.3 : 0,
       messages: [
         { role: "system", content: JUDGE_SYSTEM_PROMPT },
         { role: "user", content: buildJudgeUserMessage(company, [opportunity], { feedback }) },
       ],
       response_format: { type: "json_schema", json_schema: { name: "match_judgements", schema: judgeJsonSchema(ids), strict: true } },
-      chat_template_kwargs: { enable_thinking: false },
+      effort: MODEL_FOR.judge.effort,
     },
     { timeoutMs: JUDGE_TIMEOUT_MS },
   );
@@ -331,7 +330,7 @@ async function main() {
   const result: InjectionDemoResult = {
     ranAt: new Date().toISOString(),
     pageUrl: url,
-    model: NVIDIA_MODELS.main,
+    model: `${MODEL_FOR.profiler.model} (profile), ${MODEL_FOR.judge.model} (judge)`,
     judgedFor: company.name,
     detector: {
       flagged: report.flagged,

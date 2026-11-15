@@ -7,7 +7,7 @@ import { LocaleProvider } from "@/lib/i18n/client";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
 import { INNGEST_CHECKS } from "@/lib/inngest-checks";
-import { NVIDIA_CHECKS } from "@/lib/nvidia-checks";
+import { MODEL_CHECKS } from "@/lib/model-checks";
 import { RESEND_CHECKS } from "@/lib/resend-checks";
 import { VOYAGE_CHECKS } from "@/lib/voyage-checks";
 import { StaffPageIntro } from "../page-intro";
@@ -49,7 +49,7 @@ async function ChecksContent() {
       <div className="flex flex-col divide-y divide-border/60 stagger">
         {(
           [
-            ["nvidia", NVIDIA_CHECKS],
+            ["models", MODEL_CHECKS],
             ["inngest", INNGEST_CHECKS],
             ["voyage", VOYAGE_CHECKS],
             ["resend", RESEND_CHECKS],

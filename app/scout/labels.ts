@@ -9,6 +9,7 @@
  * same case.
  */
 import { itemDataStatus, type DataStatusKind } from "@/components/data-status-label";
+import { euTopicIdFromUrl } from "@/lib/collectors/eu-funding/topic-url";
 import { DEFAULT_LOCALE, INTL_LOCALE, type Locale } from "@/lib/i18n/config";
 import { TIME_ZONE } from "@/lib/i18n/format";
 import { createTranslator, type Translator } from "@/lib/i18n/translate";
@@ -94,6 +95,32 @@ export function retrievalText(
 /** Where a citation came from: the opportunity store, a funder's live search, or a web search. */
 export function originText(citation: Pick<Citation, "origin">, t: T): string {
   return t(citation.origin === "store" ? "option.fromStore" : citation.origin === "live" ? "option.fromLive" : "option.fromWeb");
+}
+
+/**
+ * The live link check before the brief was stored (lib/scout/link-check.ts):
+ * "link checked live 15 Nov, 00:52", or why the link is not confirmed. Null for
+ * briefs stored before the check, and in cached mode, which checks nothing live.
+ */
+export function linkCheckText(citation: Pick<Citation, "linkCheck" | "url">, t: T): { text: string; confirmed: boolean } | null {
+  const check = citation.linkCheck;
+  if (!check) return null;
+  const at = when(check.checkedAt, t.locale);
+  if (check.outcome === "ok") {
+    // An EU topic is confirmed in the portal's search API: its page answers the same whether the topic exists or not.
+    return { text: t(euTopicIdFromUrl(citation.url) ? "option.euTopicConfirmed" : "option.linkChecked", { when: at }), confirmed: true };
+  }
+  return { text: t("option.linkNotConfirmed", { when: at, reason: check.reason }), confirmed: false };
+}
+
+/**
+ * For EU portal topic links: the portal now and then sends a good topic to a
+ * "Page not found" page, and the same link works when opened again. The topic
+ * itself is checked in the portal's search API, not by opening the page.
+ */
+export function euPortalHint(url: string, t: T): string | null {
+  if (!euTopicIdFromUrl(url)) return null;
+  return t("option.euPortalHint");
 }
 
 /** Why "Ask Scout" did not start a run, said next to the question box. The question always stays in the box. */

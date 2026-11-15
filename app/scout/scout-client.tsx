@@ -14,6 +14,8 @@ import {
   askFailure,
   citationStatus,
   day,
+  euPortalHint,
+  linkCheckText,
   networkFailure,
   openFailure,
   optionKindName,
@@ -457,6 +459,8 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
   const t = useT("scout");
   const { citation } = option;
   const status = citationStatus(citation);
+  const link = linkCheckText(citation, t);
+  const euHint = euPortalHint(citation.url, t);
   return (
     // A Card for its slots, drawn without a box: the list's spacing and hairlines separate the options.
     <Card className="min-w-0 gap-4 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0 [--card-spacing:0px]">
@@ -524,7 +528,14 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
             <span>{originText(citation, t)}</span>
             <span aria-hidden>·</span>
             <span>{retrievalText(citation, t)}</span>
+            {link ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className={link.confirmed ? undefined : "text-warning"}>{link.text}</span>
+              </>
+            ) : null}
           </p>
+          {euHint ? <p className="break-words">{euHint}</p> : null}
           {citation.injection ? (
             // The detector flagged the text (lib/injection/detect.ts); the stored label only says so, the words are the catalogue's.
             <p className="break-words text-warning" data-injection>

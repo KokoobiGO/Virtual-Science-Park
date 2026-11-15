@@ -19,7 +19,7 @@ import { z } from "zod";
 import { claims, companies, companyPrivate, evidence, matches, opportunities, savedItems, snapshots, sourceStatus } from "../db/schema";
 import type { UserTx } from "../db/user";
 import { detectInjection, INJECTION_LABEL } from "../injection/detect";
-import type { ToolDefinition } from "../nvidia";
+import type { ToolDefinition } from "../model";
 import { OpportunityKind, OpportunityTag, type SourceState } from "../schemas";
 import { createHandoff } from "./handoff";
 import { BSP_CONTACT } from "./policy";

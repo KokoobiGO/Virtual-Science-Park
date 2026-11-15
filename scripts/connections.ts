@@ -8,19 +8,18 @@
  *   npx tsx --env-file-if-exists=.env.local scripts/connections.ts
  *
  * Judges the candidate pairs one at a time, at most one call every
- * `--every S` seconds (default 10, so about 6 calls a minute on NVIDIA's
- * shared free key), and prints each verdict as it goes. Without `--dry` it then
- * stores the pairs that passed (replacing every pair stored before) and prints
- * the stored pairs. `--limit N` judges only the first N pairs. `--out FILE`
- * writes every verdict to a JSON file; `--store-from FILE` stores the passed
- * pairs of such a file without any model call, so a dry run that was read and
- * found good can be stored as it is. `--candidates` only lists the candidate
- * pairs, with no model call. `--recheck FILE` judges again only the pairs
- * that passed or failed a check in that file, and every third rejected one,
- * to see whether the verdicts hold between runs. Reads DATABASE_URL and NVIDIA_API_KEY from
- * .env.local.
+ * `--every S` seconds (default 10), and prints each verdict as it goes.
+ * Without `--dry` it then stores the pairs that passed (replacing every pair
+ * stored before) and prints the stored pairs. `--limit N` judges only the
+ * first N pairs. `--out FILE` writes every verdict to a JSON file;
+ * `--store-from FILE` stores the passed pairs of such a file without any model
+ * call, so a dry run that was read and found good can be stored as it is.
+ * `--candidates` only lists the candidate pairs, with no model call.
+ * `--recheck FILE` judges again only the pairs that passed or failed a check
+ * in that file, and every third rejected one, to see whether the verdicts hold
+ * between runs. Reads DATABASE_URL and ANTHROPIC_API_KEY from .env.local.
  *
- * A rate limit (429) from NVIDIA is waited out: 60 s, six times at most for
+ * A rate limit (429) from Claude is waited out: 60 s, six times at most for
  * the same pair.
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -29,7 +28,7 @@ import { listCandidates } from "../lib/connections/candidates";
 import { connectionsToStore, judgeCandidates, summarize, type PairVerdict } from "../lib/connections/find";
 import { listStoredConnections, storeConnections } from "../lib/connections/store";
 import { closeDb } from "../lib/db";
-import { NvidiaApiError } from "../lib/nvidia";
+import { ModelApiError } from "../lib/model";
 
 const MAX_ATTEMPTS = 6;
 const RATE_LIMIT_WAIT_S = 60;
@@ -141,7 +140,7 @@ async function main() {
         if (verdict.outcome === "skipped") lastCall = 0;
         break;
       } catch (error) {
-        if (!(error instanceof NvidiaApiError && error.status === 429) || attempt >= MAX_ATTEMPTS) throw error;
+        if (!(error instanceof ModelApiError && error.status === 429) || attempt >= MAX_ATTEMPTS) throw error;
         rateLimits++;
         console.log(`  rate limited on pair ${i + 1} (attempt ${attempt}): ${error.message.slice(0, 160)}; waiting ${RATE_LIMIT_WAIT_S} s`);
         await sleep(RATE_LIMIT_WAIT_S * 1000);

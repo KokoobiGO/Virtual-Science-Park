@@ -139,16 +139,18 @@ describe("judgePair", () => {
   });
 
   function fakeApi(content: string) {
-    vi.stubEnv("NVIDIA_API_KEY", "test-key");
+    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    // A Claude Messages API answer.
     const fetchMock = vi.fn<typeof fetch>(async () =>
-      new Response(
-        JSON.stringify({
-          model: "test",
-          choices: [{ finish_reason: "stop", message: { role: "assistant", content } }],
-          usage: { prompt_tokens: 500, completion_tokens: 80, total_tokens: 580 },
-        }),
-        { status: 200 },
-      ),
+      Response.json({
+        id: "msg_test",
+        type: "message",
+        role: "assistant",
+        model: "claude-sonnet-5-5",
+        content: [{ type: "text", text: content }],
+        stop_reason: "end_turn",
+        usage: { input_tokens: 500, output_tokens: 80 },
+      }),
     );
     vi.stubGlobal("fetch", fetchMock);
     return fetchMock;
@@ -163,9 +165,10 @@ describe("judgePair", () => {
     const run = await judgePair(a, b);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
-    expect(body.chat_template_kwargs).toEqual({ enable_thinking: false });
-    expect(body.temperature).toBe(0);
-    expect(body.response_format.json_schema.strict).toBe(true);
+    expect(body.model).toBe("claude-sonnet-5-5");
+    expect(body.thinking).toEqual({ type: "between_tools" });
+    expect(body).not.toHaveProperty("temperature");
+    expect(body.output_config.format.type).toBe("json_schema");
     expect(run.opportunities).toEqual([]);
     // Geography is not a judged field, so B shows two claims.
     expect(run.shown.map((c) => c.shortId)).toEqual(["C1", "C2", "C3", "C4"]);

@@ -16,7 +16,7 @@ import { NonRetriableError, RetryAfterError } from "inngest";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { jobRuns } from "@/lib/db/schema";
-import { NvidiaApiError } from "@/lib/nvidia";
+import { ModelApiError } from "@/lib/model";
 import { OpportunityTag } from "@/lib/schemas";
 import { emptyTrendUsage, trendNoteForArea, weekOf, type TrendOutcome, type TrendUsage } from "@/lib/trends";
 import { inngest } from "../client";
@@ -37,7 +37,7 @@ export const trendNotesJob = inngest.createFunction(
     id: "trend-notes",
     name: "Write the weekly trend notes",
     retries: 2,
-    // NVIDIA's free key is rate limited: one area at a time.
+    // The Claude key is rate limited: one area at a time.
     concurrency: { limit: 1 },
     triggers: [{ cron: "TZ=Europe/Stockholm 0 5 * * 1" }, { event: "app/trends.requested" }],
   },
@@ -63,7 +63,7 @@ export const trendNotesJob = inngest.createFunction(
           return { result: await trendNoteForArea(area, { now, store: true, usage }), usage };
         } catch (error) {
           // A rate limit is not a bug: fail the step and let Inngest try it again after the limit's minute.
-          if (error instanceof NvidiaApiError && error.status === 429) throw new RetryAfterError(error.message, "60s", { cause: error });
+          if (error instanceof ModelApiError && error.status === 429) throw new RetryAfterError(error.message, "60s", { cause: error });
           // Anything else is recorded, not thrown: the other areas still get their notes.
           return { result: { area, status: "error", error: error instanceof Error ? error.message : String(error) }, usage };
         }

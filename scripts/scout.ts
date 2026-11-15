@@ -24,7 +24,7 @@ import { briefs, companies } from "../lib/db/schema";
 import { loadCompanies } from "../lib/embeddings/enrich";
 import { isRateLimit, RUN_BUDGET_MS, runScout, type ScoutResult, type StepRunner } from "../lib/scout/agent";
 import { readPage } from "../lib/scout/read-page";
-import { realSearch, runScoutBrief } from "../lib/scout/run";
+import { realLinkCheck, realSearch, runScoutBrief } from "../lib/scout/run";
 import { maxSearches } from "../lib/scout/search";
 import { webProviderFromEnv } from "../lib/scout/web-search";
 import { createBrief, recordRun } from "../lib/scout/store";
@@ -132,6 +132,7 @@ async function main() {
         run: runWithBackoff,
         ...realSearch(company.id),
         readPage: (url) => readPage(url),
+        checkLinks: realLinkCheck(),
         saveProgress: async (progress) => printNew(progress),
         saveDone: async (_brief, progress) => printNew(progress),
         saveFailed: async (_error, progress) => printNew(progress),

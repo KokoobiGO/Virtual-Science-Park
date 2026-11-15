@@ -3,7 +3,7 @@ import en from "@/messages/en.json";
 import { createTranslator } from "@/lib/i18n/translate";
 import { INJECTION_LABEL } from "@/lib/injection/detect";
 import { NO_WEB_NOTE, type Citation } from "@/lib/scout/types";
-import { askFailure, citationStatus, day, networkFailure, openFailure, optionKindName, originText, retrievalText, scoutTitle, when, withSiteName } from "./labels";
+import { askFailure, citationStatus, day, euPortalHint, linkCheckText, networkFailure, openFailure, optionKindName, originText, retrievalText, scoutTitle, when, withSiteName } from "./labels";
 
 const EN = createTranslator("en", "scout");
 const SV = createTranslator("sv", "scout");
@@ -158,5 +158,38 @@ describe("a brief that could not be opened", () => {
     expect(openFailure(notFound, SV)).toBe("Sammanställningen kunde inte öppnas (fel 404). Försök igen, eller ladda om sidan.");
     expect(openFailure(new TypeError("Failed to fetch"), EN)).toBe("The brief could not be opened (Failed to fetch). Try again, or reload the page.");
     expect(openFailure(new TypeError("Failed to fetch"), SV)).toBe("Sammanställningen kunde inte öppnas (ingen anslutning). Försök igen, eller ladda om sidan.");
+  });
+});
+
+describe("linkCheckText", () => {
+  const page = "https://example.se/facility-1";
+  const eu = "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-26";
+  const checkedAt = "2026-11-14T23:52:00Z";
+
+  it("says when a link was checked live, and that an EU topic was confirmed in the portal's search", () => {
+    expect(linkCheckText({ url: page, linkCheck: { outcome: "ok", checkedAt, reason: "" } }, EN)).toEqual({ text: "link checked live 15 Nov, 00:52", confirmed: true });
+    expect(linkCheckText({ url: eu, linkCheck: { outcome: "ok", checkedAt, reason: "" } }, EN)?.text).toBe("topic confirmed in the EU portal's search 15 Nov, 00:52");
+  });
+
+  it("says why a link is not confirmed", () => {
+    expect(linkCheckText({ url: page, linkCheck: { outcome: "blocked", checkedAt, reason: "the site answered 403 to a script" } }, EN)).toEqual({
+      text: "link not confirmed on 15 Nov, 00:52: the site answered 403 to a script",
+      confirmed: false,
+    });
+  });
+
+  it("says nothing for a brief stored before the check", () => {
+    expect(linkCheckText({ url: page }, EN)).toBeNull();
+  });
+});
+
+describe("euPortalHint", () => {
+  it("is shown for EU portal topic links only", () => {
+    expect(euPortalHint("https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-26", EN)).toMatch(/Page not found/);
+    expect(euPortalHint("https://www.vinnova.se/e/some-call/", EN)).toBeNull();
+  });
+
+  it("says it in Swedish too", () => {
+    expect(euPortalHint("https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/topic-details/HORIZON-CL5-2027-07-D3-26", SV)).toMatch(/^EU-portalen/);
   });
 });

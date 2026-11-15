@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/client";
-import type { CheckResult } from "@/lib/nvidia-checks";
+import type { CheckResult } from "@/lib/model-checks";
 
 type Check = { id: string; label: string };
 type Outcome = CheckResult & { hint?: string | null };

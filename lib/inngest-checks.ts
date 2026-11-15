@@ -6,7 +6,7 @@
  * app and called /api/inngest to run every step.
  */
 import { inngestCloudProblem, isFinished, sendAndWait } from "./inngest/runs";
-import type { CheckResult } from "./nvidia-checks";
+import type { CheckResult } from "./model-checks";
 
 export const INNGEST_CHECKS = {
   heartbeat: "Event runs the heartbeat job",

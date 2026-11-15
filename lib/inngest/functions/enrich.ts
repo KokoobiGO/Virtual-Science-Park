@@ -39,7 +39,7 @@ import {
   type EnrichResult,
 } from "@/lib/embeddings/enrich";
 import { embeddingAge, needsNewEmbedding } from "@/lib/embeddings/stale";
-import { NvidiaApiError } from "@/lib/nvidia";
+import { ModelApiError } from "@/lib/model";
 import { VoyageApiError } from "@/lib/voyage";
 import { inngest } from "../client";
 
@@ -59,7 +59,7 @@ async function retryLaterOn429<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (error) {
-    if ((error instanceof VoyageApiError || error instanceof NvidiaApiError) && error.status === 429) {
+    if ((error instanceof VoyageApiError || error instanceof ModelApiError) && error.status === 429) {
       throw new RetryAfterError(error.message, "60s", { cause: error });
     }
     throw error;

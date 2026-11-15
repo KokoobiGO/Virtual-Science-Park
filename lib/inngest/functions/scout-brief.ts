@@ -44,7 +44,7 @@ export const scoutBriefJob = inngest.createFunction(
     id: "scout-brief",
     name: "Scout: research brief",
     retries: 2,
-    // NVIDIA's free key is rate limited and shared with the judge and the profiler. Inngest counts steps, not runs.
+    // The Claude key is rate limited and shared with the judge and the profiler. Inngest counts steps, not runs.
     concurrency: { limit: 2 },
     triggers: [{ event: SCOUT_EVENT }],
     onFailure: async ({ event, error, step }) => {

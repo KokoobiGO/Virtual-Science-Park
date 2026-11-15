@@ -3,14 +3,13 @@
  * comes back in strict JSON; verify.ts then checks it in code, and a pair
  * that fails a check is dropped.
  *
- * While we test with NVIDIA's free key the model is NVIDIA_MODELS.main, with
- * thinking off (thinking on is too slow for a job step) and temperature 0, so
- * a second run on the same data gives the same verdicts as far as the API
- * allows. API errors (a 429, a timeout) are thrown for the caller to retry; an
- * answer that does not fit the schema comes back as `error`.
+ * The model is MODEL_FOR.connections (Sonnet 5.5), with thinking off (thinking
+ * on is too slow for a job step). API errors (a 429, a timeout) are thrown for
+ * the caller to retry; an answer that does not fit the schema comes back as
+ * `error`.
  */
 import { z } from "zod";
-import { NVIDIA_MODELS, nvidiaChat } from "../nvidia";
+import { MODEL_FOR, modelChat } from "../model";
 import {
   assignOpportunityIds,
   assignShortIds,
@@ -95,20 +94,19 @@ export type JudgeOptions = { model?: string; timeoutMs?: number; opportunities?:
 export async function judgePair(a: JudgeCompany, b: JudgeCompany, options: JudgeOptions = {}): Promise<JudgeRun> {
   const shown = assignShortIds(judgeClaims(a.claims), judgeClaims(b.claims));
   const opportunities = assignOpportunityIds(options.opportunities ?? []);
-  const model = options.model ?? NVIDIA_MODELS.main;
+  const model = options.model ?? MODEL_FOR.connections.model;
   const started = Date.now();
 
-  const response = await nvidiaChat(
+  const response = await modelChat(
     {
       model,
       max_tokens: 900,
-      temperature: 0,
       messages: [
         { role: "system", content: JUDGE_SYSTEM_PROMPT },
         { role: "user", content: buildJudgeUserMessage(a, b, shown, opportunities) },
       ],
       response_format: { type: "json_schema", json_schema: { name: "connection", schema: judgeJsonSchema(shown, opportunities), strict: true } },
-      chat_template_kwargs: { enable_thinking: false },
+      effort: MODEL_FOR.connections.effort,
     },
     { timeoutMs: options.timeoutMs ?? JUDGE_TIMEOUT_MS },
   );

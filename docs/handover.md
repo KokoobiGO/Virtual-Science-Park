@@ -14,7 +14,8 @@ and the rules. Times are Swedish time (CET).
 
 1. **Never open, read, print or search any `.env` file**, including
    `.env.local`. Only `.env.example` may be read. To learn whether a key
-   works, run `npm run check:services` or `npm run check:nvidia`: they load
+   works, run `npm run check:services` or `npm run check:models` (a fraction of a
+   US cent in Claude calls): they load
    `.env.local` themselves and print PASS or FAIL without values. Never ask
    anyone to paste a secret into a chat. Pass this rule to every helper.
 2. **Work on `dev` only.** `main` deploys to Netlify on every push and the
@@ -35,9 +36,15 @@ and the rules. Times are Swedish time (CET).
    commits; executors (`.claude/agents/opus-executor.md`) build and **never
    commit or push**. Several executors may work in the same tree at once:
    each touches only the files its brief names.
-6. **NVIDIA's free API only.** The project owner decided on 2026-11-14 not to
-   use Claude. Both model slots use `nvidia/nemotron-3.5-super-vl-120b-a12b`
-   (`lib/nvidia.ts`, `docs/model-choice.md`).
+6. **Claude since 2026-11-15.** Every model call goes through `modelChat()`
+   in `lib/model.ts` (official `@anthropic-ai/sdk`). `MODEL_FOR` there says
+   which step uses which model: Claude Haiku 5.5 for the Copilot's scope
+   classifier, the tagger and the judge; Claude Sonnet 5.5 for the profiler,
+   connections, trend notes, Scout and the Copilot's answers. The key is
+   `ANTHROPIC_API_KEY`, paid per token. Until then the app ran on NVIDIA's
+   free API (both slots on `nvidia/nemotron-3.5-super-vl-120b-a12b` from
+   2026-11-14 evening, `docs/model-choice.md`); that code is gone. Claude has
+   not been measured on the app's evals yet.
 7. **Never "eligible".** The system only says "potential match". Code checks
    refuse eligibility words in the judge, Scout and the Copilot.
 8. **Do not run `npm run db:seed` against the hosted database**: it writes
@@ -208,12 +215,14 @@ Build or decide:
   26 s timeout.
 - Import `cheerio/slim`, never `cheerio`: the main entry loads its own undici,
   which takes over Node's fetch and now and then crashes the process.
-- Thinking must be off on Nemotron (`enable_thinking: false`), or calls run
-  past the step limit.
+- Thinking stays off (Haiku `{type: "disabled"}`, Sonnet
+  `{type: "between_tools"}`): every prompt and time limit was tuned without
+  it, and on Nemotron calls with it ran past the step limit.
 - Quotes are never translated: the quote check compares them word for word
   with the page.
-- NVIDIA answers 429 at roughly 30 to 45 requests a minute; scripts wait a
-  minute and try again. Voyage without billing: 3 requests a minute.
+- Claude's rate limits are the account's tier limits; the SDK retries a 429
+  itself, then scripts wait a minute and try again (NVIDIA answered 429 at
+  roughly 30 to 45 requests a minute). Voyage without billing: 3 requests a minute.
 - Type invisible characters as escapes (`\u200B`), never literally, and check
   the saved file.
 - A foreground `sleep` is blocked in the agent harness: use a background

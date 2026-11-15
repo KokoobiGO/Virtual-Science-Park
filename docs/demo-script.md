@@ -10,7 +10,9 @@ slides 4 and 5), and the script for the backup video (backlog D14).
 
 Each step has where to click, what to say, what the audience should notice,
 and a fallback line if something fails. Say "potential match", never
-"eligible". The models are NVIDIA's free API, not Claude.
+"eligible". Since 15 Nov 2026 the models are Claude Haiku 5.5 and Claude
+Sonnet 5.5 (`lib/model.ts`); every recorded run and number below was made
+before that, on NVIDIA's free models.
 
 Numbers marked `[UPDATE AFTER RE-JUDGE]` were read on 14 Nov 2026 at about
 23:20 CET, while every match was being judged a second time with the new
@@ -33,8 +35,8 @@ are the same.
 - [ ] `npm run inngest:dev` is running in a second terminal:
       http://127.0.0.1:8288 opens. Step 4 (the re-rank) needs it: the
       reorder is a chain of jobs (rank, judge the new rows, build the cards).
-- [ ] `npm run check:nvidia` passes (one free test call per feature). If it
-      fails, the Copilot steps (6 to 8) will use their fallbacks.
+- [ ] `npm run check:models` passes (one Claude test call per feature; it
+      costs a fraction of a US cent). If it fails, the Copilot steps (6 to 8) will use their fallbacks.
 
 **Accounts.**
 
@@ -250,7 +252,7 @@ Time: 10 s
   - The last line: "Information only, not a formal eligibility decision.
     Contact BSP staff to confirm."
 - **If it fails:** "The Copilot is busy right now" or "I could not finish an
-  answer in time": say "the free model is slow right now, and the Copilot
+  answer in time": say "the model is slow right now, and the Copilot
   says so instead of guessing", then play the Copilot part of the video.
 
 ### 7. Copilot: "Are we eligible?"

@@ -11,19 +11,20 @@
  * forms even when the model misses them.
  */
 import { z } from "zod";
-import { NVIDIA_MODELS, nvidiaChat, type ChatRequest, type ChatResponse } from "../nvidia";
+import { MODEL_FOR, modelChat, type ChatRequest, type ChatResponse } from "../model";
 import { ScopeLabel } from "../schemas";
 import { CLARIFY_WHEN, OUT_OF_SCOPE_TOPICS, OVERRIDE_SIGNS, SUPPORTED_TOPICS } from "./policy";
 
-/** nvidiaChat, or a fake in tests. */
+/** modelChat, or a fake in tests. */
 export type ChatFn = (request: ChatRequest, options?: { timeoutMs?: number }) => Promise<ChatResponse>;
 
 /** One earlier turn of the conversation, oldest first. */
 export type HistoryTurn = { role: "user" | "assistant"; content: string };
 
 /**
- * nemotron-3.5-super-vl-120b-a12b labels a turn in about 0.6 s (median of 51
- * red-team turns, 2026-11-14), the slowest in 4.9 s. 8 s leaves room for a
+ * On NVIDIA's nemotron-3.5-super-vl-120b-a12b a turn was labelled in about
+ * 0.6 s (median of 51 red-team turns, 2026-11-14), the slowest in 4.9 s;
+ * Claude Haiku 5.5's times are not measured yet. 8 s leaves room for a
  * busy key; the turn's own deadline (TURN_BUDGET_MS) still caps it.
  */
 export const CLASSIFIER_TIMEOUT_MS = 8_000;
@@ -133,7 +134,7 @@ export function usableQuestion(question: string | null | undefined): string | nu
 export async function classifyTurn(
   history: readonly HistoryTurn[],
   message: string,
-  { chat = nvidiaChat, timeoutMs = CLASSIFIER_TIMEOUT_MS }: { chat?: ChatFn; timeoutMs?: number } = {},
+  { chat = modelChat, timeoutMs = CLASSIFIER_TIMEOUT_MS }: { chat?: ChatFn; timeoutMs?: number } = {},
 ): Promise<Classification> {
   const started = Date.now();
   const guarded = overrideGuard(message);
@@ -144,15 +145,14 @@ export async function classifyTurn(
   try {
     const response = await chat(
       {
-        model: NVIDIA_MODELS.fast,
+        model: MODEL_FOR.classifier.model,
         max_tokens: 200,
-        temperature: 0,
         messages: [
           { role: "system", content: CLASSIFIER_SYSTEM_PROMPT },
           { role: "user", content: buildClassifierUserMessage(history, message) },
         ],
         response_format: { type: "json_schema", json_schema: { name: "scope_label", schema: CLASSIFIER_SCHEMA, strict: true } },
-        chat_template_kwargs: { enable_thinking: false },
+        effort: MODEL_FOR.classifier.effort,
       },
       { timeoutMs },
     );

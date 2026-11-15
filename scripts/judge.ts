@@ -8,7 +8,7 @@
  *   tsx scripts/judge.ts --limit 5              the first 5 of those (by slug)
  *   tsx scripts/judge.ts malvacom --force       judge every ranked row again
  *
- * Reads DATABASE_URL and NVIDIA_API_KEY from .env.local (run it with
+ * Reads DATABASE_URL and ANTHROPIC_API_KEY from .env.local (run it with
  * --env-file-if-exists=.env.local). A stored run is recorded in job_runs
  * (job "judge-script") with the token totals. A rate limit (429) waits a
  * minute and tries the same call again.

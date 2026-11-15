@@ -11,16 +11,16 @@
  * `--store-from` stores exactly the notes a dry run wrote and someone read,
  * and only when the file is from this week.
  *
- * Reads DATABASE_URL and NVIDIA_API_KEY from .env.local (run it with
+ * Reads DATABASE_URL and ANTHROPIC_API_KEY from .env.local (run it with
  * --env-file-if-exists=.env.local). Storing replaces the area's note for this
  * week, if there is one. One model call per area, two when the first note
  * fails its checks. Areas run one after the other with a 20 s pause, and a
- * rate limit (429) is waited out for 60 s, so the shared free key sees about
+ * rate limit (429) is waited out for 60 s, so the API sees about
  * six calls a minute at most.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { closeDb } from "../lib/db";
-import { NvidiaApiError } from "../lib/nvidia";
+import { ModelApiError } from "../lib/model";
 import { OpportunityTag } from "../lib/schemas";
 import { emptyTrendUsage, trendNoteForArea, weekOf, type TrendOutcome } from "../lib/trends";
 import { storeNote } from "../lib/trends/store";
@@ -97,7 +97,7 @@ async function main() {
         outcomes.push(outcome);
         print(outcome);
       } catch (error) {
-        if (error instanceof NvidiaApiError && error.status === 429 && attempt < MAX_ATTEMPTS) {
+        if (error instanceof ModelApiError && error.status === 429 && attempt < MAX_ATTEMPTS) {
           console.log(`  rate limited on ${area} (attempt ${attempt}); waiting 60 s`);
           await sleep(60_000);
           continue;

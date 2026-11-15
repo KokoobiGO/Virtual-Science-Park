@@ -4,11 +4,11 @@
  * fails is asked for once more with the reasons; a second failure means no
  * note for that area this week.
  *
- * The backlog names Claude for this; while we test with NVIDIA's free key it
- * is NVIDIA_MODELS.main. The prompt and schema do not depend on the provider.
+ * The model is MODEL_FOR.trends (Sonnet 5.5): members read the note. Thinking
+ * is off. The prompt and schema do not depend on the provider.
  */
 import { z } from "zod";
-import { NVIDIA_MODELS, nvidiaChat, type ChatMessage } from "../nvidia";
+import { MODEL_FOR, modelChat, type ChatMessage } from "../model";
 import type { OpportunityTag } from "../schemas";
 import { isFresh, type TrendCandidate } from "./inputs";
 import { buildTrendUserMessage, inputId, inputText, TREND_SYSTEM_PROMPT } from "./prompt";
@@ -19,8 +19,6 @@ const TIMEOUT_MS = 26_000;
 
 /** A retry with less time than this left is not worth starting. */
 const MIN_RETRY_MS = 6_000;
-
-const RETRY_TEMPERATURE = 0.5;
 
 /**
  * Sources come first: the model picks what the note is about before it
@@ -96,7 +94,7 @@ export const checkedInputs = (inputs: TrendCandidate[], weekOf: string, fresh?: 
  * twice comes back as `ok: false` with the reasons.
  */
 export async function writeNote(area: OpportunityTag, inputs: TrendCandidate[], weekOf: string, options: WriteOptions = {}): Promise<WrittenNote> {
-  const model = options.model ?? NVIDIA_MODELS.main;
+  const model = options.model ?? MODEL_FOR.trends.model;
   const started = Date.now();
   const deadline = started + TIMEOUT_MS;
   const now = options.now ?? new Date();
@@ -110,16 +108,14 @@ export async function writeNote(area: OpportunityTag, inputs: TrendCandidate[], 
   const seconds = () => Math.round((Date.now() - started) / 100) / 10;
 
   for (let attempt = 1; ; attempt++) {
-    const response = await nvidiaChat(
+    const response = await modelChat(
       {
         model,
         max_tokens: 800,
-        // A retry at 0 mostly wrote the same note again; a little randomness lets it find another wording.
-        temperature: attempt === 1 ? 0 : RETRY_TEMPERATURE,
         messages,
         response_format: { type: "json_schema", json_schema: { name: "trend_note", schema: trendJsonSchema(checked.map((c) => c.id)), strict: true } },
-        // Measured on 2026-11-14: with thinking on, one note took 72 s and 6,000 reasoning tokens without an answer.
-        chat_template_kwargs: { enable_thinking: false },
+        // Thinking stays off: on NVIDIA's model (2026-11-14) one note took 72 s and 6,000 reasoning tokens without an answer.
+        effort: MODEL_FOR.trends.effort,
       },
       { timeoutMs: Math.max(1_000, deadline - Date.now()) },
     );

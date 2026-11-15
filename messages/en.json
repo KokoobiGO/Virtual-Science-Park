@@ -491,10 +491,10 @@
   "checks": {
     "title": "Service checks",
     "intro": "Test calls to the hosted services, run on the server.",
-    "nvidia": {
-      "title": "NVIDIA API",
-      "text": "One call per feature the plan relies on.",
-      "button": "Run NVIDIA checks"
+    "models": {
+      "title": "Claude API",
+      "text": "One call per model feature the app relies on, on Claude Haiku 5.5 and Claude Sonnet 5.5. Costs well under one US cent.",
+      "button": "Run Claude checks"
     },
     "inngest": {
       "title": "Inngest",
@@ -1033,7 +1033,7 @@
       "items": {
         "quotes": "A profile quote proves that the quote is on the company's page, word for word. It does not prove that the quote supports the value shown next to it: that is what the claim check is for.",
         "euPortal": "The EU Funding & Tenders portal page answers 200 for any topic id, so the link check looks each EU topic up in the portal's API instead; when the API cannot be reached, the link is marked for a person to check. Energimyndigheten and ri.se answer 200 for a missing page, so their links are counted as \"cannot verify by script\", not as working.",
-        "model": "Every model step (profiles, tags, the judge, trend notes, connections, Scout and the Copilot) runs on a free NVIDIA test model, nvidia/nemotron-3.5-super-vl-120b-a12b, not on Claude. Until the evening of 14 Nov 2026 it was the smaller nvidia/nemotron-3.5-lightning-30b-a3b, so a run dated before then measured that model. Answers that fail the checks are asked again or dropped, never shown.",
+        "model": "From 15 Nov 2026 every model step runs on Claude: Claude Haiku 5.5 for the Copilot's scope check, the tags and the match judge, and Claude Sonnet 5.5 for profiles, connections, trend notes, Scout and the Copilot's answers. A run dated before then measured a free NVIDIA test model: nvidia/nemotron-3.5-super-vl-120b-a12b from the evening of 14 Nov 2026, the smaller nvidia/nemotron-3.5-lightning-30b-a3b before that. Answers that fail the checks are asked again or dropped, never shown.",
         "handEntered": "Some sources are entered by hand by the team: regional funding, the curated testbed list and BSP's recurring events. They carry the Hand-entered label and change only when the team edits them.",
         "redTeam": "The red-team tests are the cases written in eval/redteam-prompts.json, each run once against the live model. Passing them does not prove the Copilot withstands every attack, and a new run can differ because the model's answers vary.",
         "outputCheck": "The Copilot's output check finds a stated fact by its numbers, dates, names and a few reporting verbs. It can miss a fact written without them, such as \"the deadline is next week\", and let it through without a source."
@@ -1260,6 +1260,10 @@
       "pageStored": "stored copy of the page from {day}",
       "liveResult": "live result ({source}), retrieved {when}",
       "liveResultNoSource": "live result, retrieved {when}",
+      "linkChecked": "link checked live {when}",
+      "euTopicConfirmed": "topic confirmed in the EU portal's search {when}",
+      "linkNotConfirmed": "link not confirmed on {when}: {reason}",
+      "euPortalHint": "The EU portal sometimes shows \"Page not found\" for a topic that exists. If it does, open the link again.",
       "injection": "Contains text that looks like instructions to an AI; it was treated as data.",
       "save": "Save",
       "saved": "Saved"

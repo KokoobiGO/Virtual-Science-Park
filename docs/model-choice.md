@@ -1,4 +1,9 @@
-# Which free NVIDIA model the app uses
+# Which free NVIDIA model the app used (2026-11-14)
+
+> Note (2026-11-15): this is the NVIDIA benchmark of 2026-11-14. Since
+> 2026-11-15 the app runs on Claude: Claude Haiku 5.5 and Claude Sonnet 5.5,
+> per `MODEL_FOR` in `lib/model.ts`. Claude has not been benchmarked on these
+> tests yet; the table below covers NVIDIA's models only.
 
 Measured on 2026-11-14 with our free developer key, by a benchmark script that made real calls: a ping, a 3,000-token prompt with 600 output tokens, strict structured output, tool calling, then the real judge prompt (3 batches of 5 opportunities with known keep/reject answers) and the real tagger prompt (10 texts with known tags). The samples are small: read the scores as a strong hint, not a proof.
 
@@ -25,4 +30,4 @@ The benchmark script itself was lost when its run was cut off; this table is its
 - main: nvidia/nemotron-3.5-super-vl-120b-a12b (best combined score (half judge verdicts, 30 % judge checks, 20 % tags): 15/15 verdicts right, 14/15 entries pass the checks on the first answer, 10/10 texts tagged right, 6.3 s per call (max 8.1 s))
 - fast: nvidia/nemotron-3.5-super-vl-120b-a12b (quickest of the models within one text of the best tagger score: 10/10 texts tagged right, 6.3 s per call (max 8.1 s))
 
-Decision (project owner, 2026-11-14): both slots use `nvidia/nemotron-3.5-super-vl-120b-a12b`. It is set in `lib/nvidia.ts`; `NVIDIA_MODEL_MAIN` and `NVIDIA_MODEL_FAST` override it.
+Decision (project owner, 2026-11-14): both slots used `nvidia/nemotron-3.5-super-vl-120b-a12b` until 2026-11-15. It was set in `lib/nvidia.ts` (removed on 2026-11-15), and `NVIDIA_MODEL_MAIN` and `NVIDIA_MODEL_FAST` overrode it.

@@ -41,7 +41,7 @@ export const judgeCompanyJob = inngest.createFunction(
     id: "judge-company",
     name: "Judge one company's matches",
     retries: 1,
-    // NVIDIA's free key is rate limited. Inngest counts steps, not runs: at most two steps of this job run at once.
+    // The Claude key is rate limited. Inngest counts steps, not runs: at most two steps of this job run at once.
     concurrency: { limit: 2 },
     triggers: [{ event: "app/company.judge.requested" }],
   },

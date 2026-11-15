@@ -491,10 +491,10 @@
   "checks": {
     "title": "Tjänstekontroller",
     "intro": "Testanrop till de externa tjänsterna, körda på servern.",
-    "nvidia": {
-      "title": "NVIDIA API",
-      "text": "Ett anrop per funktion som planen bygger på.",
-      "button": "Kör NVIDIA-kontrollerna"
+    "models": {
+      "title": "Claude API",
+      "text": "Ett anrop per modellfunktion som appen bygger på, på Claude Haiku 5.5 och Claude Sonnet 5.5. Kostar långt under en amerikansk cent.",
+      "button": "Kör Claude-kontrollerna"
     },
     "inngest": {
       "title": "Inngest",
@@ -1033,7 +1033,7 @@
       "items": {
         "quotes": "Ett profilcitat bevisar att citatet finns på företagets sida, ord för ord. Det bevisar inte att citatet stöder värdet som visas bredvid: det är vad kontrollen av uppgifterna är till för.",
         "euPortal": "Sidan i EU:s portal Funding & Tenders svarar 200 för vilket ämnes-id som helst, så länkkontrollen slår i stället upp varje EU-ämne i portalens API; när API:t inte går att nå markeras länken för kontroll av en person. Energimyndigheten och ri.se svarar 200 för en sida som saknas, så deras länkar räknas som \u201dkan inte kontrolleras av ett skript\u201d, inte som fungerande.",
-        "model": "Varje modellsteg (profiler, taggar, bedömaren, trendnotiser, kontakter, Scout och Copilot) körs på en kostnadsfri testmodell från NVIDIA, nvidia/nemotron-3.5-super-vl-120b-a12b, inte på Claude. Fram till kvällen den 14 nov. 2026 var det den mindre nvidia/nemotron-3.5-lightning-30b-a3b, så en körning daterad före dess mätte den modellen. Svar som inte klarar kontrollerna begärs på nytt eller tas bort, och visas aldrig.",
+        "model": "Från den 15 nov. 2026 körs varje modellsteg på Claude: Claude Haiku 5.5 för Copilots omfångskontroll, taggarna och matchningsbedömaren, och Claude Sonnet 5.5 för profiler, kontakter, trendnotiser, Scout och Copilots svar. En körning daterad före dess mätte en kostnadsfri testmodell från NVIDIA: nvidia/nemotron-3.5-super-vl-120b-a12b från kvällen den 14 nov. 2026, och den mindre nvidia/nemotron-3.5-lightning-30b-a3b före det. Svar som inte klarar kontrollerna begärs på nytt eller tas bort, och visas aldrig.",
         "handEntered": "Vissa källor läggs in för hand av teamet: regional finansiering, den kurerade listan över testbäddar och BSP:s återkommande evenemang. De har etiketten Inlagt för hand och ändras bara när teamet redigerar dem.",
         "redTeam": "Red team-testerna är fallen i eval/redteam-prompts.json, vart och ett kört en gång mot livemodellen. Att de godkänns bevisar inte att Copilot står emot varje attack, och en ny körning kan bli annorlunda eftersom modellens svar varierar.",
         "outputCheck": "Copilots kontroll av svaret hittar ett påstått faktum genom dess siffror, datum, namn och några rapporterande verb. Den kan missa ett faktum som skrivs utan dem, till exempel \u201dsista ansökningsdag är nästa vecka\u201d, och släppa igenom det utan källa."
@@ -1260,6 +1260,10 @@
       "pageStored": "sparad kopia av sidan från {day}",
       "liveResult": "liveresultat ({source}), hämtat {when}",
       "liveResultNoSource": "liveresultat, hämtat {when}",
+      "linkChecked": "länken kontrollerad live {when}",
+      "euTopicConfirmed": "ämnet bekräftat i EU-portalens sökning {when}",
+      "linkNotConfirmed": "länken inte bekräftad {when}: {reason}",
+      "euPortalHint": "EU-portalen visar ibland \"Page not found\" för ett ämne som finns. Öppna i så fall länken igen.",
       "injection": "Innehåller text som ser ut som instruktioner till en AI; den behandlades som data.",
       "save": "Spara",
       "saved": "Sparad"

@@ -10,7 +10,7 @@
  * the source" exactly when the model could see it there.
  */
 import { z } from "zod";
-import type { ToolDefinition } from "../nvidia";
+import type { ToolDefinition } from "../model";
 import type { OpportunityKind } from "../schemas";
 import type { SourceRecord } from "./types";
 import { MAX_OPTIONS } from "./types";

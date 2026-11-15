@@ -3,7 +3,7 @@
  * and what the member gets back. No network, no database.
  */
 import { describe, expect, it } from "vitest";
-import { NvidiaApiError, type ChatRequest, type ChatResponse, type ToolCall } from "../nvidia";
+import { ModelApiError, type ChatRequest, type ChatResponse, type ToolCall } from "../model";
 import { ANSWER_NOW, MAX_TOOL_ROUNDS } from "./assistant";
 import { BSP_CONTACT, DEFAULT_CLARIFYING_QUESTION, INFORMATION_ONLY_NOTE, OUT_OF_SCOPE_REPLY } from "./policy";
 import { SourceRegistry } from "./sources";
@@ -203,7 +203,7 @@ describe("runTurn", () => {
   });
 
   it("answers with the busy text on a 429", async () => {
-    const model = fakeModel("in_scope", [new NvidiaApiError(429, "Too Many Requests")]);
+    const model = fakeModel("in_scope", [new ModelApiError(429, "Too Many Requests")]);
     const result = await runTurn(input("Find sonar calls"), { ...fakeTools(), chat: model.chat });
     expect(result).toMatchObject({ outcome: "busy", text: FALLBACK_BUSY_REPLY });
   });
@@ -286,7 +286,7 @@ describe("token count and the job_runs row", () => {
   });
 
   it("counts a failed call as a call without tokens", async () => {
-    const model = fakeModel("in_scope", [new NvidiaApiError(429, "Too Many Requests")]);
+    const model = fakeModel("in_scope", [new ModelApiError(429, "Too Many Requests")]);
     const result = await runTurn(input("Find sonar calls"), { ...fakeTools(), chat: model.chat });
     expect(result).toMatchObject({ outcome: "busy", modelCalls: 2, inputTokens: 100, outputTokens: 10 });
   });
@@ -314,7 +314,7 @@ describe("token count and the job_runs row", () => {
   });
 
   it("marks a turn that ended in a fallback text as failed", async () => {
-    const model = fakeModel("in_scope", [new NvidiaApiError(429, "Too Many Requests")]);
+    const model = fakeModel("in_scope", [new ModelApiError(429, "Too Many Requests")]);
     const result = await runTurn(input("Find sonar calls"), { ...fakeTools(), chat: model.chat });
     expect(copilotTurnRun(result, { startedAt: 0, trigger: "api/chat" }).status).toBe("failed");
   });

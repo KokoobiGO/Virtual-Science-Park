@@ -1,6 +1,6 @@
 /**
- * Scout's search (B1). NVIDIA's API has no web search, so Scout brings its
- * own, behind one small adapter interface: `search(query)` answers with
+ * Scout's search (B1). Scout brings its own search (it ran on NVIDIA's API,
+ * which has none), behind one small adapter interface: `search(query)` answers with
  * `{ title, url, snippet }` hits (plus what the source knows about them).
  * The model asks `search(query, kind)` once; the code asks, in this order:
  *

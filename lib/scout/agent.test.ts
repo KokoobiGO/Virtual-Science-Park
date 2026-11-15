@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { INJECTION_LABEL } from "../injection/detect";
-import { NvidiaApiError, type ChatRequest, type ChatResponse } from "../nvidia";
+import { ModelApiError, type ChatRequest, type ChatResponse } from "../model";
 import { runScout, type ScoutDeps } from "./agent";
 import type { LiveSearch, LiveSourceReport } from "./live-sources";
 import type { StoreSearch } from "./search";
@@ -176,7 +176,7 @@ describe("runScout", () => {
     expect(result.brief!.webSearch).toBe("unavailable");
     expect(result.usage.calls).toBe(4);
     // Thinking off, and the writer may only name ids it was shown.
-    expect(requests.every((r) => r.chat_template_kwargs?.enable_thinking === false)).toBe(true);
+    expect(requests.every((r) => !r.thinking)).toBe(true);
     const writerSchema = JSON.stringify(requests.at(-1)!.response_format);
     expect(writerSchema).toContain('"enum":["R2","R1","R4","R5","R3","R6"]');
     // Progress is saved as it goes and ends with "done".
@@ -443,7 +443,7 @@ describe("runScout", () => {
 
   it("passes a rate limit to the runner and fails cleanly when nothing is found", async () => {
     const limited = async () => {
-      throw new NvidiaApiError(429, "Too Many Requests");
+      throw new ModelApiError(429, "Too Many Requests");
     };
     await expect(runScout(input, deps({ chat: limited }))).rejects.toThrow("429");
 
@@ -452,5 +452,80 @@ describe("runScout", () => {
     const result = await runScout(input, { ...deps({ chat, hits: [[]] }), saveFailed: async (error) => void (failed = error) });
     expect(result.brief).toBeNull();
     expect(failed).toContain("No funding calls");
+  });
+});
+
+describe("runScout: the live link check before Done", () => {
+  const goodBrief = JSON.stringify({
+    options: [1, 2, 3, 4, 5].map((n) => option(`R${n}`, n)),
+    summary: "Five test facilities offer sea trials for underwater sensors.",
+  });
+  const research = () => [
+    reply({ tool_calls: [toolCall("c1", "search", { query: "hydroacoustic test range", kind: "testbed" })] }),
+    reply({ tool_calls: [toolCall("c2", "read_page", { id: "R2" })] }),
+    reply({ tool_calls: [toolCall("c3", "finish", { candidates: ["R2", "R1", "R4"] })] }),
+  ];
+  const url = (n: number) => `https://example.se/facility-${n}`;
+
+  async function runWith(checkLinks: ScoutDeps["checkLinks"]) {
+    const { chat } = fakeChat(research(), [goodBrief]);
+    const asked: string[][] = [];
+    const d = deps({
+      chat,
+      checkLinks: checkLinks ? async (urls) => (asked.push(urls), checkLinks(urls)) : checkLinks,
+    });
+    return { result: await runScout(input, d), asked };
+  }
+
+  it("checks every cited link and leaves out an option whose page is gone", async () => {
+    const { result, asked } = await runWith(async (urls) =>
+      urls.map((u) => (u === url(3) ? { url: u, outcome: "broken" as const, reason: "404 Not Found" } : { url: u, outcome: "ok" as const, reason: "200" })),
+    );
+    expect(asked).toHaveLength(1);
+    expect([...asked[0]].sort()).toEqual([1, 2, 3, 4, 5].map(url).sort());
+    expect(result.error).toBeNull();
+    const cited = result.brief!.options.map((o) => o.citation.url);
+    expect(cited).toHaveLength(4);
+    expect(cited).not.toContain(url(3));
+    expect(result.brief!.options.every((o) => o.citation.linkCheck?.outcome === "ok" && o.citation.linkCheck.reason === "")).toBe(true);
+    expect(result.brief!.stats.linksDropped).toBe(1);
+    expect(result.brief!.notes.join(" ")).toMatch(/Left out 1 option whose source page was gone/);
+    const lines = result.progress.map((p) => p.text);
+    expect(lines).toContain("Checked 5 cited links live: 4 open, 1 gone.");
+    expect(lines).toContain('Left out "Facility 3 sea trials": its source page is gone (404 Not Found).');
+    // The check comes before "Done".
+    expect(lines.findIndex((l) => l.startsWith("Checked 5 cited links"))).toBeLessThan(lines.findIndex((l) => l.startsWith("Done in")));
+  });
+
+  it("keeps an option whose link could not be confirmed, and says why", async () => {
+    const { result } = await runWith(async (urls) =>
+      urls.map((u) => (u === url(2) ? { url: u, outcome: "blocked" as const, reason: "the site answered 403 to a script" } : { url: u, outcome: "ok" as const, reason: "200" })),
+    );
+    const two = result.brief!.options.find((o) => o.citation.url === url(2))!;
+    expect(two.citation.linkCheck).toMatchObject({ outcome: "blocked", reason: "the site answered 403 to a script" });
+    expect(result.brief!.options).toHaveLength(5);
+    expect(result.progress.map((p) => p.text)).toContain('Kept "Facility 2 sea trials", but its link is not confirmed: the site answered 403 to a script.');
+  });
+
+  it("keeps every option, marked not confirmed, when the check itself fails", async () => {
+    const { result } = await runWith(async () => {
+      throw new Error("network down");
+    });
+    expect(result.brief!.options).toHaveLength(5);
+    expect(result.brief!.options.every((o) => o.citation.linkCheck?.outcome === "unchecked")).toBe(true);
+    expect(result.progress.map((p) => p.text).join("\n")).toMatch(/Could not check the cited links \(.*network down\)/);
+  });
+
+  it("stores no brief when every cited link is gone", async () => {
+    const { result } = await runWith(async (urls) => urls.map((u) => ({ url: u, outcome: "broken" as const, reason: "404 Not Found" })));
+    expect(result.brief).toBeNull();
+    expect(result.error).toMatch(/Every option's cited link was broken/);
+  });
+
+  it("checks nothing when no checker is given (cached mode)", async () => {
+    const { result } = await runWith(null);
+    expect(result.brief!.options).toHaveLength(5);
+    expect(result.brief!.options.every((o) => o.citation.linkCheck === undefined)).toBe(true);
+    expect(result.brief!.stats).not.toHaveProperty("linksDropped");
   });
 });

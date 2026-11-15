@@ -7,6 +7,7 @@
 import { isCachedMode } from "../collectors/cache";
 import type { OpportunityKind } from "../schemas";
 import { runDirectly, runScout, type ScoutDeps, type ScoutLimits, type ScoutResult, type StepRunner } from "./agent";
+import { checkCitedLinks } from "./link-check";
 import { searchLive } from "./live-sources";
 import { readPage } from "./read-page";
 import { searchStore } from "./search";
@@ -27,6 +28,11 @@ export function realSearch(companyId: string): Pick<ScoutDeps, "searchStore" | "
     searchLive: cached ? null : (query: string, kind?: OpportunityKind) => searchLive(query, { kind }),
     searchWeb: cached ? null : (query: string) => searchWeb(query, { provider }),
   };
+}
+
+/** The live check of cited links before a brief is stored. Off in cached mode, which reads nothing live. */
+export function realLinkCheck(): ScoutDeps["checkLinks"] {
+  return isCachedMode() ? null : (urls: string[]) => checkCitedLinks(urls);
 }
 
 export type ScoutBriefOptions = {
@@ -60,6 +66,7 @@ export async function runScoutBrief(briefId: string, options: ScoutBriefOptions 
       limits: options.limits,
       ...realSearch(work.company.id),
       readPage: (url: string) => readPage(url),
+      checkLinks: realLinkCheck(),
       saveProgress: async (progress) => {
         await saveProgress(briefId, progress);
         report(progress);

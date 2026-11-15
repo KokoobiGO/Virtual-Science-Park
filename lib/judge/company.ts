@@ -16,7 +16,7 @@
  *
  * With `dry`, nothing is stored and there is no second round.
  */
-import { NvidiaApiError } from "../nvidia";
+import { ModelApiError } from "../model";
 import { rankAndStore, type RankAndStoreResult } from "../matcher/store";
 import type { MatchMode } from "../schemas";
 import { emptyJudgeUsage, JUDGE_BATCH, judgeBatch, type JudgeUsage } from "./index";
@@ -30,7 +30,7 @@ export type StepRunner = <T>(name: string, work: () => Promise<T>) => Promise<T>
 
 export const runDirectly: StepRunner = (_name, work) => work();
 
-export const isRateLimit = (error: unknown) => error instanceof NvidiaApiError && error.status === 429;
+export const isRateLimit = (error: unknown) => error instanceof ModelApiError && error.status === 429;
 
 /** One judged (or failed) row, for the run's output and the script's print. */
 export type JudgedLine = {
