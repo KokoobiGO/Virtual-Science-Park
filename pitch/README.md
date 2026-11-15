@@ -1,6 +1,6 @@
 # Pitch deck
 
-An animated HTML deck for the final pitch: 16 slides in the app's own night
+An animated HTML deck for the final pitch: 17 slides, one idea each, in the app's own night
 theme, with no libraries and nothing loaded from the internet. The fonts
 (Geist and Geist Mono) are in `fonts/`, so the deck also runs offline.
 
@@ -33,20 +33,22 @@ The address keeps the slide number (`#7`), so a reload stays on the slide.
 
 ## Before the pitch
 
-1. Fill in `config.js`: team names, the timed-test and staff-rating results
+1. Read `SCRIPT.md`: the talk split over three speakers, word for word,
+   with the handovers and who answers which questions.
+2. Fill in `config.js`: team and speaker names, the timed-test and staff-rating results
    (an empty one shows "Not measured yet", never a guess), and the live site.
-2. The numbers on slides 6, 9, 10 and 12 come from the Trust report runs of
+3. The numbers on slides 3, 7, 10, 11 and 13 come from the Trust report runs of
    14 Nov 2026 (`docs/quality-and-boundaries.md`), made before the app moved
    to Claude. If you re-run `npm run eval` or `npm run check:links`, change
    the numbers in `index.html` and set `proofFootnote` in `config.js`.
    The unit-test count (1,339) is from a run on 15 Nov 2026.
-3. Slides 4, 6 and 7 show EmbeddedArt's real cards, quotes and top fives
+4. Slides 1, 5, 7, 8 and 12 show EmbeddedArt's real cards, quotes and top fives
    from the database (week of 9 Nov 2026). If the cards are rebuilt, check
    that the titles still match what the live demo shows.
-4. Rehearse with `P` open on the laptop: each slide's notes say about how many
-   seconds it takes (the total is about 6 minutes with a 90-second demo).
-   Slide 8 is the cue to switch to the browser; if the live demo works,
-   slides 6, 7 and 9 can be quick recaps, and if it fails they are the backup.
+5. Rehearse with `P` open on the laptop: it shows who is speaking, the notes,
+   the clock, and warns one slide before each handover. Slide 9 is the cue to
+   switch to the browser; if the live demo works, slides 7 and 8 can be skipped,
+   and if it fails they are the backup.
 
 ## Save a PDF
 
@@ -59,3 +61,4 @@ on, margins "None". Every slide prints fully built, one per page.
 - `deck.css`: the theme and layout, on a 1920 x 1080 canvas
 - `deck.js`: transitions, builds, the per-slide animations, presenter window
 - `config.js`: the values the team fills in
+- `SCRIPT.md`: the three-speaker script

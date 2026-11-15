@@ -7,6 +7,12 @@ window.PITCH_CONFIG = {
   // Title and last slide, e.g. "Team Kokoobi · Mohammad, Ana, Erik"
   team: "",
 
+  // The three presenters (see SCRIPT.md). Shown on the last slide and in the
+  // presenter window (P), which also warns you one slide before a handover.
+  speaker1: "", // the problem, slides 1 to 4
+  speaker2: "", // the solution and the live demo, slides 5 to 10
+  speaker3: "", // proof, next step and questions, slides 11 to 17
+
   // Under the two quotes on slide 2. Leave empty for
   // "Blue Science Park, challenge briefing, 13 Nov 2026".
   quoteSource: "",

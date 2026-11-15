@@ -634,6 +634,81 @@
     },
   };
 
+  // 3 · The scattered sources pop in one by one, all over the place.
+  hooks["s-scatter"] = {
+    enter(slide, { built, base }) {
+      if (built || reduce) return;
+      const order = [3, 0, 7, 4, 1, 8, 5, 2, 6];
+      const chips = $$(".sc", slide);
+      order.forEach((k, i) => {
+        const c = chips[k];
+        if (!c) return;
+        c.animate(
+          [
+            { opacity: 0, transform: "scale(0.6)", filter: "blur(10px)" },
+            { opacity: 1, transform: "scale(1.04)", filter: "blur(0px)", offset: 0.6 },
+            { opacity: 1, transform: "none" },
+          ],
+          { duration: 900, delay: base + 450 + i * 130, easing: EASE, fill: "backwards" },
+        );
+      });
+    },
+  };
+
+  // 12 · Nine websites fly into one card; the originals stay behind, dimmed.
+  hooks["s-value"] = {
+    enter(slide, { built, base }) {
+      const viz = $("#value-viz", slide);
+      $$(".site-ghost", viz).forEach((g) => g.remove());
+      const sites = $$(".site", viz);
+      if (built || reduce) return;
+      const card = $("#v-card", viz);
+      const vr = viz.getBoundingClientRect();
+      const cx = card.offsetLeft + card.offsetWidth / 2;
+      const cy = card.offsetTop + card.offsetHeight / 2;
+      sites.forEach((s, i) => {
+        const r = s.getBoundingClientRect();
+        const x = (r.left - vr.left) / scale;
+        const y = (r.top - vr.top) / scale;
+        const w = r.width / scale;
+        const h = r.height / scale;
+        const t0 = base + 250 + i * 70;
+        s.animate(
+          [
+            { opacity: 0, transform: "translateY(18px)" },
+            { opacity: 1, transform: "none", offset: 0.25 },
+            { opacity: 1, offset: 0.55 },
+            { opacity: 0.32 },
+          ],
+          { duration: 2600, delay: t0, easing: "ease-out", fill: "backwards" },
+        );
+        const g = s.cloneNode(true);
+        g.className = "site site-ghost";
+        Object.assign(g.style, { position: "absolute", left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, margin: "0", opacity: "0", pointerEvents: "none" });
+        viz.appendChild(g);
+        const dx = cx - (x + w / 2);
+        const dy = cy - (y + h / 2);
+        g.animate(
+          [
+            { opacity: 1, transform: "none" },
+            { opacity: 1, transform: `translate(${dx * 0.7}px, ${dy * 0.7}px) scale(0.7)`, offset: 0.7 },
+            { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.35)` },
+          ],
+          { duration: 900, delay: t0 + 1000 + (8 - i) * 30, easing: "cubic-bezier(0.55, 0, 0.3, 1)", fill: "both" },
+        );
+      });
+      $$(".v-row", card).forEach((row, i) =>
+        row.animate(
+          [
+            { opacity: 0, transform: "translateX(-16px)" },
+            { opacity: 1, transform: "none" },
+          ],
+          { duration: 800, delay: base + 2100 + i * 140, easing: EASE, fill: "backwards" },
+        ),
+      );
+    },
+  };
+
   // 15 · The built and reused pieces settle in one after another.
   hooks["s-built"] = {
     enter(slide, { built, base }) {
@@ -674,14 +749,27 @@
     return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
   }
 
+  function speakerOf(i) {
+    const n = $(".notes", slides[i])?.dataset.speaker;
+    if (!n) return "";
+    const name = (cfg["speaker" + n] || "").trim();
+    return name ? "Speaker " + n + " · " + name : "Speaker " + n;
+  }
+  function handoff(i) {
+    if (i >= N - 1) return "";
+    const a = $(".notes", slides[i])?.dataset.speaker;
+    const b = $(".notes", slides[i + 1])?.dataset.speaker;
+    return a && b && a !== b ? "Hand over to " + speakerOf(i + 1) : "";
+  }
+
   function syncNotes() {
     if (index < 0) return;
     const s = slides[index];
     const a = $(".notes", s);
     const steps = stepsOf(s);
-    $("#n-slide").textContent = `${index + 1} / ${N} · ${s.dataset.title || ""}${steps ? ` · build ${step} of ${steps}` : ""}`;
+    $("#n-slide").textContent = `${speakerOf(index)} · ${index + 1} / ${N} · ${s.dataset.title || ""}${steps ? ` · build ${step} of ${steps}` : ""}`;
     $("#n-time").textContent = a?.dataset.time ? `about ${a.dataset.time} s · plan ${fmtSec(plannedUntil(index))} by the end of this slide` : "";
-    $("#n-next").textContent = index < N - 1 ? `Next: ${slides[index + 1].dataset.title}` : "Last slide";
+    $("#n-next").textContent = handoff(index) || (index < N - 1 ? `Next: ${slides[index + 1].dataset.title}` : "Last slide");
     $("#n-body").innerHTML = a ? a.innerHTML : "";
     $("#n-clock").textContent = clockText();
     updatePresenter();
@@ -708,10 +796,12 @@
   button{font:inherit;color:#f4f4f6;background:#ffffff12;border:1px solid #ffffff24;border-radius:999px;padding:8px 18px;cursor:pointer}
   button:hover{background:#ffffff20}
   #next{margin-left:auto}
+  #who{font:600 15px ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;color:#7fd3f0;margin-bottom:8px}
+  #hand{color:#f2c46d;font-weight:600}
 </style></head><body>
 <header><span id="clock">00:00</span><span id="plan"></span><span id="pos"></span></header>
-<main><h1 id="title"></h1><div id="build"></div><div id="body"></div></main>
-<footer><button id="b-prev">Back</button><button id="b-next">Next</button><button id="b-reset">Reset clock</button><span id="next"></span></footer>
+<main><div id="who"></div><h1 id="title"></h1><div id="build"></div><div id="body"></div></main>
+<footer><button id="b-prev">Back</button><button id="b-next">Next</button><button id="b-reset">Reset clock</button><span id="hand"></span><span id="next"></span></footer>
 </body></html>`;
 
   function openPresenter() {
@@ -746,6 +836,8 @@
     d.getElementById("plan").textContent = `plan ${fmtSec(plannedUntil(index))} by the end of this slide · about ${a?.dataset.time || "?"} s here`;
     d.getElementById("pos").textContent = `${index + 1} / ${N}`;
     d.getElementById("title").textContent = s.dataset.title || "";
+    d.getElementById("who").textContent = speakerOf(index);
+    d.getElementById("hand").textContent = handoff(index);
     d.getElementById("build").textContent = steps ? `Build ${step} of ${steps}: press Next to reveal` : "";
     d.getElementById("body").innerHTML = a ? a.innerHTML : "";
     d.getElementById("next").textContent = index < N - 1 ? `Next: ${slides[index + 1].dataset.title}` : "Last slide";
