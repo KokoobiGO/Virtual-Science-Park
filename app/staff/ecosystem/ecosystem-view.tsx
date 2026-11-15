@@ -1,8 +1,6 @@
 "use client";
 
-import { MousePointerClick } from "lucide-react";
 import { useState, type KeyboardEvent } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useT } from "@/lib/i18n/client";
 import { formatDay } from "@/lib/i18n/format";
@@ -36,10 +34,8 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <Card>
-          <p className="px-(--card-spacing) text-xs text-muted-foreground md:hidden">{t("scrollHint")}</p>
-          <CardContent className="overflow-x-auto">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="min-w-0 overflow-x-auto">
             <svg
               viewBox={`0 0 ${GRAPH_SIZE.width} ${GRAPH_SIZE.height}`}
               className="h-auto w-full min-w-[36rem]"
@@ -97,23 +93,21 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
                 </g>
               ))}
             </svg>
-          </CardContent>
-        </Card>
+        </div>
 
         <div className="flex flex-col gap-2">
-          <h2 className="text-sm font-medium">{t("listTitle", { count: connections.length })}</h2>
-          <ul className="flex flex-col gap-1.5 stagger">
+          <h2 className="px-3 text-sm font-medium">{t("listTitle", { count: connections.length })}</h2>
+          <ul className="flex flex-col gap-0.5 stagger">
             {connections.map((c) => (
               <li key={c.id}>
                 <button
                   type="button"
                   aria-pressed={c.id === selectedId}
                   onClick={() => setSelectedId(c.id)}
-                  className={`lift flex w-full flex-col items-start gap-0.5 rounded-lg border bg-card px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${c.id === selectedId ? "border-primary bg-muted" : ""}`}
+                  className={`flex w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-left text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring ${c.id === selectedId ? "bg-muted" : ""}`}
                 >
                   <span className="font-medium break-words">{t("pair", { a: c.aName, b: c.bName })}</span>
                   <span className="text-xs break-words text-muted-foreground">{c.sharedOn.join(", ")}</span>
-                  {c.id === selectedId ? <span className="text-xs font-medium text-primary">{t("shownBelow")}</span> : null}
                 </button>
               </li>
             ))}
@@ -128,10 +122,7 @@ export function EcosystemView({ connections, openId = null }: { connections: Eco
       {selected ? (
         <PairDetail key={selected.id} connection={selected} />
       ) : (
-        <p className="flex animate-fade items-start gap-2 rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-          <MousePointerClick aria-hidden className="mt-0.5 size-4 shrink-0" />
-          {t("pickHint")}
-        </p>
+        <p className="animate-fade text-sm text-muted-foreground">{t("pickHint")}</p>
       )}
     </div>
   );
@@ -146,9 +137,6 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
   return (
     <Card className="animate-rise">
       <CardHeader>
-        <Badge variant="warning" className="mb-1">
-          {t("suggestionLabel")}
-        </Badge>
         <CardTitle>
           <h2 className="text-heading break-words">{t("pair", { a: connection.aName, b: connection.bName })}</h2>
         </CardTitle>
@@ -161,13 +149,7 @@ function PairDetail({ connection }: { connection: EcoConnection }) {
         </div>
         <div className="flex flex-col gap-1.5">
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t("sharedOn")}</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {connection.sharedOn.map((label) => (
-              <Badge key={label} variant="secondary">
-                {label}
-              </Badge>
-            ))}
-          </div>
+          <p className="break-words">{connection.sharedOn.join(", ")}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {sides.map((side) => (

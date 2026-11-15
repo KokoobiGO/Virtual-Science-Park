@@ -1,4 +1,3 @@
-import { ArrowLeft, Compass } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -25,18 +24,12 @@ export default function NotFound() {
 async function NotFoundText() {
   const t = await getT("notFound");
   return (
-    <div className="stagger flex flex-col items-start gap-4">
-      <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-secondary-foreground" aria-hidden>
-        <Compass className="size-6" />
-      </span>
+    <div className="flex animate-rise flex-col items-start gap-4">
       <h1 className="text-title">{t("title")}</h1>
       <p className="max-w-prose text-muted-foreground">{t("text")}</p>
-      <div>
-        <Button size="lg" className="px-4" render={<Link href="/" />} nativeButton={false}>
-          <ArrowLeft aria-hidden data-icon="inline-start" />
-          {t("back")}
-        </Button>
-      </div>
+      <Button size="lg" className="mt-2 px-5" render={<Link href="/" />} nativeButton={false}>
+        {t("back")}
+      </Button>
     </div>
   );
 }

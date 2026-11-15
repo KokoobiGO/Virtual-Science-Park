@@ -1,7 +1,7 @@
+import { ChevronRight } from "lucide-react";
 import { useId, type ReactNode } from "react";
 import { DataStatusLabel, dataStatusFromVerdict, dataStatusName } from "@/components/data-status-label";
 import { statusDate } from "@/components/data-status-panel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator, type Messages, type Translator } from "@/lib/i18n/translate";
 import { ProfileField } from "@/lib/schemas";
@@ -64,20 +64,50 @@ const FIELDS_PER_PROFILE = ProfileField.options.length;
 // Building blocks
 // ---------------------------------------------------------------------------
 
-/** One section of the report: an h2 under the page's h1, then when it was measured and what it measures. */
-function Section({ title, description, when, children }: { title: string; description: string; when?: ReactNode; children: ReactNode }) {
+/**
+ * One section of the report, closed by default: the summary line holds its h2,
+ * its headline number and when it was measured; what it measures and the
+ * details open below. The `data-slot` names are the ones the Card used, which
+ * e2e/member.spec.ts (7a, 7c) and e2e/staff.spec.ts (9h) find a section by.
+ */
+function Section({
+  title,
+  headline,
+  description,
+  when,
+  children,
+}: {
+  title: string;
+  /** The section's headline number, or "not measured yet". */
+  headline?: string;
+  description: string;
+  when?: ReactNode;
+  children: ReactNode;
+}) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
+    <details data-slot="card" className="group border-b">
+      <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-3 gap-y-1 rounded-sm py-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+        <ChevronRight aria-hidden className="size-4 shrink-0 self-center text-muted-foreground transition-transform duration-200 group-open:rotate-90" />
+        <div data-slot="card-title" className="font-medium">
           <h2>{title}</h2>
-        </CardTitle>
-        {when ? <p className="text-xs text-muted-foreground">{when}</p> : null}
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">{children}</CardContent>
-    </Card>
+        </div>
+        <span className="ml-auto flex flex-wrap items-baseline gap-x-3 pl-7 sm:pl-0">
+          {headline ? <span className="font-medium tabular-nums">{headline}</span> : null}
+          {when ? <span className="text-xs text-muted-foreground">{when}</span> : null}
+        </span>
+      </summary>
+      <div className="flex min-w-0 flex-col gap-3 pb-6 text-sm sm:pl-7">
+        <p className="max-w-prose text-muted-foreground">{description}</p>
+        {children}
+      </div>
+    </details>
   );
+}
+
+/** The headline of a stored run: `value` once measured, "not measured yet" before, nothing when the run cannot be read. */
+function runHeadline<S>(run: Run<S>, value: (summary: S) => string, t: T): string | undefined {
+  if (run.status === "not_measured") return t("notMeasured");
+  return run.status === "measured" ? value(run.summary) : undefined;
 }
 
 function NotMeasured({ text }: { text: string }) {
@@ -243,18 +273,15 @@ export function TrustSummary({ report, locale = DEFAULT_LOCALE }: { report: Para
   const t = createTranslator(locale, "trust");
   const tiles = summaryTiles(report, locale);
   return (
-    <section aria-labelledby="trust-summary" className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-card p-4 shadow-xs sm:p-5">
-      <div className="flex flex-col gap-1">
-        <h2 id="trust-summary" className="text-heading">
-          {t("summary.title")}
-        </h2>
-        <p className="max-w-prose text-sm text-muted-foreground">{t("summary.intro")}</p>
-      </div>
-      <ul aria-label={t("summary.caption")} className="grid stagger gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <section aria-labelledby="trust-summary" className="flex flex-col gap-5">
+      <h2 id="trust-summary" className="text-sm font-medium text-muted-foreground">
+        {t("summary.title")}
+      </h2>
+      <ul aria-label={t("summary.caption")} className="grid stagger grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
         {tiles.map((tile) => (
-          <li key={tile.key} className="flex flex-col gap-0.5 rounded-lg bg-muted/60 px-3 py-2.5">
-            {tile.value === "-" ? null : <span className="text-2xl font-semibold tabular-nums">{tile.value}</span>}
-            <span className="text-sm font-medium">{tile.label}</span>
+          <li key={tile.key} className="flex min-w-0 flex-col gap-1">
+            {tile.value === "-" ? null : <span className="text-4xl font-semibold tracking-tight tabular-nums">{tile.value}</span>}
+            <span className="text-sm">{tile.label}</span>
             <span className="text-xs text-muted-foreground">{tile.detail}</span>
             {tile.note ? <span className="text-xs text-muted-foreground">{tile.note}</span> : null}
           </li>
@@ -272,7 +299,12 @@ export function ProfileAccuracySection({ run, locale = DEFAULT_LOCALE }: { run: 
   const t = createTranslator(locale, "trust");
   const accuracy = (group: Parameters<typeof accuracyText>[0]) => accuracyText(group, locale);
   return (
-    <Section title={t("profileAccuracy.title")} description={t("profileAccuracy.description")} when={runWhen(run, t)}>
+    <Section
+      title={t("profileAccuracy.title")}
+      headline={runHeadline(run, (s) => (handCheckStarted(s) && s.total.stated.checked > 0 ? percentOf(s.total.stated.right, s.total.stated.checked, locale) : t("notMeasured")), t)}
+      description={t("profileAccuracy.description")}
+      when={runWhen(run, t)}
+    >
       {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {run.status === "unreadable" ? <Unreadable what={t("profileAccuracy.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" && !handCheckStarted(run.summary) ? (
@@ -316,7 +348,12 @@ export function QuoteCheckSection({ run, locale = DEFAULT_LOCALE }: { run: Run<Q
     "",
   ];
   return (
-    <Section title={t("quoteCheck.title")} description={t("quoteCheck.description")} when={runWhen(run, t)}>
+    <Section
+      title={t("quoteCheck.title")}
+      headline={runHeadline(run, (s) => percentOf(s.all.quotesFound, s.all.quotesTotal, locale), t)}
+      description={t("quoteCheck.description")}
+      when={runWhen(run, t)}
+    >
       {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {run.status === "unreadable" ? <Unreadable what={t("quoteCheck.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
@@ -351,7 +388,12 @@ export function QuoteCheckSection({ run, locale = DEFAULT_LOCALE }: { run: Run<Q
 export function LinkHealthSection({ run, locale = DEFAULT_LOCALE }: { run: Run<LinkCheckSummary>; locale?: Locale }) {
   const t = createTranslator(locale, "trust");
   return (
-    <Section title={t("linkHealth.title")} description={t("linkHealth.description")} when={runWhen(run, t)}>
+    <Section
+      title={t("linkHealth.title")}
+      headline={runHeadline(run, (s) => percentOf(s.ok, s.checked, locale), t)}
+      description={t("linkHealth.description")}
+      when={runWhen(run, t)}
+    >
       {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {run.status === "unreadable" ? <Unreadable what={t("linkHealth.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
@@ -388,8 +430,15 @@ export function SourceStatusSection({ sources, locale = DEFAULT_LOCALE }: { sour
     const { label, description } = dataStatusName(kind, locale);
     return `${label}: ${description}`;
   });
+  // The latest successful read of any source, so the closed section still says when it was last read.
+  const lastRead = sources.reduce<Date | null>((latest, s) => (s.lastSuccessAt && (!latest || s.lastSuccessAt > latest) ? s.lastSuccessAt : latest), null);
   return (
-    <Section title={t("sourceStatus.title")} description={`${t("sourceStatus.intro")} ${kinds.join(" ")}`}>
+    <Section
+      title={t("sourceStatus.title")}
+      headline={sources.length ? createTranslator(locale, "dataStatus")("panel.sources", { count: sources.length }) : t("notMeasured")}
+      description={`${t("sourceStatus.intro")} ${kinds.join(" ")}`}
+      when={lastRead ? <span>{t("sourceStatus.lastRead", { date: formatDateTime(lastRead, locale) })}</span> : null}
+    >
       {sources.length ? (
         <Table
           caption={t("sourceStatus.caption")}
@@ -440,12 +489,21 @@ function matchingWhen(matching: MatchingResult, t: T): ReactNode {
   );
 }
 
+/** The share of judged matches the judge kept, over both rankings. */
+function matchingHeadline(matching: MatchingResult, t: T): string | undefined {
+  if (matching.status === "not_measured") return t("notMeasured");
+  if (matching.status !== "measured") return undefined;
+  const kept = matching.modes.reduce((n, m) => n + m.kept, 0);
+  const judged = matching.modes.reduce((n, m) => n + m.judged, 0);
+  return judged ? t("matching.headline", { percent: percentOf(kept, judged, t.locale) }) : undefined;
+}
+
 export function MatchingSection({ matching, locale = DEFAULT_LOCALE }: { matching: MatchingResult; locale?: Locale }) {
   const t = createTranslator(locale, "trust");
   const share = (part: number, whole: number) => `${part} (${percentOf(part, whole, locale)})`;
   return (
-    <Section title={t("matching.title")} description={t("matching.description")} when={matchingWhen(matching, t)}>
-      <p className="rounded-lg border bg-muted/50 px-3 py-2 font-medium">{ELIGIBILITY_SENTENCES[locale]}</p>
+    <Section title={t("matching.title")} headline={matchingHeadline(matching, t)} description={t("matching.description")} when={matchingWhen(matching, t)}>
+      <p className="font-medium">{ELIGIBILITY_SENTENCES[locale]}</p>
       {matching.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {matching.status === "unreadable" ? <Unreadable what={t("matching.unreadable")} problem={matching.problem} t={t} /> : null}
       {matching.status === "measured" ? (
@@ -481,7 +539,16 @@ export function MatchingSection({ matching, locale = DEFAULT_LOCALE }: { matchin
 export function RedTeamSection({ run, locale = DEFAULT_LOCALE }: { run: Run<RedTeamSummary>; locale?: Locale }) {
   const t = createTranslator(locale, "trust");
   return (
-    <Section title={t("redTeam.title")} description={t("redTeam.description")} when={runWhen(run, t)}>
+    <Section
+      title={t("redTeam.title")}
+      headline={runHeadline(
+        run,
+        (s) => percentOf(s.groups.reduce((n, g) => n + g.passed, 0), s.groups.reduce((n, g) => n + g.total, 0), locale),
+        t,
+      )}
+      description={t("redTeam.description")}
+      when={runWhen(run, t)}
+    >
       {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {run.status === "unreadable" ? <Unreadable what={t("redTeam.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
@@ -502,7 +569,12 @@ export function RedTeamSection({ run, locale = DEFAULT_LOCALE }: { run: Run<RedT
 export function PrivacySection({ run, locale = DEFAULT_LOCALE }: { run: Run<PrivacySummary>; locale?: Locale }) {
   const t = createTranslator(locale, "trust");
   return (
-    <Section title={t("privacy.title")} description={t("privacy.description")} when={runWhen(run, t)}>
+    <Section
+      title={t("privacy.title")}
+      headline={runHeadline(run, (s) => percentOf(s.passed, s.total, locale), t)}
+      description={t("privacy.description")}
+      when={runWhen(run, t)}
+    >
       {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {run.status === "unreadable" ? <Unreadable what={t("privacy.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
@@ -522,7 +594,12 @@ export function PrivacySection({ run, locale = DEFAULT_LOCALE }: { run: Run<Priv
 export function TimedTestSection({ result, locale = DEFAULT_LOCALE }: { result: FileResult<TimedTestResults>; locale?: Locale }) {
   const t = createTranslator(locale, "trust");
   return (
-    <Section title={t("timed.title")} description={t("timed.description")} when={fileWhen(result, t)}>
+    <Section
+      title={t("timed.title")}
+      headline={result.status === "not_measured" ? t("notMeasured") : undefined}
+      description={t("timed.description")}
+      when={fileWhen(result, t)}
+    >
       {result.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {result.status === "unreadable" ? <Unreadable what={t("timed.unreadable")} problem={result.problem} t={t} /> : null}
       {result.status === "measured" ? (
@@ -549,7 +626,12 @@ export function StaffSessionSection({ result, locale = DEFAULT_LOCALE }: { resul
   const t = createTranslator(locale, "trust");
   const summary = result.status === "measured" ? summarizeStaffSession(result.data) : null;
   return (
-    <Section title={t("staffSession.title")} description={t("staffSession.description")} when={fileWhen(result, t)}>
+    <Section
+      title={t("staffSession.title")}
+      headline={result.status === "not_measured" ? t("notMeasured") : undefined}
+      description={t("staffSession.description")}
+      when={fileWhen(result, t)}
+    >
       {result.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
       {result.status === "unreadable" ? <Unreadable what={t("staffSession.unreadable")} problem={result.problem} t={t} /> : null}
       {result.status === "measured" && summary ? (

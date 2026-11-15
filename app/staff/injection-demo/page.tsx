@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { LoadingState, PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
-import { buttonVariants } from "@/components/ui/button";
 import { requireRole } from "@/lib/auth";
-import { FileText } from "lucide-react";
 import { StaffPageIntro } from "../page-intro";
 import type { Locale } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -44,20 +42,13 @@ async function InjectionFrame() {
               {chunk}
             </Link>
           ),
-          code: (chunk) => <code className="font-mono text-sm">{chunk}</code>,
         })}
-        todo={t("todo")}
-      >
-        <Link href={DEMO_PAGE_PATH} className={buttonVariants({ variant: "outline", className: "press w-fit" })}>
-          <FileText aria-hidden />
-          {t("openTestPage")}
-        </Link>
-      </StaffPageIntro>
+      />
       <Suspense
         fallback={
           <LoadingState label={t("loading")}>
             {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-40 rounded-xl" />
+              <Skeleton key={i} className="h-32 rounded-xl" />
             ))}
           </LoadingState>
         }
@@ -75,7 +66,7 @@ async function LastRun({ locale }: { locale: Locale }) {
   const loaded = await loadDemoResult();
   if (loaded.state === "missing") {
     return (
-      <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {t.rich("missing", { code: (chunk) => <code className="font-mono break-all">{chunk}</code> })}
       </p>
     );

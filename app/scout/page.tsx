@@ -6,7 +6,7 @@ import { isCachedMode } from "@/lib/collectors/cache";
 import { LocaleProvider } from "@/lib/i18n/client";
 import type { Locale } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { createTranslator, type Translator } from "@/lib/i18n/translate";
+import { createTranslator } from "@/lib/i18n/translate";
 import { prerunQuestions } from "@/lib/scout/prerun";
 import { briefQuestion, companySlug, getBrief, isUuid, listBriefs, prerunRows, type Member } from "@/lib/scout/queries";
 import { scoutTitle } from "./labels";
@@ -51,33 +51,10 @@ async function ScoutFrame({ searchParams }: { searchParams: PageProps<"/scout">[
         <h1 className="text-title">{t("title")}</h1>
         <p className="text-muted-foreground">{t("intro")}</p>
       </div>
-      <HowScoutWorks t={t} />
       <Suspense fallback={<ScoutSkeleton label={t("loading")} />}>
         <ScoutScreen searchParams={searchParams} locale={locale} />
       </Suspense>
     </LocaleProvider>
-  );
-}
-
-/** Three numbered steps: what to do, what Scout does and how long it takes, what comes back. */
-function HowScoutWorks({ t }: { t: Translator<"scout"> }) {
-  const steps = [t("how.ask"), t("how.search"), t("how.read")];
-  return (
-    <section aria-labelledby="how-scout-works" className="flex flex-col gap-2">
-      <h2 id="how-scout-works" className="text-sm font-semibold">
-        {t("how.title")}
-      </h2>
-      <ol className="grid stagger gap-2 sm:grid-cols-3">
-        {steps.map((step, i) => (
-          <li key={i} className="flex items-start gap-3 rounded-xl border bg-card px-3 py-2.5 text-sm">
-            <span aria-hidden className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-              {i + 1}
-            </span>
-            <span className="text-muted-foreground">{step}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
   );
 }
 
@@ -96,7 +73,7 @@ function ScoutSkeleton({ label }: { label: string }) {
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
             {[0, 1].map((i) => (
-              <div key={i} className="flex flex-col gap-3 rounded-xl p-4 ring-1 ring-foreground/10">
+              <div key={i} className="flex flex-col gap-3 py-2">
                 <Skeleton className="h-5 w-2/3" />
                 <Skeleton className="h-3 w-40" />
                 <Skeleton className="h-16" />
@@ -118,7 +95,7 @@ function ScoutSkeleton({ label }: { label: string }) {
 async function ScoutScreen({ searchParams, locale }: { searchParams: PageProps<"/scout">["searchParams"]; locale: Locale }) {
   const viewer = await requireRole("member");
   if (!viewer.companyId) {
-    return <p className="max-w-prose rounded-xl border border-dashed p-6 text-muted-foreground">{createTranslator(locale, "scout")("notLinked")}</p>;
+    return <p className="max-w-prose text-muted-foreground">{createTranslator(locale, "scout")("notLinked")}</p>;
   }
   const member: Member = { claims: viewer.claims, userId: viewer.userId, companyId: viewer.companyId };
 

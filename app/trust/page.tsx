@@ -46,8 +46,8 @@ async function TrustFrame() {
   return (
     <>
       <div className="flex animate-fade flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
+        <h1 className="text-title">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("intro")}</p>
       </div>
       <Suspense fallback={<TrustSkeleton label={t("loading")} />}>
         <Report locale={locale} />
@@ -56,17 +56,26 @@ async function TrustFrame() {
   );
 }
 
-/** Shown while the runs load (C20): one card shape per section. */
+/** Shown while the runs load (C20): the headline numbers, then one closed row per section. */
 function TrustSkeleton({ label }: { label: string }) {
   return (
-    <LoadingState label={label} className="gap-6">
-      {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="flex flex-col gap-3 rounded-xl p-4 ring-1 ring-foreground/10">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-3 w-full max-w-xl" />
-          <Skeleton className="h-24" />
-        </div>
-      ))}
+    <LoadingState label={label} className="gap-10">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton className="h-9 w-20" />
+            <Skeleton className="h-3 w-32 max-w-full" />
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col divide-y border-t">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex justify-between gap-4 py-4">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ))}
+      </div>
     </LoadingState>
   );
 }
@@ -76,18 +85,21 @@ async function Report({ locale }: { locale: Locale }) {
   if (!viewer) redirect("/sign-in?next=/trust");
   const report = await loadTrustReport(viewer);
   return (
-    <div className="flex min-w-0 stagger flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-12">
       <TrustSummary report={report} locale={locale} />
-      <ProfileAccuracySection run={report.profileAccuracy} locale={locale} />
-      <QuoteCheckSection run={report.quoteCheck} locale={locale} />
-      <LinkHealthSection run={report.linkCheck} locale={locale} />
-      <SourceStatusSection sources={report.sources} locale={locale} />
-      <MatchingSection matching={report.matching} locale={locale} />
-      <RedTeamSection run={report.redTeam} locale={locale} />
-      <PrivacySection run={report.privacy} locale={locale} />
-      <TimedTestSection result={report.timedTest} locale={locale} />
-      <StaffSessionSection result={report.staffSession} locale={locale} />
-      <KnownLimitsSection locale={locale} />
+      {/* Every detailed section closed, each showing its title, headline number and date. */}
+      <div className="flex min-w-0 stagger flex-col border-t">
+        <ProfileAccuracySection run={report.profileAccuracy} locale={locale} />
+        <QuoteCheckSection run={report.quoteCheck} locale={locale} />
+        <LinkHealthSection run={report.linkCheck} locale={locale} />
+        <SourceStatusSection sources={report.sources} locale={locale} />
+        <MatchingSection matching={report.matching} locale={locale} />
+        <RedTeamSection run={report.redTeam} locale={locale} />
+        <PrivacySection run={report.privacy} locale={locale} />
+        <TimedTestSection result={report.timedTest} locale={locale} />
+        <StaffSessionSection result={report.staffSession} locale={locale} />
+        <KnownLimitsSection locale={locale} />
+      </div>
     </div>
   );
 }

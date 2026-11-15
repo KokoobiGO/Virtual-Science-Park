@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "cn";
 import { ArrowDownUp, LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -168,14 +167,7 @@ export function WeekLive({ companyId, status, items, empty }: WeekLiveProps) {
     <div className="flex flex-col gap-4">
       <p
         role="status"
-        className={
-          message
-            ? cn(
-                "flex items-start gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-foreground",
-                pending ? "border-info/35 bg-info-soft" : "border-success/35 bg-success-soft",
-              )
-            : "sr-only"
-        }
+        className={message ? "flex items-start gap-2 text-sm text-muted-foreground" : "sr-only"}
       >
         {message ? (
           <span key={message} className="inline-flex animate-slide-down items-start gap-2">

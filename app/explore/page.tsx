@@ -45,7 +45,7 @@ async function ExploreFrame({ searchParams }: Pick<PageProps<"/explore">, "searc
     <LocaleProvider locale={locale}>
       <div className="flex flex-col gap-1">
         <h1 className="text-title">{t("title")}</h1>
-        <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
+        <p className="text-muted-foreground">{t("intro")}</p>
       </div>
       <Suspense fallback={<ExploreSkeleton label={t("loading")} />}>
         <Explorer searchParams={searchParams} locale={locale} />
@@ -54,30 +54,24 @@ async function ExploreFrame({ searchParams }: Pick<PageProps<"/explore">, "searc
   );
 }
 
-/** The view tabs, the filter box, the count line and a few rows, while the opportunities load. */
+/** The view switch, the filter row, the count line and a few rows, while the opportunities load. */
 function ExploreSkeleton({ label }: { label: string }) {
   return (
     <LoadingState label={label} className="gap-5">
-      <div className="flex gap-1 border-b pb-2">
-        <Skeleton className="h-6 w-12" />
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-6 w-12" />
+      <Skeleton className="h-8 w-72 max-w-full rounded-full" />
+      <div className="flex flex-wrap items-end gap-2">
+        <Skeleton className="h-8 w-full sm:w-64" />
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-8 w-32" />
+        <Skeleton className="h-8 w-28" />
       </div>
-      <div className="grid items-end gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex flex-col gap-1.5">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-8" />
-          </div>
-        ))}
-        <Skeleton className="h-8 w-36" />
-      </div>
-      <Skeleton className="h-4 w-48" />
-      <div className="flex flex-col divide-y rounded-xl border">
+      <Skeleton className="h-3 w-48" />
+      <div className="flex flex-col divide-y">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex flex-col gap-2 px-4 py-3">
-            <Skeleton className="h-4 w-56 max-w-full" />
+          <div key={i} className="flex flex-col gap-2 py-4">
             <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-56 max-w-full" />
             <Skeleton className="h-3 w-full" />
           </div>
         ))}

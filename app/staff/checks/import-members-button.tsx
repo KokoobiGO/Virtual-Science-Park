@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, CircleCheck, LoaderCircle, Users } from "lucide-react";
+import { CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ export function ImportMembersButton() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={run} aria-disabled={state.kind === "running" || undefined} className="press aria-disabled:opacity-60">
-          {state.kind === "running" ? <LoaderCircle aria-hidden className="animate-spin" /> : <Users aria-hidden />}
+          {state.kind === "running" ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
           {state.kind === "running" ? t("import.running") : t("import.button")}
         </Button>
         <span role="status" className="text-sm text-muted-foreground">
@@ -71,7 +71,7 @@ export function ImportMembersButton() {
       )}
 
       {state.kind === "done" && (
-        <div className="flex animate-rise flex-col gap-2 rounded-lg border bg-card px-4 py-3 shadow-card">
+        <div className="flex animate-rise flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant={state.result.failed.length ? "destructive" : "success"} className="animate-pop">
               {state.result.failed.length ? <CircleAlert aria-hidden /> : <CircleCheck aria-hidden />}

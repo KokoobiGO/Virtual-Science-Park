@@ -118,7 +118,20 @@ describe("active filter chips", () => {
     expect(renderToString(createElement(FilterForm, { filters: NO_FILTERS }))).not.toContain("Active filters");
     const timeline = renderToString(createElement(FilterForm, { filters: { ...NO_FILTERS, view: "timeline", kind: "funding" } }));
     expect(timeline).not.toContain("Active filters");
-    expect(timeline).toContain("only the search and the tag apply here");
+    // The timeline offers only the search and the tag, and carries the kind along unseen.
+    expect(timeline).not.toContain('id="explore-kind"');
+    expect(timeline).toContain('<input type="hidden" name="kind" value="funding"/>');
+  });
+});
+
+describe("list rows (minimal pass)", () => {
+  it("shows the title, one meta line with the kind and source, and no tag chips", () => {
+    const html = renderToString(createElement(ExploreList, { items: [item("tagged", { tags: ["marine"], description: "About sonar." })], total: 1, matches: null, filters: NO_FILTERS, now: NOW }));
+    expect(html).toContain("Title tagged");
+    expect(html).toMatch(/data-slot="badge"[^>]*>Funding call<\/span>/);
+    expect(html).toContain("Vinnova");
+    expect(html).toContain('class="line-clamp-2');
+    expect(html).not.toMatch(/>marine</);
   });
 });
 
@@ -127,6 +140,6 @@ describe("map card", () => {
     const html = renderToString(createElement(ExploreMap, { map: buildTestbedMap([{ ...facility, externalId: "nowhere" }], NO_FILTERS), matches: null, filters: { ...NO_FILTERS, view: "map" } }));
     expect(html).toMatch(/<a href="\/explore\?kind=testbed#opportunity-mtc-salto-karlskrona"[^>]*>.*Show it in the list<\/a>/);
     const list = renderToString(createElement(ExploreList, { items: [facility], total: 1, matches: null, filters: NO_FILTERS, now: NOW }));
-    expect(list).toMatch(/id="opportunity-mtc-salto-karlskrona"[^>]*class="[^"]*target:border-primary/);
+    expect(list).toMatch(/id="opportunity-mtc-salto-karlskrona"[^>]*class="[^"]*target:bg-primary/);
   });
 });

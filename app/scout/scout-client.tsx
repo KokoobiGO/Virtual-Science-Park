@@ -1,6 +1,5 @@
 "use client";
 
-import { CircleCheck, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type Ref } from "react";
 import { announce, Announcer } from "@/components/announcer";
 import { DataStatusLabel } from "@/components/data-status-label";
@@ -228,7 +227,7 @@ export function ScoutClient({
             className="w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm dark:bg-input/30"
           />
           {shownError ? (
-            <div id="scout-question-error" role="alert" className="flex flex-col gap-1 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm break-words text-destructive">
+            <div id="scout-question-error" role="alert" className="flex flex-col gap-1 text-sm break-words text-destructive">
               <p>
                 <span className="font-medium">{t("form.notStarted")} </span>
                 {shownError.message}
@@ -274,16 +273,7 @@ export function ScoutClient({
           // Keyed by brief, so a newly opened brief rises in.
           <BriefPanel key={current.id} brief={current} onSave={toggleSaved} headingRef={briefHeading} />
         ) : (
-          <div className="flex flex-col gap-1 rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-            {briefs.length === 0 ? (
-              <>
-                <p className="font-medium text-foreground">{t("empty.title")}</p>
-                <p>{t(suggestions.length ? "empty.textWithSuggestions" : "empty.text")}</p>
-              </>
-            ) : (
-              <p>{t("empty.pick")}</p>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground">{t(briefs.length === 0 ? "empty.text" : "empty.pick")}</p>
         )}
       </div>
 
@@ -291,7 +281,6 @@ export function ScoutClient({
         <h2 id="your-briefs-heading" className="text-sm font-semibold">
           {t("briefs.title")}
         </h2>
-        <p className="text-xs text-muted-foreground">{t("briefs.intro")}</p>
         {briefs.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("briefs.none")}</p>
         ) : (
@@ -363,19 +352,14 @@ function BriefPanel({
       </header>
 
       {brief.status === "running" && (
-        <div className="flex flex-col gap-3 overflow-hidden rounded-lg border border-primary/30 bg-card px-4 py-3">
-          {/* A slow light moving along the top edge: the run is alive. Still for readers who ask for reduced motion. */}
-          <div aria-hidden className="-mx-4 -mt-3 h-1 animate-shimmer bg-[linear-gradient(90deg,transparent,var(--color-primary),transparent)] bg-size-[200%_100%]" />
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">{t("brief.working")}</p>
-            <p className="text-xs text-muted-foreground">{t("brief.takes")}</p>
-          </div>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium">{t("brief.working")}</p>
           <ProgressList steps={brief.progress} live />
         </div>
       )}
 
       {brief.status === "failed" && (
-        <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 px-4 py-3">
+        <div className="flex flex-col gap-3">
           <p className="text-sm break-words text-destructive">
             <span className="font-medium">{t("brief.failed")} </span>
             {brief.error ?? t("brief.failedDefault")} {t("brief.askAgain")}
@@ -386,29 +370,29 @@ function BriefPanel({
 
       {result && (
         <>
-          <div className="flex max-w-prose flex-col gap-1 rounded-xl border-l-4 border-primary bg-card px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("brief.summary")}</p>
+          <div className="flex max-w-prose flex-col gap-1">
+            <p className="text-xs text-muted-foreground">{t("brief.summary")}</p>
             <p className="break-words">{result.summary}</p>
           </div>
           {result.notes.length > 0 && (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-1">
               {result.notes.map((note) => (
-                <li key={note} className="rounded-lg bg-info-soft px-3 py-2 text-sm break-words text-info">
+                <li key={note} className="text-xs break-words text-muted-foreground">
                   {/* The job's one fixed sentence is the interface's to translate; any other note is shown as stored. */}
                   {note === NO_WEB_NOTE ? t("brief.noWebNote") : note}
                 </li>
               ))}
             </ul>
           )}
-          <ol className="flex stagger flex-col gap-4">
+          <ol className="flex stagger flex-col divide-y divide-foreground/10">
             {result.options.map((option, i) => (
-              <li key={option.citation.url}>
+              <li key={option.citation.url} className="py-6 first:pt-2">
                 <OptionCard index={i + 1} option={option} saved={!!option.opportunityId && brief.savedOpportunityIds.includes(option.opportunityId)} onSave={onSave} />
               </li>
             ))}
           </ol>
-          <details className="rounded-lg border px-4 py-3 text-sm">
-            <summary className="cursor-pointer font-medium">{t("brief.howBuilt")}</summary>
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">{t("brief.howBuilt")}</summary>
             <div className="pt-3">
               <ProgressList steps={brief.progress} />
             </div>
@@ -437,21 +421,15 @@ function ProgressList({ steps, live = false }: { steps: ProgressStep[]; live?: b
   const start = Date.parse(steps[0].at);
   return (
     <div className="flex flex-col gap-2">
-      <ol className="flex flex-col gap-1.5 text-sm">
+      <ol className="flex flex-col gap-1 text-sm">
         {steps.map((step, i) => {
           const current = live && i === steps.length - 1;
           const error = step.kind === "error";
           return (
             <li key={`${step.at}-${i}`} aria-current={current ? "step" : undefined} className={`flex animate-rise items-start gap-3 ${current ? "font-medium" : ""}`}>
-              <span className="w-10 shrink-0 pt-px text-right text-xs text-muted-foreground tabular-nums">{Math.max(0, Math.round((Date.parse(step.at) - start) / 1000))} s</span>
-              <span aria-hidden className="flex size-4 shrink-0 items-center justify-center pt-0.5">
-                {error ? (
-                  <TriangleAlert className="size-4 text-destructive" />
-                ) : current ? (
-                  <PulseDot />
-                ) : (
-                  <CircleCheck className="size-4 text-success" />
-                )}
+              <span className="w-9 shrink-0 pt-0.5 text-right text-xs text-muted-foreground tabular-nums">{Math.max(0, Math.round((Date.parse(step.at) - start) / 1000))} s</span>
+              <span aria-hidden className="flex h-5 w-2.5 shrink-0 items-center justify-center">
+                {current ? <PulseDot /> : <span className={`size-1.5 rounded-full ${error ? "bg-destructive" : "bg-muted-foreground/50"}`} />}
               </span>
               <span className={`min-w-0 break-words ${error ? "text-destructive" : current ? "text-foreground" : "text-muted-foreground"}`}>
                 {current ? <span className="sr-only">{t("brief.now")} </span> : null}
@@ -484,7 +462,8 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
   const link = linkCheckText(citation, t);
   const euHint = euPortalHint(citation.url, t);
   return (
-    <Card className="min-w-0">
+    // A Card for its slots, drawn without a box: the list's spacing and hairlines separate the options.
+    <Card className="min-w-0 gap-4 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0 [--card-spacing:0px]">
       <CardHeader>
         <CardTitle>
           <h3 className="break-words">
@@ -500,7 +479,7 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("option.whyTitle")}</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">{t("option.whyTitle")}</h4>
           <p className="break-words">
             <span className="font-medium">{t("option.forYou")} </span>
             {option.whyProfile}
@@ -511,7 +490,7 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
           </p>
         </div>
         <div className="flex flex-col gap-1">
-          <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("option.requirementsTitle")}</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">{t("option.requirementsTitle")}</h4>
           <ul className="list-disc pl-5">
             {option.requirements.map((r) => (
               <li key={r} className="break-words">
@@ -521,11 +500,11 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
           </ul>
         </div>
         <div className="flex flex-col gap-1">
-          <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("option.contactTitle")}</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">{t("option.contactTitle")}</h4>
           <p className="break-words">{option.contactRoute}</p>
         </div>
         <div className="flex flex-col gap-1">
-          <h4 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("option.openQuestionsTitle")}</h4>
+          <h4 className="text-xs font-medium text-muted-foreground">{t("option.openQuestionsTitle")}</h4>
           <ul className="list-disc pl-5">
             {option.openQuestions.map((q) => (
               <li key={q} className="break-words">
@@ -535,7 +514,7 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
           </ul>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-wrap items-center justify-between gap-3">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-3 rounded-none border-t-0 bg-transparent">
         <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted-foreground">
           <p className="break-words">
             {t("option.source")}{" "}
@@ -559,8 +538,7 @@ function OptionCard({ index, option, saved, onSave }: { index: number; option: S
           {euHint ? <p className="break-words">{euHint}</p> : null}
           {citation.injection ? (
             // The detector flagged the text (lib/injection/detect.ts); the stored label only says so, the words are the catalogue's.
-            <p className="flex items-start gap-1 break-words text-warning" data-injection>
-              <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
+            <p className="break-words text-warning" data-injection>
               {t("option.injection")}
             </p>
           ) : null}

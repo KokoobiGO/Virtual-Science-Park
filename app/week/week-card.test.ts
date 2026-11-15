@@ -66,6 +66,24 @@ describe("WeekCard", () => {
     expect(html).not.toMatch(/eligible/i);
   });
 
+  it("keeps what is uncertain and the sources behind one closed Details toggle", () => {
+    const html = render(matchCard());
+    const details = html.slice(html.indexOf("<details"), html.indexOf("</details>"));
+    expect(html.match(/<details/g)).toHaveLength(1);
+    expect(html).not.toMatch(/<details[^>]*\sopen/);
+    expect(details).toContain("<summary");
+    expect(details).toContain("Details");
+    expect(details).toContain("What is uncertain");
+    expect(details).toContain("https://www.vinnova.se/e/watchdog/");
+    // Why it fits and the next step stay in view, outside the toggle.
+    expect(html.indexOf("Why it fits")).toBeLessThan(html.indexOf("<details"));
+    expect(html.indexOf("Next step")).toBeLessThan(html.indexOf("<details"));
+  });
+
+  it("leaves out the Details toggle when there is nothing to put in it", () => {
+    expect(render(matchCard({ uncertainties: [], sources: [] }))).not.toContain("<details");
+  });
+
   it("says how close the deadline is in words, and that a passed one has passed", () => {
     expect(render(matchCard())).toContain("Closes in 18 days");
     const opportunity = matchCard().opportunity!;

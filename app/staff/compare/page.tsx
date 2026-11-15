@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Columns2, Link2 } from "lucide-react";
 import { StaffPageIntro } from "../page-intro";
 import { requireRole } from "@/lib/auth";
 import type { Locale } from "@/lib/i18n/config";
@@ -41,7 +40,7 @@ async function CompareFrame({ searchParams }: Pick<PageProps<"/staff/compare">, 
   const t = createTranslator(locale, "compare");
   return (
     <>
-      <StaffPageIntro title={t("title")} intro={t("intro")} todo={t("todo")} />
+      <StaffPageIntro title={t("title")} intro={t("intro")} />
       <Suspense fallback={<CompareSkeleton label={t("loading")} />}>
         <Comparison searchParams={searchParams} locale={locale} />
       </Suspense>
@@ -52,9 +51,9 @@ async function CompareFrame({ searchParams }: Pick<PageProps<"/staff/compare">, 
 function CompareSkeleton({ label }: { label: string }) {
   return (
     <LoadingState label={label} className="gap-6">
-      <div className="grid items-end gap-3 rounded-xl border p-4 sm:grid-cols-[1fr_1fr_auto]">
-        <Skeleton className="h-14" />
-        <Skeleton className="h-14" />
+      <div className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
+        <Skeleton className="h-8" />
+        <Skeleton className="h-8" />
         <Skeleton className="h-8 w-24" />
       </div>
     </LoadingState>
@@ -81,7 +80,7 @@ async function Comparison({ searchParams, locale }: Pick<PageProps<"/staff/compa
       : null;
 
   if (members.length < 2) {
-    return <p className="rounded-xl border border-dashed p-6 text-muted-foreground">{t("tooFew", { count: members.length })}</p>;
+    return <p className="text-sm text-muted-foreground">{t("tooFew", { count: members.length })}</p>;
   }
 
   return (
@@ -89,15 +88,11 @@ async function Comparison({ searchParams, locale }: Pick<PageProps<"/staff/compa
       <PickForm members={members} a={a ?? ""} b={b ?? ""} error={error} locale={locale} />
       {!pair.ok || !result?.ok ? (
         error ? null : (
-          <div className="flex animate-fade flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
-            <Columns2 aria-hidden className="size-6" />
-            <p>{t("pickPrompt")}</p>
-          </div>
+          <p className="animate-fade text-sm text-muted-foreground">{t("pickPrompt")}</p>
         )
       ) : (
         <>
-          <p className="flex animate-fade items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-            <Link2 aria-hidden className="size-4 shrink-0" />
+          <p className="animate-fade text-sm text-muted-foreground" aria-live="polite">
             {t("shared", { count: result.comparison.shared.length })}
           </p>
           <div className="grid gap-4 md:grid-cols-2 stagger">
@@ -115,8 +110,10 @@ function PickForm({ members, a, b, error, locale }: { members: Member[]; a: stri
   const t = createTranslator(locale, "compare");
   const errorId = "compare-error";
   const picker = (name: "a" | "b", label: string, value: string) => (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <Label htmlFor={`compare-${name}`}>{label}</Label>
+    <div className="flex min-w-0 flex-col gap-1">
+      <Label htmlFor={`compare-${name}`} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
       <select
         id={`compare-${name}`}
         name={name}
@@ -136,7 +133,7 @@ function PickForm({ members, a, b, error, locale }: { members: Member[]; a: stri
     </div>
   );
   return (
-    <Form action="/staff/compare" key={`${a}|${b}`} className="flex animate-rise flex-col gap-3 rounded-xl border bg-card p-4 shadow-card">
+    <Form action="/staff/compare" key={`${a}|${b}`} className="flex animate-rise flex-col gap-2">
       <div className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
         {picker("a", t("first"), a)}
         {picker("b", t("second"), b)}

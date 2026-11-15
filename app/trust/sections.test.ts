@@ -143,6 +143,21 @@ describe("the report's summary and fixed wording (polish pass)", () => {
     expect(out).toContain("inte mätt än");
   });
 
+  it("puts each section behind a closed summary that shows its title, headline number and date", () => {
+    const out = render(createElement(LinkHealthSection, { run: measured({ checked: 20, ok: 15, broken: 1, blocked: 2, unverifiable: 2 }) }));
+    expect(out).toMatch(/^<details data-slot="card"/);
+    expect(out).not.toMatch(/<details[^>]* open/);
+    const summary = out.split("</summary>")[0];
+    expect(summary).toContain("<h2>Link health</h2>");
+    expect(summary).toContain(">75%<");
+    expect(summary).toContain("Run 14 Nov 2026");
+    const sources = render(createElement(SourceStatusSection, { sources: judgeSources([row({})], NOW) })).split("</summary>")[0];
+    expect(sources).toContain(">1 source<");
+    expect(sources).toContain("Last read 14 Nov 2026");
+    const notYet = render(createElement(RedTeamSection, { run: empty })).split("</summary>")[0];
+    expect(notYet).toContain(">not measured yet<");
+  });
+
   it("says the gold claims were checked by an automated reviewer, not by the team, and that EU links go through the portal's API", () => {
     for (const locale of ["en", "sv"] as const) {
       const limits = knownLimits(locale).join(" ");

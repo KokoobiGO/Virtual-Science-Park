@@ -28,16 +28,14 @@ export default function Page() {
 function CopilotSkeleton({ label }: { label?: string }) {
   const shapes = (
     <>
-      <Skeleton className="h-5 w-24" />
-      <Skeleton className="h-4 w-full max-w-lg" />
       <Skeleton className="h-28 w-full max-w-md" />
       <div className="mt-auto flex gap-2">
-        <Skeleton className="h-8 flex-1" />
-        <Skeleton className="h-8 w-16" />
+        <Skeleton className="h-10 flex-1 rounded-full" />
+        <Skeleton className="h-10 w-20 rounded-full" />
       </div>
     </>
   );
-  const className = "min-h-[32rem] flex-1 rounded-xl p-4 ring-1 ring-foreground/10";
+  const className = "min-h-[32rem] flex-1";
   return label ? (
     <LoadingState label={label} className={className}>
       {shapes}

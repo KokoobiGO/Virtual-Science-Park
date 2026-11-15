@@ -13,18 +13,18 @@ const render = renderToStaticMarkup;
 describe("CopilotPanel (C20)", () => {
   const html = render(createElement(CopilotPanel));
 
-  it("explains what can be asked in an empty conversation and offers questions to start with", () => {
-    expect(html).toContain("What you can ask");
+  it("offers four starter questions as quiet buttons and one short line on what it answers from", () => {
     expect(html).toContain("Which test facilities could we use for an underwater sensor?");
-    expect(html).toContain("BSP staff can help you check");
+    expect(html).toContain("Answers use stored sources only, not the web. Each match is a potential match.");
     expect(html).not.toMatch(/eligib/i);
+    const list = html.slice(html.indexOf('<ul aria-label="Questions to start with"'), html.indexOf("</ul>"));
+    expect(list.match(/<button/g)).toHaveLength(4);
   });
 
-  it("says in plain words what it answers from and what it will not do, and offers four starter questions as buttons", () => {
-    expect(html).toContain("built only from stored sources");
-    expect(html).toContain("does not search the web");
-    const list = html.slice(html.indexOf('<ul aria-labelledby'), html.indexOf("</ul>", html.indexOf('<ul aria-labelledby')));
-    expect(list.match(/<button/g)).toHaveLength(4);
+  it("points the question field at the short line, so a screen reader hears it with the field", () => {
+    const hint = html.match(/<p id="([^"]+)"[^>]*>Answers use stored sources only/)?.[1];
+    expect(hint).toBeTruthy();
+    expect(html).toContain(`aria-describedby="${hint}"`);
   });
 
   it("keeps a live region in the page for answers, and names the question field and the Ask button", () => {
@@ -102,12 +102,12 @@ describe("the Copilot in Swedish (C19)", () => {
 
   it("writes the interface in Swedish and keeps the example questions in English, as they are sent", () => {
     const html = sv(createElement(CopilotPanel));
-    expect(html).toContain("Vad ni kan fråga om");
+    expect(html).toContain("Svaren bygger bara på sparade källor, inte på webben.");
     expect(html).toContain('aria-label="Er fråga"');
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*>.*Fråga<\/button>/);
     expect(html).toContain("möjlig matchning");
     expect(html).toContain("Which test facilities could we use for an underwater sensor?");
-    expect(html).not.toContain("What you can ask");
+    expect(html).not.toContain("Answers use stored sources");
     expect(html).not.toMatch(/berättigad|behörig|eligib/i);
   });
 

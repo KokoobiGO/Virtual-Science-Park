@@ -4,14 +4,13 @@ import { Suspense } from "react";
 import { ListSkeleton, PageShellSkeleton } from "@/components/loading-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/lib/auth";
-import { BSP_CONTACT } from "@/lib/copilot/policy";
 import { companies, handoffs } from "@/lib/db/schema";
 import { withUserDb } from "@/lib/db/user";
 import type { Locale } from "@/lib/i18n/config";
 import { formatDateTime } from "@/lib/i18n/format";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
-import { CircleCheck, CircleDot, Inbox } from "lucide-react";
+import { CircleCheck, CircleDot } from "lucide-react";
 import { StaffPageIntro } from "../page-intro";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,11 +33,7 @@ async function HandoffsFrame() {
   const t = createTranslator(locale, "handoffs");
   return (
     <>
-      <StaffPageIntro title={t("title")} intro={t("intro")} todo={t("todo")}>
-        <p className="text-sm text-muted-foreground">
-          {t.rich("contact", { contact: <code className="break-all">{BSP_CONTACT}</code> })}
-        </p>
-      </StaffPageIntro>
+      <StaffPageIntro title={t("title")} intro={t("intro")} />
       <Suspense fallback={<ListSkeleton label={t("loading")} rows={3} rowClassName="h-16" />}>
         <HandoffList locale={locale} />
       </Suspense>
@@ -75,27 +70,21 @@ async function HandoffList({ locale }: { locale: Locale }) {
   );
 
   if (!rows.length) {
-    return (
-      <div className="flex animate-fade flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center">
-        <Inbox aria-hidden className="size-7 text-muted-foreground" />
-        <h2 className="font-medium">{t("emptyTitle")}</h2>
-        <p className="max-w-prose text-sm text-muted-foreground">{t("empty")}</p>
-      </div>
-    );
+    return <p className="animate-fade text-sm text-muted-foreground">{t("empty")}</p>;
   }
 
   const open = rows.filter((row) => row.status === "open").length;
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">{t("counts", { open, count: rows.length })}</p>
-      <ul className="flex flex-col gap-3 stagger">
+      <ul className="flex flex-col divide-y divide-border/60 stagger">
         {rows.map((row) => {
           const answer = contextText(row.context, "answer");
           const isOpen = row.status === "open";
           return (
-            <li key={row.id} className="flex flex-col gap-2 rounded-lg border bg-card px-4 py-3 shadow-card">
+            <li key={row.id} className="flex flex-col gap-2 py-4">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={isOpen ? "info" : "muted"}>
+                <Badge variant={isOpen ? "info" : "outline"}>
                   {isOpen ? <CircleDot aria-hidden /> : <CircleCheck aria-hidden />}
                   {isOpen ? t("open") : t("closed")}
                 </Badge>
@@ -105,7 +94,6 @@ async function HandoffList({ locale }: { locale: Locale }) {
                   {formatDateTime(row.createdAt, locale)}
                 </time>
               </div>
-              <p className="text-xs text-muted-foreground">{isOpen ? t("openHint") : t("closedHint")}</p>
               <p className="text-sm break-words whitespace-pre-wrap">{row.message}</p>
               {answer && (
                 <details className="text-sm">

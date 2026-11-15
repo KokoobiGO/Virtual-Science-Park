@@ -84,7 +84,7 @@ export function ClaimEditor({
   return (
     <div className="flex flex-col gap-2">
       {editing ? (
-        <form action={action} className="flex animate-slide-down flex-col gap-2 rounded-lg border border-primary/30 bg-muted/40 p-3">
+        <form action={action} className="flex animate-slide-down flex-col gap-2">
           <input type="hidden" name="field" value={field} />
           <input type="hidden" name="claimId" value={claimId} />
           <Label htmlFor={`${id}-value`}>{isList ? t("editor.listLabel", { field: label }) : label}</Label>
@@ -129,7 +129,7 @@ export function ClaimEditor({
         <>
           {children}
           <div>
-            <Button ref={editButton} type="button" variant="outline" size="sm" onClick={open} aria-label={verbLabel}>
+            <Button ref={editButton} type="button" variant="ghost" size="sm" className="-ml-2.5 text-muted-foreground" onClick={open} aria-label={verbLabel}>
               <Pencil aria-hidden className="size-3.5" />
               {verb}
             </Button>
