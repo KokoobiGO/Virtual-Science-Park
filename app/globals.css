@@ -392,28 +392,24 @@
 }
 
 /*
- * The landing page (app/page.tsx, [data-landing]): the site header sits inside
- * the dark hero frame, light on dark, with pill buttons. Unlayered, so it wins
- * over the header's own utility classes. Every other page keeps the normal header,
+ * The landing page (app/page.tsx, [data-landing]) is one continuous dark
+ * surface: the site header floats over the hero (light on dark, pill buttons)
+ * and the footer joins the dark page. Unlayered, so it wins over the header's
+ * own utility classes. Every other page keeps the normal header and footer,
  * and the header stays the page's one banner landmark.
  */
-body:has([data-landing]) [data-site-header] {
-  position: absolute;
-  top: 1.5rem;
-  left: 0;
-  right: 0;
-  padding-inline: 0.75rem;
-  background: transparent;
-  border: 0;
-  backdrop-filter: none;
+body:has([data-landing]) {
+  background: oklch(0.14 0.004 280);
+}
+body:has([data-landing]) :is([data-site-header], [data-site-footer]) {
   color-scheme: dark;
   --foreground: oklch(0.98 0 0);
   --card-foreground: oklch(0.98 0 0);
-  --muted-foreground: oklch(0.98 0 0 / 0.62);
+  --muted-foreground: oklch(0.98 0 0 / 0.55);
   --primary: oklch(0.99 0 0);
   --primary-foreground: oklch(0.2 0.01 280);
   --ring: oklch(0.99 0 0);
-  --border: oklch(1 0 0 / 0.14);
+  --border: oklch(1 0 0 / 0.08);
   --muted: oklch(1 0 0 / 0.08);
   --accent: oklch(1 0 0 / 0.08);
   --accent-foreground: oklch(0.98 0 0);
@@ -424,6 +420,15 @@ body:has([data-landing]) [data-site-header] {
   --popover-foreground: oklch(0.98 0 0);
   color: var(--foreground);
 }
+body:has([data-landing]) [data-site-header] {
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+}
 body:has([data-landing]) [data-site-header] > div {
   padding: 0.75rem 1.25rem;
 }
@@ -433,10 +438,54 @@ body:has([data-landing]) [data-site-header] [data-slot="button"] {
 }
 @media (min-width: 40rem) {
   body:has([data-landing]) [data-site-header] {
-    top: 3.5rem;
-    padding-inline: 2.5rem;
+    top: 1rem;
   }
-  body:has([data-landing]) [data-site-header] > div {
-    padding: 1rem 3rem;
+}
+
+/* Landing: the sources strip slides past slowly; it stops while hovered. */
+.landing-marquee {
+  animation: landing-marquee 38s linear infinite;
+}
+.landing-marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes landing-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Landing: a beam of light travels along the line through the three steps. */
+.landing-beam {
+  background:
+    linear-gradient(90deg, transparent, oklch(0.85 0.12 215), oklch(0.85 0.1 75), transparent) 0 0 / 35% 100% no-repeat,
+    linear-gradient(90deg, transparent, oklch(1 0 0 / 0.12) 15%, oklch(1 0 0 / 0.12) 85%, transparent);
+  animation: landing-beam 4.5s ease-in-out infinite;
+}
+@keyframes landing-beam {
+  from {
+    background-position: -40% 0, 0 0;
+  }
+  to {
+    background-position: 140% 0, 0 0;
+  }
+}
+
+/* Landing: sections rise into view as they scroll in (browsers with scroll-driven animations; others show them at once). */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: landing-reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+}
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }

@@ -3,6 +3,7 @@ import { cn } from "cn";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ClaimBadge } from "@/components/claim-badge";
+import { SpotCard, Spotlight } from "@/components/landing/spotlight";
 import { PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
 import { LiquidOrb } from "@/components/liquid-orb";
 import { Button } from "@/components/ui/button";
@@ -19,10 +20,14 @@ const STEPS = [
   { id: "decide", badges: false, Icon: Handshake },
 ] as const;
 
-/** The start page. Its words follow the reader's language (C19), so they stream in after the static shell. */
+/**
+ * The start page: one continuous dark surface (the site header and footer join
+ * it through [data-landing] in globals.css). Its words follow the reader's
+ * language (C19), so they stream in after the static shell.
+ */
 export default function StartPage() {
   return (
-    <div className="flex flex-col">
+    <div data-landing className="dark flex flex-1 flex-col bg-[oklch(0.14_0.004_280)] text-foreground">
       <Suspense fallback={<StartShell />}>
         <StartContent />
       </Suspense>
@@ -34,14 +39,12 @@ export default function StartPage() {
 function StartShell() {
   return (
     <>
-      <div className="bg-[oklch(0.17_0.03_280)] px-3 py-6 sm:px-8 sm:py-12">
-        <section className="mx-auto min-h-[38rem] w-full max-w-6xl rounded-[1.75rem] bg-[oklch(0.16_0.005_280)] md:min-h-[42rem]">
-          <PageShellSkeleton className="mx-auto w-full max-w-3xl items-center gap-5 px-4 pt-16 md:pt-20" />
-        </section>
-      </div>
+      <section className="min-h-[44rem] w-full md:min-h-[50rem]">
+        <PageShellSkeleton className="mx-auto w-full max-w-3xl items-center gap-5 px-4 pt-36 md:pt-44" />
+      </section>
       <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 py-12 md:grid-cols-3" aria-hidden>
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-36 rounded-xl" />
+          <Skeleton key={i} className="h-36 rounded-2xl" />
         ))}
       </div>
     </>
@@ -53,67 +56,111 @@ async function StartContent() {
   const t = createTranslator(locale, "home");
   return (
     <>
-      <div data-landing className="dark relative isolate overflow-hidden bg-[radial-gradient(120%_80%_at_20%_0%,oklch(0.33_0.05_295),oklch(0.22_0.035_285)_55%,oklch(0.18_0.03_280))] px-3 py-6 sm:px-10 sm:py-14">
+      <section className="relative isolate flex min-h-[44rem] w-full flex-col items-center overflow-hidden bg-[radial-gradient(60%_55%_at_12%_0%,oklch(0.3_0.03_320/0.85),transparent),radial-gradient(50%_45%_at_95%_10%,oklch(0.28_0.05_260/0.55),transparent)] md:min-h-[50rem]">
         <Starfield />
-        <section className="relative isolate mx-auto flex min-h-[40rem] w-full max-w-6xl flex-col items-center overflow-hidden rounded-[1.75rem] bg-[radial-gradient(70%_60%_at_10%_0%,oklch(0.3_0.02_330/0.9),oklch(0.17_0.004_300)_55%,oklch(0.15_0.003_280))] shadow-[0_40px_120px_-40px_black] ring-1 ring-white/10 md:min-h-[44rem]">
-          <Starfield faint />
-          <div className="stagger relative z-10 flex flex-col items-center gap-5 px-6 pt-28 text-center md:pt-32">
-            <h1 className="max-w-[15ch] text-[2.4rem] leading-[1.05] font-medium tracking-[-0.035em] text-balance text-white md:max-w-[24ch] md:text-[3.6rem]">{t("title")}</h1>
-            <p className="max-w-sm text-sm leading-relaxed text-white/55">{t("tagline")}</p>
-            <Suspense fallback={<div className="h-9" aria-hidden />}>
-              <StartAction locale={locale} />
-            </Suspense>
-          </div>
-          <LiquidOrb className="absolute bottom-[-34%] left-1/2 w-[min(36rem,125vw)] -translate-x-1/2 md:bottom-[-36%] md:w-[44rem]" />
-          <GlassCard
-            className="top-[57%] left-[5%] lg:left-[15%]"
-            label={t("cards.evidence.label")}
-            title={t("cards.evidence.value")}
-            aside={t("cards.evidence.text")}
-          />
-          <GlassCard
-            className="top-[66%] right-[5%] [animation-delay:-3.5s] lg:right-[14%]"
-            label={t("cards.sources.label")}
-            value={t("cards.sources.value", { count: COLLECTORS.length })}
-            bar
-          />
-        </section>
-      </div>
+        <div className="stagger relative z-10 flex flex-col items-center gap-5 px-6 pt-36 text-center md:pt-44">
+          <h1 className="max-w-[15ch] text-[2.4rem] leading-[1.05] font-medium tracking-[-0.035em] text-balance text-white md:max-w-[24ch] md:text-[3.8rem]">
+            {t("title")}
+          </h1>
+          <p className="max-w-sm text-sm leading-relaxed text-white/55">{t("tagline")}</p>
+          <Suspense fallback={<div className="h-9" aria-hidden />}>
+            <StartAction locale={locale} />
+          </Suspense>
+        </div>
+        <LiquidOrb className="absolute bottom-[-24%] left-1/2 w-[min(36rem,125vw)] -translate-x-1/2 md:bottom-[-28%] md:w-[46rem]" />
+        <GlassCard
+          className="top-[60%] left-[6%] lg:left-[16%]"
+          label={t("cards.evidence.label")}
+          title={t("cards.evidence.value")}
+          aside={t("cards.evidence.text")}
+        />
+        <GlassCard
+          className="top-[69%] right-[6%] [animation-delay:-3.5s] lg:right-[16%]"
+          label={t("cards.sources.label")}
+          value={t("cards.sources.value", { count: COLLECTORS.length })}
+          bar
+        />
+        {/* The hero melts into the page below. */}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-56 bg-gradient-to-b from-transparent to-[oklch(0.14_0.004_280)]" />
+      </section>
 
-      <section id="how-it-works" aria-labelledby="how" className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-12">
-        <div className="flex flex-col gap-1">
-          <h2 id="how" className="text-heading">
+      <SourceTicker label={t("cards.sources.label")} live={t("live")} />
+
+      <section id="how-it-works" aria-labelledby="how" className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-24">
+        <div className="reveal flex flex-col items-center gap-2 text-center">
+          <h2 id="how" className="text-3xl font-medium tracking-[-0.02em] text-white md:text-4xl">
             {t("howTitle")}
           </h2>
-          <p className="max-w-prose text-muted-foreground">{t("howIntro")}</p>
+          <p className="max-w-prose text-white/55">{t("howIntro")}</p>
         </div>
-        <ol className="stagger grid gap-4 md:grid-cols-3">
-          {STEPS.map(({ id, badges, Icon }, i) => (
-            <li key={id} className="flex flex-col gap-2 rounded-xl bg-card p-5 shadow-card ring-1 ring-foreground/10">
-              <span className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary" aria-hidden>
-                  <Icon className="size-5" />
-                </span>
-                <span className="text-sm font-medium text-muted-foreground">{t("stepNumber", { n: i + 1 })}</span>
-              </span>
-              <h3 className="mt-1 font-semibold">{t(`steps.${id}.title`)}</h3>
-              <p className="text-sm text-muted-foreground">{t(`steps.${id}.text`)}</p>
-              {badges ? (
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  <ClaimBadge status="stated" locale={locale} />
-                  <ClaimBadge status="inferred" locale={locale} />
-                  <ClaimBadge status="missing" locale={locale} />
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ol>
+        <Spotlight className="relative">
+          {/* A beam of light runs through the three steps. */}
+          <span aria-hidden className="landing-beam absolute top-[2.85rem] right-[18%] left-[18%] hidden h-px md:block" />
+          <ol className="relative grid gap-4 md:grid-cols-3">
+            {STEPS.map(({ id, badges, Icon }, i) => (
+              <li key={id} className="reveal">
+                <SpotCard className="h-full" innerClassName="flex flex-col gap-2 p-6">
+                  <span className="flex items-center gap-3">
+                    <span className="relative flex size-11 items-center justify-center rounded-xl bg-white/[0.06] text-white ring-1 ring-white/10" aria-hidden>
+                      <Icon className="size-5" />
+                      <span className="absolute -top-1 -right-1 flex size-2.5">
+                        <span
+                          className="absolute inline-flex size-full animate-ping rounded-full bg-[oklch(0.8_0.13_215)] opacity-60 motion-reduce:animate-none"
+                          style={{ animationDelay: `${i * 0.6}s` }}
+                        />
+                        <span className="relative inline-flex size-2.5 rounded-full bg-[oklch(0.8_0.13_215)]" />
+                      </span>
+                    </span>
+                    <span className="text-sm font-medium text-white/45">{t("stepNumber", { n: i + 1 })}</span>
+                  </span>
+                  <h3 className="mt-2 text-lg font-medium text-white">{t(`steps.${id}.title`)}</h3>
+                  <p className="text-sm leading-relaxed text-white/55">{t(`steps.${id}.text`)}</p>
+                  {badges ? (
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      <ClaimBadge status="stated" locale={locale} />
+                      <ClaimBadge status="inferred" locale={locale} />
+                      <ClaimBadge status="missing" locale={locale} />
+                    </div>
+                  ) : null}
+                </SpotCard>
+              </li>
+            ))}
+          </ol>
+        </Spotlight>
       </section>
 
       <Suspense fallback={null}>
         <YourScreens locale={locale} />
       </Suspense>
     </>
+  );
+}
+
+/** Every source the collectors read, sliding past slowly, with a live dot. */
+function SourceTicker({ label, live }: { label: string; live: string }) {
+  const names = COLLECTORS.map((c) => c.label);
+  return (
+    <section aria-label={label} className="relative z-10 border-y border-white/[0.06] bg-white/[0.015] py-4">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-5 px-4">
+        <span className="flex shrink-0 items-center gap-2 text-xs font-medium tracking-wide text-white/60 uppercase">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70 motion-reduce:animate-none" />
+            <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+          </span>
+          <span className="hidden sm:inline">{live} ·</span> {label}
+        </span>
+        <div className="relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]">
+          <ul className="landing-marquee flex w-max text-sm text-white/70">
+            {[...names, ...names].map((name, i) => (
+              <li key={i} aria-hidden={i >= names.length || undefined} className="flex items-center gap-8 pr-8 whitespace-nowrap">
+                {name}
+                <span aria-hidden className="size-1 rounded-full bg-white/25" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -138,7 +185,7 @@ async function StartAction({ locale }: { locale: Locale }) {
   );
 }
 
-/** Signed in: one card per screen in the viewer's menu. */
+/** Signed in: one glowing card per screen in the viewer's menu. */
 async function YourScreens({ locale }: { locale: Locale }) {
   const viewer = await getViewer();
   if (!viewer) return null;
@@ -146,32 +193,36 @@ async function YourScreens({ locale }: { locale: Locale }) {
   const nav = createTranslator(locale, "nav");
   const items = [...NAV[viewer.role], ...SHARED_NAV];
   return (
-    <section aria-labelledby="your-screens" className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-14">
-      <div className="flex flex-col gap-1">
-        <h2 id="your-screens" className="text-heading">
+    <section aria-labelledby="your-screens" className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pb-24">
+      <div className="reveal flex flex-col items-center gap-2 text-center">
+        <h2 id="your-screens" className="text-3xl font-medium tracking-[-0.02em] text-white md:text-4xl">
           {viewer.role === "staff" ? t("staffTools") : t("yourScreens")}
         </h2>
-        <p className="max-w-prose text-muted-foreground">{t("yourScreensIntro")}</p>
+        <p className="max-w-prose text-white/55">{t("yourScreensIntro")}</p>
       </div>
-      <ul className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className="lift group flex h-full flex-col gap-1 rounded-xl border border-foreground/10 bg-card p-4 shadow-card outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              <span className="flex items-center justify-between gap-2 font-medium">
-                {nav(`${item.id}.label`)}
-                <ArrowRight
-                  className="size-4 text-muted-foreground transition-[translate,color] duration-200 group-hover:translate-x-1 group-hover:text-primary group-focus-visible:translate-x-1 group-focus-visible:text-primary"
-                  aria-hidden
-                />
-              </span>
-              <span className="text-sm text-muted-foreground">{nav(`${item.id}.description`)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <Spotlight>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <li key={item.href} className="reveal">
+              <SpotCard className="h-full transition-transform duration-200 hover:-translate-y-0.5">
+                <Link
+                  href={item.href}
+                  className="group flex h-full flex-col gap-1 rounded-[calc(1rem-1px)] p-5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                >
+                  <span className="flex items-center justify-between gap-2 font-medium text-white">
+                    {nav(`${item.id}.label`)}
+                    <ArrowUpRight
+                      className="size-4 text-white/40 transition-[translate,color] duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white group-focus-visible:text-white"
+                      aria-hidden
+                    />
+                  </span>
+                  <span className="text-sm text-white/55">{nav(`${item.id}.description`)}</span>
+                </Link>
+              </SpotCard>
+            </li>
+          ))}
+        </ul>
+      </Spotlight>
     </section>
   );
 }
@@ -179,11 +230,11 @@ async function YourScreens({ locale }: { locale: Locale }) {
 const PILL_PRIMARY = "h-9 rounded-full bg-white px-4 text-sm font-medium text-neutral-900 shadow-[0_8px_30px_-10px_white] hover:bg-white/90";
 
 /** Decorative: tiny stars that twinkle slowly. */
-function Starfield({ faint = false }: { faint?: boolean }) {
+function Starfield() {
   return (
-    <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", faint ? "opacity-50" : "")}>
-      <div className="animate-twinkle absolute inset-0 bg-[radial-gradient(1px_1px_at_20px_30px,white,transparent),radial-gradient(1px_1px_at_140px_90px,white,transparent),radial-gradient(1.5px_1.5px_at_230px_170px,white,transparent),radial-gradient(1px_1px_at_70px_210px,white,transparent)] bg-[length:300px_260px] opacity-50" />
-      <div className="animate-twinkle absolute inset-0 bg-[radial-gradient(1px_1px_at_90px_40px,white,transparent),radial-gradient(1.5px_1.5px_at_10px_150px,white,transparent),radial-gradient(1px_1px_at_190px_230px,white,transparent)] bg-[length:380px_320px] opacity-35 [animation-delay:-2.5s]" />
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+      <div className="animate-twinkle absolute inset-0 bg-[radial-gradient(1px_1px_at_20px_30px,white,transparent),radial-gradient(1px_1px_at_140px_90px,white,transparent),radial-gradient(1.5px_1.5px_at_230px_170px,white,transparent),radial-gradient(1px_1px_at_70px_210px,white,transparent)] bg-[length:300px_260px] opacity-40" />
+      <div className="animate-twinkle absolute inset-0 bg-[radial-gradient(1px_1px_at_90px_40px,white,transparent),radial-gradient(1.5px_1.5px_at_10px_150px,white,transparent),radial-gradient(1px_1px_at_190px_230px,white,transparent)] bg-[length:380px_320px] opacity-30 [animation-delay:-2.5s]" />
     </div>
   );
 }

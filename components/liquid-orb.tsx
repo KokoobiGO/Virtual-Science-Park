@@ -36,6 +36,7 @@ export function LiquidOrb({ className }: { className?: string }) {
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
     const uTime = gl.getUniformLocation(program, "u_time");
     const uRes = gl.getUniformLocation(program, "u_res");
+    const uMouse = gl.getUniformLocation(program, "u_mouse");
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -49,27 +50,45 @@ export function LiquidOrb({ className }: { className?: string }) {
     observer.observe(canvas);
 
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let visible = true;
-    const io = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting;
-      if (visible && !still) frame = requestAnimationFrame(draw);
-    });
-    io.observe(canvas);
+    // The pointer tilts the shape a little, so its reflections slide as you move.
+    const target = { x: 0, y: 0 };
+    const tilt = { x: 0, y: 0 };
+    const onPointer = (event: PointerEvent) => {
+      target.x = (event.clientX / window.innerWidth) * 2 - 1;
+      target.y = (event.clientY / window.innerHeight) * 2 - 1;
+    };
+    if (!still) window.addEventListener("pointermove", onPointer, { passive: true });
 
+    let visible = true;
+    let running = false;
     const start = performance.now();
     let frame = 0;
     function draw(now: number) {
+      tilt.x += (target.x - tilt.x) * 0.05;
+      tilt.y += (target.y - tilt.y) * 0.05;
       gl!.uniform1f(uTime, still ? 4 : (now - start) / 1000);
       gl!.uniform2f(uRes, canvas!.width, canvas!.height);
+      gl!.uniform2f(uMouse, tilt.x, tilt.y);
       gl!.drawArrays(gl!.TRIANGLES, 0, 3);
-      if (!still && visible) frame = requestAnimationFrame(draw);
+      running = !still && visible;
+      if (running) frame = requestAnimationFrame(draw);
     }
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible && !running && !still) {
+        running = true;
+        frame = requestAnimationFrame(draw);
+      }
+    });
+    io.observe(canvas);
+    running = true;
     frame = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       io.disconnect();
+      window.removeEventListener("pointermove", onPointer);
     };
   }, []);
 
@@ -94,9 +113,14 @@ const FRAGMENT = `
 precision highp float;
 uniform float u_time;
 uniform vec2 u_res;
+uniform vec2 u_mouse;
+
+mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
 
 float blob(vec3 p) {
   float t = u_time * 0.4;
+  p.xz *= rot(u_mouse.x * 0.45);
+  p.yz *= rot(u_mouse.y * 0.3);
   // A wide, soft dome that wobbles slowly.
   vec3 q = p * vec3(0.88, 0.97, 1.0);
   float d = length(q) - 1.0;

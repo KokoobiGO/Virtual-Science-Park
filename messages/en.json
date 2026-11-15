@@ -46,6 +46,7 @@
     "title": "Each week, the opportunities that may fit your company",
     "intro": "Virtual Science Park gives every Blue Science Park member a short list of funding calls, testbeds, events and partners. Every line shows where it came from, so you can check it yourself.",
     "tagline": "Funding calls, testbeds and events picked for your company each week, every line linked to its source.",
+    "live": "Live",
     "howTitle": "How it works",
     "howIntro": "Three steps, every week. You stay in charge of what happens next.",
     "stepNumber": "Step {n}",

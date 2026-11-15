@@ -92,7 +92,7 @@ async function HeaderNav() {
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t">
+    <footer data-site-footer className="mt-auto border-t">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <Suspense fallback={<div className="h-10 max-w-prose flex-1" aria-hidden />}>
           <FooterText />
