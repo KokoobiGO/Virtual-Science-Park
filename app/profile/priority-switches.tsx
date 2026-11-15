@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { useOptimistic, useState, useTransition } from "react";
 import { announce } from "@/components/announcer";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,9 @@ export type PrioritySwitch = { priority: string; label: string; on: boolean };
 
 /**
  * The member's priorities (C7), one switch each. Saved at once; private to the
- * company. "On" and "Off" are written on each switch, so the colour is never
- * the only sign. The switches are not disabled while saving, so focus stays on
+ * company. A switch that is on is filled and has a check mark; one that is off
+ * is outlined with a plus, so the colour is never the only sign (and
+ * aria-pressed tells a screen reader). The switches are not disabled while saving, so focus stays on
  * the one pressed; a press while saving does nothing. Words in the reader's
  * language (C19); each `label` comes translated from the server.
  */
@@ -51,9 +52,9 @@ export function PrioritySwitches({ switches }: { switches: PrioritySwitch[] }) {
             aria-pressed={s.on}
             aria-disabled={pending || undefined}
             onClick={() => toggle(s, !s.on)}
-            className="aria-disabled:opacity-60"
+            className="press h-8 rounded-full pr-3.5 pl-2.5 aria-disabled:opacity-60"
           >
-            <span aria-hidden>{`${s.on ? t("priorities.on") : t("priorities.off")} `}</span>
+            {s.on ? <Check aria-hidden /> : <Plus aria-hidden className="text-muted-foreground" />}
             {s.label}
           </Button>
         ))}

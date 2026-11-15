@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function Page() {
   return (
     <section className="mx-auto flex w-full max-w-3xl min-w-0 flex-1 flex-col gap-4 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Copilot</h1>
+      <h1 className="text-title">Copilot</h1>
       <Suspense fallback={<CopilotSkeleton />}>
         <CopilotFrame />
       </Suspense>

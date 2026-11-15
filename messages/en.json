@@ -574,6 +574,10 @@
     },
     "ask": "Ask",
     "sources": "Sources",
+    "welcome": {
+      "title": "What would you like to know?",
+      "text": "Ask about funding calls, test facilities, events or your own matches. Every answer lists its sources."
+    },
     "empty": {
       "try": "Questions to start with"
     },
@@ -648,6 +652,36 @@
       "data": "Data not read live from the source is always labelled: hand-entered, simulated or a cached copy."
     },
     "weekOf": "Week of {date}",
+    "forCompany": "For {company} · week of {date}",
+    "glance": {
+      "title": "At a glance",
+      "nextDeadline": "Next deadline",
+      "nextEvent": "Next date",
+      "noDates": "No deadlines or event dates on this week's cards.",
+      "inThisWeek": "In this week",
+      "counts": {
+        "funding": {
+          "one": "{count} funding call",
+          "other": "{count} funding calls"
+        },
+        "testbed": {
+          "one": "{count} testbed",
+          "other": "{count} testbeds"
+        },
+        "event": {
+          "one": "{count} event",
+          "other": "{count} events"
+        },
+        "news": {
+          "one": "{count} news item",
+          "other": "{count} news items"
+        },
+        "trend": {
+          "one": "{count} trend note",
+          "other": "{count} trend notes"
+        }
+      }
+    },
     "olderWeek": "This week's cards are not ready yet, so these are the latest ones, from the week of {date}.",
     "cardCount": {
       "one": "{count} card",
@@ -1100,6 +1134,8 @@
       "countSome": "{shown} of {total} opportunities.",
       "countAllMatched": "All {total} opportunities, {matched} of them in your ranked matches.",
       "countSomeMatched": "{shown} of {total} opportunities, {matched} of them in your ranked matches.",
+      "showAll": "Show all {count}",
+      "showingFirst": "Showing the first {shown}.",
       "emptyFiltered": "No opportunity fits these filters. Try removing a filter above, or search for fewer or other words.",
       "empty": "No opportunities have been collected yet. They appear here after the nightly collection has run; if this stays empty, tell BSP staff.",
       "closingSoon": "Closing soon",

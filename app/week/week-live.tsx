@@ -23,7 +23,7 @@ export type WeekLiveProps = {
   companyId: string;
   status: WeekStatusJson;
   /** The cards in their stored order, each with a key that survives a rebuild. */
-  items: { key: string; card: ReactNode }[];
+  items: { key: string; card: ReactNode; /** An id for the card's row, so a link can jump to it. */ anchor?: string }[];
   /** Shown instead of the list when there are no cards. */
   empty?: ReactNode;
 };
@@ -183,7 +183,7 @@ export function WeekLive({ companyId, status, items, empty }: WeekLiveProps) {
       {items.length ? (
         <ol ref={listRef} className="flex flex-col gap-4">
           {items.map((item, index) => (
-            <li key={item.key} data-key={item.key}>
+            <li key={item.key} id={item.anchor} data-key={item.key} className="scroll-mt-24">
               {/* The entrance runs on this wrapper: the li carries the re-rank move and the card its hover lift. */}
               <div className="animate-rise" style={{ animationDelay: riseDelay(index) }}>
                 {item.card}

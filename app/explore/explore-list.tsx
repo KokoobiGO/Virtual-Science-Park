@@ -4,6 +4,8 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/translate";
 import { ItemStatusLabel, MatchNote, NoResults, SourceLink } from "./opportunity-bits";
 import { ScrollToRow } from "./scroll-to-row";
+import { FIRST_ROWS } from "./list-size";
+import { ShowMoreList } from "./show-more-list";
 
 /** The list view: every opportunity that passes the filters, coming dates first. Words in the reader's language (C19); titles, sources and descriptions as stored. */
 export function ExploreList({
@@ -39,11 +41,15 @@ export function ExploreList({
         {count}
       </p>
       {items.length ? (
-        <ul className="stagger flex flex-col divide-y">
+        <ShowMoreList
+          className="stagger flex flex-col divide-y"
+          showAllLabel={t("list.showAll", { count: shown })}
+          showingLabel={t("list.showingFirst", { shown: Math.min(FIRST_ROWS, shown) })}
+        >
           {items.map((item) => (
             <ExploreRow key={item.id} item={item} match={matches?.get(item.id) ?? null} now={now} locale={locale} />
           ))}
-        </ul>
+        </ShowMoreList>
       ) : (
         <NoResults filters={filters} filtered={t("list.emptyFiltered")} empty={t("list.empty")} locale={locale} />
       )}
@@ -59,7 +65,7 @@ function ExploreRow({ item, match, now, locale }: { item: ExploreItem; match: Ma
   const status = dateStatus(item, now);
   return (
     // `target:` styles: "Show it in the list" on the map lands here with a plain link, so the row is :target and stays marked; <ScrollToRow> flashes it once.
-    <li id={`opportunity-${item.id}`} className="-mx-3 flex scroll-mt-24 flex-col gap-1.5 px-3 py-4 transition-colors target:bg-primary/10 target:ring-1 target:ring-primary/40" data-kind={item.kind}>
+    <li id={`opportunity-${item.id}`} className="-mx-3 flex scroll-mt-24 flex-col gap-1.5 rounded-lg px-3 py-4 transition-colors hover:bg-foreground/[0.025] target:flex! target:bg-primary/10 target:ring-1 target:ring-primary/40" data-kind={item.kind}>
       <SourceLink url={item.url} title={item.title} locale={locale} />
       {/* The kind stays a badge, so e2e/helpers.ts (checkHandEnteredLabels) finds this line, with its source, by its first badge. */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

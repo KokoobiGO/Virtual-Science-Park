@@ -574,6 +574,10 @@
     },
     "ask": "Fråga",
     "sources": "Källor",
+    "welcome": {
+      "title": "Vad vill du veta?",
+      "text": "Fråga om utlysningar, testanläggningar, evenemang eller era egna matchningar. Varje svar visar sina källor."
+    },
     "empty": {
       "try": "Frågor att börja med (ställs på engelska)"
     },
@@ -648,6 +652,36 @@
       "data": "Uppgifter som inte läses direkt från källan är alltid märkta: inlagda för hand, simulerade eller en sparad kopia."
     },
     "weekOf": "Veckan som börjar {date}",
+    "forCompany": "För {company} · veckan som börjar {date}",
+    "glance": {
+      "title": "I korthet",
+      "nextDeadline": "Nästa sista dag",
+      "nextEvent": "Nästa datum",
+      "noDates": "Inga sista dagar eller evenemangsdatum på veckans kort.",
+      "inThisWeek": "Den här veckan",
+      "counts": {
+        "funding": {
+          "one": "{count} utlysning",
+          "other": "{count} utlysningar"
+        },
+        "testbed": {
+          "one": "{count} testbädd",
+          "other": "{count} testbäddar"
+        },
+        "event": {
+          "one": "{count} evenemang",
+          "other": "{count} evenemang"
+        },
+        "news": {
+          "one": "{count} nyhet",
+          "other": "{count} nyheter"
+        },
+        "trend": {
+          "one": "{count} trendnotis",
+          "other": "{count} trendnotiser"
+        }
+      }
+    },
     "olderWeek": "Den här veckans kort är inte klara än, så det här är de senaste, från veckan som börjar {date}.",
     "cardCount": {
       "one": "{count} kort",
@@ -1100,6 +1134,8 @@
       "countSome": "{shown} av {total} möjligheter.",
       "countAllMatched": "Alla {total} möjligheter, varav {matched} finns bland era rangordnade matchningar.",
       "countSomeMatched": "{shown} av {total} möjligheter, varav {matched} finns bland era rangordnade matchningar.",
+      "showAll": "Visa alla {count}",
+      "showingFirst": "Visar de första {shown}.",
       "emptyFiltered": "Ingen möjlighet passar de här filtren. Prova att ta bort ett filter ovan, eller sök på färre eller andra ord.",
       "empty": "Inga möjligheter har samlats in än. De visas här när den nattliga insamlingen har körts; om listan förblir tom, säg till BSP:s personal.",
       "closingSoon": "Stänger snart",

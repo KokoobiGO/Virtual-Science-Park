@@ -93,7 +93,7 @@ export function CardActions({ opportunityId, title, sourceUrl, calendarHref, ini
     });
 
   return (
-    <div className="flex w-full flex-col gap-2">
+    <div className="flex w-full flex-col gap-1.5">
       <div
         className="flex flex-wrap items-center gap-2"
         role="group"
@@ -135,32 +135,39 @@ export function CardActions({ opportunityId, title, sourceUrl, calendarHref, ini
         </Button>
 
         {/* Feedback teaches the ranking; set apart so it does not read as one more thing to do. */}
-        <div role="group" aria-label={t("actions.feedbackPrompt")} className="flex flex-wrap items-center gap-1 sm:ml-auto">
-          <Button
-            variant={feedback === "useful" ? "secondary" : "ghost"}
-            size="xs"
-            className="press text-muted-foreground aria-pressed:text-foreground"
-            aria-pressed={feedback === "useful"}
-            disabled={pending}
-            onClick={() => choose("useful")}
-          >
-            <StateIcon icon={feedback === "useful" ? Check : ThumbsUp} pop={popFor("useful")} />
-            {t("actions.useful")}
-          </Button>
-          <Button
-            variant={feedback === "not_relevant" ? "secondary" : "ghost"}
-            size="xs"
-            className="press text-muted-foreground aria-pressed:text-foreground"
-            aria-pressed={feedback === "not_relevant"}
-            disabled={pending}
-            onClick={() => choose("not_relevant")}
-          >
-            <StateIcon icon={feedback === "not_relevant" ? Check : ThumbsDown} pop={popFor("not_relevant")} />
-            {t("actions.notRelevant")}
-          </Button>
+        <div className="flex items-center gap-1 sm:ml-auto">
+          <span aria-hidden className="mr-1 text-xs text-muted-foreground">
+            {t("actions.feedbackPrompt")}
+          </span>
+          <div role="group" aria-label={t("actions.feedbackPrompt")} className="flex items-center gap-0.5">
+            <Button
+              variant={feedback === "useful" ? "secondary" : "ghost"}
+              size="icon-sm"
+              className="press text-muted-foreground aria-pressed:text-success"
+              aria-pressed={feedback === "useful"}
+              aria-label={t("actions.useful")}
+              title={t("actions.useful")}
+              disabled={pending}
+              onClick={() => choose("useful")}
+            >
+              <StateIcon icon={ThumbsUp} pop={popFor("useful")} />
+            </Button>
+            <Button
+              variant={feedback === "not_relevant" ? "secondary" : "ghost"}
+              size="icon-sm"
+              className="press text-muted-foreground aria-pressed:text-foreground"
+              aria-pressed={feedback === "not_relevant"}
+              aria-label={t("actions.notRelevant")}
+              title={t("actions.notRelevant")}
+              disabled={pending}
+              onClick={() => choose("not_relevant")}
+            >
+              <StateIcon icon={ThumbsDown} pop={popFor("not_relevant")} />
+            </Button>
+          </div>
         </div>
       </div>
-      <p aria-live="polite" className={status?.error ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>
+      <p aria-live="polite" className={cn("text-sm", status?.error ? "text-destructive" : "text-muted-foreground")}>
         {status ? (
           <span key={status.n} className="inline-flex animate-fade items-start gap-1.5">
             {status.error ? (

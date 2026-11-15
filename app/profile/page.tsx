@@ -1,3 +1,4 @@
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -76,9 +77,11 @@ async function OwnProfile({ viewer, companyId, locale }: { viewer: Viewer; compa
     <>
       <CompanyHeader company={profile.company} locale={locale} />
       <Announcer />
-      <div className="flex animate-rise flex-col gap-2">
-        <h2 className="text-lg font-semibold">{t("prioritiesTitle")}</h2>
-        <p className="text-sm text-muted-foreground">{t("prioritiesIntro")}</p>
+      <div data-glow className="flex animate-rise flex-col gap-3 rounded-2xl p-5 ring-1 ring-foreground/10">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold">{t("prioritiesTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("prioritiesIntro")}</p>
+        </div>
         <PrioritySwitches
           switches={UserPriority.options.map((priority) => ({
             priority,
@@ -91,8 +94,12 @@ async function OwnProfile({ viewer, companyId, locale }: { viewer: Viewer; compa
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold">{t("profileTitle")}</h2>
-          <Link href={`/profile/${profile.company.slug}`} className="text-sm text-primary underline-offset-4 hover:underline">
+          <Link
+            href={`/profile/${profile.company.slug}`}
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
             {t("seePublic")}
+            <ArrowRight aria-hidden className="size-3.5" />
           </Link>
         </div>
         {open ? <p className="text-sm text-muted-foreground">{t("suggestionsWaiting", { count: open })}</p> : null}

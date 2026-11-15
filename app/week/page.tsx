@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -9,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getViewer } from "@/lib/auth";
 import { mondayOf } from "@/lib/cards/week";
+import { companies } from "@/lib/db/schema";
 import { withUserDb } from "@/lib/db/user";
 import { LocaleProvider } from "@/lib/i18n/client";
 import type { Locale } from "@/lib/i18n/config";
@@ -19,6 +21,7 @@ import { weekLabel } from "@/lib/week/format";
 import { statusJson } from "@/lib/week/live";
 import { loadProfileChangedAt, loadWeek } from "@/lib/week/load";
 import { WeekCard } from "./week-card";
+import { cardAnchor, WeekGlance } from "./week-glance";
 import { WeekLive } from "./week-live";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -130,9 +133,10 @@ async function WeekContent({ locale }: { locale: Locale }) {
 
   const t = createTranslator(locale, "week");
   const companyId = viewer.companyId;
-  const { week, profileChangedAt } = await withUserDb(viewer.claims, async (tx) => ({
+  const { week, profileChangedAt, companyName } = await withUserDb(viewer.claims, async (tx) => ({
     week: await loadWeek(tx, { companyId, userId: viewer.userId }),
     profileChangedAt: await loadProfileChangedAt(tx, companyId),
+    companyName: (await tx.select({ name: companies.name }).from(companies).where(eq(companies.id, companyId)).limit(1))[0]?.name ?? null,
   }));
   const now = new Date();
   // The page polls this and loads the new order once the cards were built again (C8).
@@ -144,18 +148,24 @@ async function WeekContent({ locale }: { locale: Locale }) {
   const thisWeek = mondayOf(now);
   const date = weekLabel(week.weekOf, locale);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="text-lg font-semibold">{t("weekOf", { date })}</h2>
-          <span className="text-sm text-muted-foreground">{t("cardCount", { count: week.cards.length })}</span>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-semibold">
+            {companyName ? t("forCompany", { company: companyName, date }) : t("weekOf", { date })}
+          </h2>
+          {week.weekOf !== thisWeek ? <p className="text-sm text-muted-foreground">{t("olderWeek", { date })}</p> : null}
         </div>
-        {week.weekOf !== thisWeek ? <p className="text-sm text-muted-foreground">{t("olderWeek", { date })}</p> : null}
+        <WeekGlance cards={week.cards} now={now} locale={locale} />
       </div>
       <WeekLive
         companyId={companyId}
         status={status}
-        items={week.cards.map((card) => ({ key: card.key, card: <WeekCard card={card} now={now} locale={locale} /> }))}
+        items={week.cards.map((card) => ({
+          key: card.key,
+          anchor: cardAnchor(card.key),
+          card: <WeekCard card={card} now={now} locale={locale} />,
+        }))}
       />
     </div>
   );

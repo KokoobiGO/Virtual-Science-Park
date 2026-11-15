@@ -17,17 +17,21 @@ export type NavMenuItem = { href: string; label: string };
  * below it, so any number of items fits. Below md a Menu button opens the links
  * and `extra` as a list. The current page is marked with aria-current="page".
  * `menuLabel` is the Menu button's text, in the reader's language (C19).
+ * `inline` puts the links on the brand's row from the xl breakpoint up (for a
+ * short menu), so the header is one calm line.
  */
 export function NavMenu({
   items,
   label = "Main",
   menuLabel = "Menu",
   extra,
+  inline = false,
 }: {
   items: NavMenuItem[];
   label?: string;
   menuLabel?: string;
   extra?: ReactNode;
+  inline?: boolean;
 }) {
   const pathname = usePathname();
   const panelId = useId();
@@ -66,7 +70,7 @@ export function NavMenu({
         )}
         onKeyDown={closeOnEscape}
       >
-        <nav aria-label={label} className="md:order-2 md:-ml-2.5 md:basis-full">
+        <nav aria-label={label} className={cn("md:order-2 md:-ml-2.5 md:basis-full", inline && "xl:order-1 xl:ml-0 xl:basis-auto")}>
           <ul className="flex flex-col gap-0.5 md:flex-row md:flex-wrap md:items-center md:gap-1">
             {items.map((item) => {
               const current = isCurrentPath(pathname, item.href);
@@ -94,7 +98,7 @@ export function NavMenu({
           </ul>
         </nav>
         {extra ? (
-          <div className="flex flex-wrap items-center gap-2 border-t pt-3 md:order-1 md:ml-auto md:border-0 md:pt-0">
+          <div className={cn("flex flex-wrap items-center gap-2 border-t pt-3 md:order-1 md:ml-auto md:border-0 md:pt-0", inline && "xl:order-2")}>
             {extra}
           </div>
         ) : null}

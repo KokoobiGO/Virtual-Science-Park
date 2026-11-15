@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
+import { ArrowUpRight, LoaderCircle, Sparkles } from "lucide-react";
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DataStatusLabel } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
@@ -160,25 +160,41 @@ export function Sources({ citations }: { citations: Citation[] }) {
   );
 }
 
-/** What an empty conversation shows: questions to start with, as quiet chips. */
+/** What an empty conversation shows: a short welcome and questions to start with, as cards to tap. */
 export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, event: MouseEvent) => void; busy: boolean }) {
   const t = useT("copilot");
   return (
-    <ul aria-label={t("empty.try")} className="flex animate-fade flex-wrap gap-2">
-      {SUGGESTIONS.map((s) => (
-        <li key={s} className="max-w-full">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="press h-auto max-w-full rounded-full px-3 py-1.5 text-left font-normal whitespace-normal text-muted-foreground ring-1 ring-foreground/10 hover:text-foreground"
-            onClick={(event) => onAsk(s, event)}
-            disabled={busy}
-          >
-            {s}
-          </Button>
-        </li>
-      ))}
-    </ul>
+    <div className="@container flex animate-fade flex-col gap-5">
+      <div className="flex flex-col items-start gap-3">
+        <span aria-hidden className="grid size-10 place-items-center rounded-xl bg-brand/15 text-brand">
+          <Sparkles className="size-5" />
+        </span>
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xl font-semibold tracking-tight">{t("welcome.title")}</h2>
+          <p className="max-w-prose text-sm text-muted-foreground">{t("welcome.text")}</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <p aria-hidden className="text-xs font-medium text-muted-foreground">
+          {t("empty.try")}
+        </p>
+        <ul aria-label={t("empty.try")} className="grid gap-2 @md:grid-cols-2">
+          {SUGGESTIONS.map((s) => (
+            <li key={s} className="flex min-w-0">
+              <Button
+                variant="ghost"
+                className="press lift group/suggestion h-auto w-full items-start justify-between gap-3 rounded-xl px-3.5 py-3 text-left font-normal whitespace-normal text-foreground/90 ring-1 ring-foreground/10 hover:bg-foreground/[0.03] hover:text-foreground"
+                onClick={(event) => onAsk(s, event)}
+                disabled={busy}
+              >
+                <span>{s}</span>
+                <ArrowUpRight aria-hidden className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover/suggestion:text-foreground" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -337,7 +353,7 @@ export function CopilotPanel({ className }: { className?: string }) {
 
       <div className="flex min-h-40 min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
         {entries.length === 0 && (
-          <div className="mt-auto">
+          <div className="my-auto py-4">
             <EmptyConversation onAsk={askSuggestion} busy={busy} />
           </div>
         )}

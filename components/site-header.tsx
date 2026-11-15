@@ -1,8 +1,8 @@
+import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/actions/auth";
 import { LanguageSwitch } from "@/components/language-switch";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NavMenu } from "@/components/ui/nav-menu";
 import { getViewer } from "@/lib/auth";
@@ -10,6 +10,7 @@ import { getLocale } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
 import { NAV, SHARED_NAV } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { initials } from "@/lib/utils";
 
 /**
  * The site chrome (C2): header with the menu for the signed-in role, and the
@@ -20,7 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 export function SiteHeader() {
   return (
     <header data-site-header className="sticky top-0 z-40 border-b border-white/[0.06] bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55">
-      <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2">
+      <div className="mx-auto flex min-h-16 w-full max-w-7xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
         <Link
           href="/"
           className="group/brand -mx-1 flex items-center gap-2.5 rounded-md px-1 py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -64,21 +65,32 @@ async function HeaderNav() {
   }
 
   const items = NAV[viewer.role].map(({ id, href }) => ({ href, label: nav(`${id}.label`) }));
+  const role = common(`roles.${viewer.role}`);
+  const name = companyName ?? role;
   return (
     <NavMenu
       items={items}
       label={viewer.role === "staff" ? t("staffMenu") : t("memberMenu")}
       menuLabel={t("menuButton")}
+      // Six member links fit on one row with the brand and the account; the longer staff menu keeps a row of its own.
+      inline={items.length <= 6}
       extra={
         <>
           {languageSwitch}
-          <Badge variant="secondary" data-testid="signed-in-as" title={companyName ?? viewer.email ?? undefined}>
-            <span>{common(`roles.${viewer.role}`)}</span>
-            <span className="sr-only">: {companyName ?? viewer.email}</span>
-          </Badge>
+          <span
+            data-testid="signed-in-as"
+            title={companyName ? `${role}: ${companyName}` : (viewer.email ?? role)}
+            className="inline-flex max-w-56 items-center gap-2 rounded-full bg-secondary py-1 pr-3 pl-1 text-xs font-medium text-secondary-foreground"
+          >
+            <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-brand text-[0.65rem] font-semibold text-brand-foreground">
+              {initials(name)}
+            </span>
+            <span className="sr-only">{`${role}: `}</span>
+            <span className="truncate">{name}</span>
+          </span>
           <form action={signOut}>
-            <Button type="submit" variant="outline" size="sm">
-              {t("signOut")}
+            <Button type="submit" variant="ghost" size="icon-sm" aria-label={t("signOut")} title={t("signOut")} className="text-muted-foreground hover:text-foreground">
+              <LogOut aria-hidden />
             </Button>
           </form>
         </>
@@ -90,7 +102,7 @@ async function HeaderNav() {
 export function SiteFooter() {
   return (
     <footer data-site-footer className="mt-auto border-t">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
         <Suspense fallback={<div className="h-10 max-w-prose flex-1" aria-hidden />}>
           <FooterText />
         </Suspense>

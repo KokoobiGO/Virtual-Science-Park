@@ -3,6 +3,7 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import { createTranslator } from "@/lib/i18n/translate";
 import { formatDate } from "@/lib/profile-view/claims";
 import type { CompanyHeader as Company } from "@/lib/profile-view/load";
+import { initials } from "@/lib/utils";
 
 /**
  * Name, then one quiet line: industry, town, links and how the last profiling
@@ -36,17 +37,25 @@ export function CompanyHeader({ company, title, locale = DEFAULT_LOCALE }: { com
   );
 
   return (
-    <div className="flex flex-col gap-2">
-      <h1 className="text-title break-words">{title ?? company.name}</h1>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-        {parts.map((part, i) => (
-          <span key={i} className="inline-flex gap-x-2">
-            {i > 0 ? <span aria-hidden>&middot;</span> : null}
-            <span>{part}</span>
-          </span>
-        ))}
-      </p>
-      {company.profileNote ? <p className="max-w-prose text-sm break-words text-muted-foreground">{company.profileNote}</p> : null}
+    <div className="flex items-start gap-4">
+      <span
+        aria-hidden
+        className="mt-1 grid size-14 shrink-0 place-items-center rounded-2xl bg-brand/15 text-lg font-semibold tracking-tight text-brand ring-1 ring-brand/20 max-sm:hidden"
+      >
+        {initials(company.name)}
+      </span>
+      <div className="flex min-w-0 flex-col gap-2">
+        <h1 className="text-title break-words">{title ?? company.name}</h1>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          {parts.map((part, i) => (
+            <span key={i} className="inline-flex gap-x-2">
+              {i > 0 ? <span aria-hidden>&middot;</span> : null}
+              <span>{part}</span>
+            </span>
+          ))}
+        </p>
+        {company.profileNote ? <p className="max-w-prose text-sm break-words text-muted-foreground">{company.profileNote}</p> : null}
+      </div>
     </div>
   );
 }

@@ -216,8 +216,12 @@ test.describe("3. company profile", () => {
     const switches = main(page).getByRole("group", { name: "Priorities" }).getByRole("button");
     await expect(switches.first()).toBeVisible();
     const labels = await switches.allInnerTexts();
-    for (const label of labels) expect(label.trim(), "each switch says On: or Off:").toMatch(/^(On|Off):\s+\S/);
-    for (const s of await switches.all()) await expect(s).toHaveAttribute("aria-pressed", /^(true|false)$/);
+    for (const label of labels) expect(label.trim(), "each switch names its priority").toMatch(/\S/);
+    // On or off is shown by a check mark or a plus (not colour alone), and told to screen readers by aria-pressed.
+    for (const s of await switches.all()) {
+      await expect(s).toHaveAttribute("aria-pressed", /^(true|false)$/);
+      await expect(s.locator("svg"), "each switch shows a check mark or a plus").toHaveCount(1);
+    }
     test.info().annotations.push({ type: "switches", description: labels.map((l) => l.replace(/\s+/g, " ").trim()).join("; ") });
   });
 });

@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import { ClaimBadge } from "@/components/claim-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,26 +29,43 @@ export function FieldList({
   editable?: boolean;
   locale?: Locale;
 }) {
+  const usualDay = mostCommonDay(fields, locale);
   return (
-    <ol className="stagger flex flex-col divide-y divide-border border-y">
+    <ol className="stagger grid gap-3 md:grid-cols-2">
       {fields.map((view) => (
-        <li key={view.field}>
-          <FieldCard view={view} evidence={evidence} editable={editable} locale={locale} />
+        // The summary is prose, so it gets the full width; the lists sit two by two.
+        <li key={view.field} className={view.field === "summary" ? "md:col-span-2" : undefined}>
+          <FieldCard view={view} evidence={evidence} editable={editable} usualDay={usualDay} locale={locale} />
         </li>
       ))}
     </ol>
   );
 }
 
+/** The day most fields were last updated. Only a field updated on another day shows its date, so the list does not repeat one date eight times. */
+function mostCommonDay(fields: FieldView[], locale: Locale): string | null {
+  const counts = new Map<string, number>();
+  for (const view of fields) {
+    if (!view.claim) continue;
+    const day = formatDate(view.claim.updatedAt, locale);
+    counts.set(day, (counts.get(day) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  for (const [day, n] of counts) if (best === null || n > counts.get(best)!) best = day;
+  return best;
+}
+
 function FieldCard({
   view,
   evidence,
   editable,
+  usualDay,
   locale,
 }: {
   view: FieldView;
   evidence: Record<string, EvidenceView[]>;
   editable: boolean;
+  usualDay: string | null;
   locale: Locale;
 }) {
   const claim = view.claim;
@@ -55,18 +73,17 @@ function FieldCard({
   const headingId = fieldHeadingId(view.field);
 
   return (
-    // A plain row in the list, not a boxed card: the divider between rows is enough.
-    <Card size="sm" className="gap-2 rounded-none bg-transparent py-5 shadow-none ring-0">
-      <CardHeader className="flex flex-wrap items-center gap-x-3 gap-y-1 px-0">
+    <Card size="sm" className="h-full gap-3 px-1 py-4">
+      <CardHeader className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
         <CardTitle>
           {/* tabIndex -1: focus comes back here after a suggestion is accepted or rejected. */}
           <h3 id={headingId} tabIndex={-1} title={view.hint} className="text-base font-semibold outline-none focus-visible:underline">
             {view.label}
           </h3>
         </CardTitle>
-        <ClaimMeta view={view} locale={locale} />
+        <ClaimMeta view={view} usualDay={usualDay} locale={locale} />
       </CardHeader>
-      <CardContent className="flex flex-col gap-3 px-0">
+      <CardContent className="flex flex-col gap-2">
         {editable ? (
           <ClaimEditor
             field={view.field}
@@ -97,18 +114,22 @@ function FieldCard({
   );
 }
 
-/** Status badge, confidence, date, stale flag and who may see it. */
-function ClaimMeta({ view, locale }: { view: FieldView; locale: Locale }) {
+/**
+ * Status badge, then only what is out of the ordinary: a confidence below
+ * high, a date other than the usual one, a stale flag, who may see it.
+ */
+function ClaimMeta({ view, usualDay, locale }: { view: FieldView; usualDay: string | null; locale: Locale }) {
   const t = createTranslator(locale, "profile");
   const claim = view.claim;
+  const day = claim ? formatDate(claim.updatedAt, locale) : null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
       <ClaimBadge status={view.status} locale={locale} />
-      {view.confidence ? <span>{t("confidence", { level: t(`confidenceLevels.${view.confidence}`) })}</span> : null}
-      {claim ? (
-        <span>
-          {t.rich("updated", { date: <time dateTime={claim.updatedAt.toISOString()}>{formatDate(claim.updatedAt, locale)}</time> })}
-        </span>
+      {view.confidence && view.confidence !== "high" ? (
+        <span>{t("confidence", { level: t(`confidenceLevels.${view.confidence}`) })}</span>
+      ) : null}
+      {claim && day !== usualDay ? (
+        <span>{t.rich("updated", { date: <time dateTime={claim.updatedAt.toISOString()}>{day}</time> })}</span>
       ) : null}
       {view.stale ? (
         <Badge variant="warning" title={t("staleTitle", { days: STALE_AFTER_DAYS })}>
@@ -117,6 +138,7 @@ function ClaimMeta({ view, locale }: { view: FieldView; locale: Locale }) {
       ) : null}
       {claim?.visibility === "private" ? (
         <Badge variant="outline" title={t("privateTitle")}>
+          <Lock aria-hidden data-icon="inline-start" />
           {t("private")}
         </Badge>
       ) : null}

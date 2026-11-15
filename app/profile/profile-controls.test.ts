@@ -42,7 +42,7 @@ describe("SuggestionReview (C20)", () => {
 });
 
 describe("PrioritySwitches (C20)", () => {
-  it("writes On or Off on each switch and gives its state as aria-pressed", () => {
+  it("marks each switch with a check (on) or a plus (off), not colour alone, and gives its state as aria-pressed", () => {
     const out = render(
       createElement(PrioritySwitches, {
         switches: [
@@ -52,8 +52,8 @@ describe("PrioritySwitches (C20)", () => {
       }),
     );
     expect(out).toContain('aria-label="Your priorities"');
-    expect(out).toMatch(/aria-pressed="true"[^>]*>.*On: .*Funding/);
-    expect(out).toMatch(/aria-pressed="false"[^>]*>.*Off: .*Events/);
+    expect(out).toMatch(/aria-pressed="true"[^>]*><svg[^>]*lucide-check[^>]*aria-hidden="true"[^>]*>.*?<\/svg>Funding<\/button>/);
+    expect(out).toMatch(/aria-pressed="false"[^>]*><svg[^>]*lucide-plus[^>]*aria-hidden="true"[^>]*>.*?<\/svg>Events<\/button>/);
   });
 });
 
