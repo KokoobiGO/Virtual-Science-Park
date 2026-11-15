@@ -83,15 +83,15 @@
   --text-display: 2.25rem;
   --text-display--line-height: 1.15;
   --text-display--letter-spacing: -0.025em;
-  --text-display--font-weight: 650;
-  --text-title: 1.625rem;
+  --text-display--font-weight: 500;
+  --text-title: 2.125rem;
   --text-title--line-height: 1.25;
-  --text-title--letter-spacing: -0.018em;
-  --text-title--font-weight: 600;
+  --text-title--letter-spacing: -0.03em;
+  --text-title--font-weight: 500;
   --text-heading: 1.125rem;
   --text-heading--line-height: 1.4;
   --text-heading--letter-spacing: -0.01em;
-  --text-heading--font-weight: 600;
+  --text-heading--font-weight: 500;
 
   /*
    * Motion (polish pass). Short and calm: things arrive, they do not perform.
@@ -297,27 +297,28 @@
   @variant dark {
     color-scheme: dark;
 
-    --background: oklch(0.19 0.028 260);
-    --foreground: oklch(0.95 0.01 250);
-    --card: oklch(0.23 0.032 260);
-    --card-foreground: oklch(0.95 0.01 250);
-    --card-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.3);
-    --popover: oklch(0.23 0.032 260);
-    --popover-foreground: oklch(0.95 0.01 250);
-    --primary: oklch(0.74 0.12 250);
-    --primary-foreground: oklch(0.2 0.05 260);
-    --secondary: oklch(0.28 0.04 260);
-    --secondary-foreground: oklch(0.93 0.015 250);
-    --muted: oklch(0.25 0.03 260);
-    --muted-foreground: oklch(0.75 0.025 255);
-    --accent: oklch(0.3 0.05 258);
-    --accent-foreground: oklch(0.95 0.01 250);
-    --destructive: oklch(0.7 0.18 22);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 24%);
-    --ring: oklch(0.74 0.12 250);
-    --brand: oklch(0.8 0.1 250);
-    --brand-foreground: oklch(0.2 0.05 260);
+    /* The landing page's night palette: near-black, white text, white accents, sea-blue focus. */
+    --background: oklch(0.14 0.004 280);
+    --foreground: oklch(0.97 0.003 280);
+    --card: oklch(0.165 0.006 282);
+    --card-foreground: oklch(0.97 0.003 280);
+    --card-shadow: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 20px 50px -30px oklch(0 0 0 / 0.8);
+    --popover: oklch(0.18 0.007 282);
+    --popover-foreground: oklch(0.97 0.003 280);
+    --primary: oklch(0.97 0.004 280);
+    --primary-foreground: oklch(0.18 0.01 280);
+    --secondary: oklch(0.22 0.008 282);
+    --secondary-foreground: oklch(0.95 0.004 280);
+    --muted: oklch(0.2 0.007 282);
+    --muted-foreground: oklch(0.72 0.01 280);
+    --accent: oklch(0.24 0.01 282);
+    --accent-foreground: oklch(0.97 0.003 280);
+    --destructive: oklch(0.72 0.17 22);
+    --border: oklch(1 0 0 / 9%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.82 0.11 220);
+    --brand: oklch(0.85 0.1 220);
+    --brand-foreground: oklch(0.18 0.01 280);
 
     --success: oklch(0.8 0.13 155);
     --success-soft: oklch(0.3 0.06 155);
@@ -334,7 +335,7 @@
     --chart-4: oklch(0.72 0.13 305);
     --chart-5: oklch(0.72 0.15 30);
 
-    --sidebar: oklch(0.21 0.032 260);
+    --sidebar: oklch(0.16 0.006 282);
     --sidebar-foreground: oklch(0.95 0.01 250);
     --sidebar-primary: oklch(0.74 0.12 250);
     --sidebar-primary-foreground: oklch(0.2 0.05 260);
@@ -487,5 +488,40 @@ body:has([data-landing]) [data-site-header] [data-slot="button"] {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/*
+ * The night look on every page (the landing page's style): a soft purple
+ * light in the top-left corner and faint stars behind everything, cards that
+ * catch the pointer's light (components/pointer-glow.tsx sets --mx/--my), and
+ * cards that rise in as they scroll into view.
+ */
+body {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(55% 40% at 8% -5%, oklch(0.3 0.035 320 / 0.55), transparent),
+    radial-gradient(45% 35% at 100% 0%, oklch(0.28 0.05 255 / 0.35), transparent),
+    radial-gradient(1px 1px at 20px 30px, oklch(1 0 0 / 0.35), transparent),
+    radial-gradient(1px 1px at 140px 90px, oklch(1 0 0 / 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 230px 170px, oklch(1 0 0 / 0.3), transparent);
+  background-size: 100% 100%, 100% 100%, 300px 260px, 300px 260px, 300px 260px;
+  background-attachment: fixed;
+}
+[data-slot="card"],
+[data-glow] {
+  background-image: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), oklch(0.78 0.11 225 / 0.09), transparent 45%);
+}
+[data-slot="card"] {
+  transition: box-shadow 200ms ease-out;
+}
+[data-slot="card"]:hover {
+  --tw-ring-color: oklch(1 0 0 / 0.16);
+}
+@supports (animation-timeline: view()) {
+  main [data-slot="card"] {
+    animation: landing-reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 18%;
   }
 }

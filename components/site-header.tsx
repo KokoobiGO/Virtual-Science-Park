@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
  */
 export function SiteHeader() {
   return (
-    <header data-site-header className="sticky top-0 z-40 border-b bg-card/85 backdrop-blur-md supports-[backdrop-filter]:bg-card/70">
+    <header data-site-header className="sticky top-0 z-40 border-b border-white/[0.06] bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55">
       <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2">
         <Link
           href="/"
