@@ -28,9 +28,9 @@ export async function CompanyList({ viewer, locale }: { viewer: Viewer; locale: 
           })}
         </p>
       ) : (
-        <ul className="divide-y rounded-xl border">
+        <ul className="stagger flex flex-col gap-2">
           {companies.map((c) => (
-            <li key={c.slug} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3">
+            <li key={c.slug} className="lift flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border bg-card px-4 py-3 shadow-card">
               <Link href={`/profile/${c.slug}`} className="min-w-0 font-medium break-words text-primary underline-offset-4 hover:underline">
                 {c.name}
               </Link>

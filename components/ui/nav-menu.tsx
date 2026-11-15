@@ -60,7 +60,10 @@ export function NavMenu({
       </Button>
       <div
         id={panelId}
-        className={cn("basis-full flex-col gap-3 pt-1 pb-3 md:contents", open ? "flex" : "hidden")}
+        className={cn(
+          "basis-full flex-col gap-3 pt-1 pb-3 max-md:max-h-[calc(100dvh-4.5rem)] max-md:overflow-y-auto md:contents",
+          open ? "flex animate-slide-down" : "hidden",
+        )}
         onKeyDown={closeOnEscape}
       >
         <nav aria-label={label} className="md:order-2 md:-ml-2.5 md:basis-full">
@@ -73,8 +76,14 @@ export function NavMenu({
                     href={item.href}
                     aria-current={current ? "page" : undefined}
                     className={cn(
-                      "flex rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:px-2.5 md:py-1.5",
-                      current && "bg-secondary font-semibold text-secondary-foreground",
+                      // Below md: a list, the current page as a tinted row with a bar on its left.
+                      // From md: a row of links, the current page underlined by a bar that grows in.
+                      "relative flex rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:px-2.5 md:py-1.5",
+                      "after:pointer-events-none after:absolute after:rounded-full after:bg-primary after:transition-transform after:duration-300 after:ease-(--ease-out-soft)",
+                      "max-md:after:inset-y-2 max-md:after:left-0 max-md:after:w-0.5 max-md:after:origin-top md:after:inset-x-2.5 md:after:-bottom-1 md:after:h-0.5 md:after:origin-center",
+                      current
+                        ? "font-semibold text-foreground max-md:bg-secondary max-md:text-secondary-foreground after:scale-100"
+                        : "max-md:after:scale-y-0 md:after:scale-x-0 md:hover:after:scale-x-50",
                     )}
                   >
                     {item.label}

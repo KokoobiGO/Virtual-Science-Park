@@ -40,7 +40,8 @@ describe("freshGoldFile", () => {
       T1,
     );
     expect(file).toMatchObject({ slug: "acme", company: "Acme AB", exportedAt: T1, checkedBy: "" });
-    expect(file.howTo).toMatch(/"right" or "wrong"/);
+    expect(file.howTo).toMatch(/"right", "wrong" or "unsure"/);
+    expect(file).not.toHaveProperty("automatedReviewer");
     expect(file.claims.map((c) => c.field)).toEqual(["summary", "offerings", "geography", "statedPriorities"]);
     expect(file.claims.every((c) => c.verdict === null && c.note === "")).toBe(true);
     expect(file.claims[1].evidence.map((e) => e.quote)).toEqual(["a", "z", "b"]);
@@ -87,6 +88,25 @@ describe("mergeGoldFile", () => {
     expect(merge.file.checkedBy).toBe("Sara");
     expect(merge.file.claims[0]).toMatchObject({ claimId: ID(1), verdict: "wrong", note: "The site says radars." });
     expect(merge.added.map((c) => c.claimId)).toEqual([ID(3)]);
+  });
+
+  it("keeps who checked, the day, the automated-reviewer label and the checked pages", () => {
+    const before: GoldFile = {
+      ...freshGoldFile(company([claim(1), claim(2, { field: "offerings" })]), T1),
+      checkedBy: "automated reviewer (AI), not a person",
+      checkedOn: "2026-11-14",
+      automatedReviewer: true,
+      confirmedByTeam: false,
+    };
+    before.claims = before.claims.map((c) => ({ ...c, verdict: "unsure", note: "Not settled.", checkedUrls: ["https://a.example/om"] }));
+    const unchanged = mergeGoldFile(before, freshGoldFile(company([claim(1), claim(2, { field: "offerings" })]), T2));
+    expect(unchanged.changed).toBe(false);
+    expect(formatGoldFile(unchanged.file)).toBe(formatGoldFile(before));
+
+    const merge = mergeGoldFile(before, freshGoldFile(company([claim(1, { value: "Makes radars." }), claim(2, { field: "offerings" })]), T2));
+    expect(merge.file).toMatchObject({ checkedBy: "automated reviewer (AI), not a person", checkedOn: "2026-11-14", automatedReviewer: true, confirmedByTeam: false });
+    expect(merge.file.claims[0]).toMatchObject({ verdict: null, previousVerdict: "unsure", note: "Not settled.", checkedUrls: ["https://a.example/om"] });
+    expect(merge.file.claims[1]).toMatchObject({ verdict: "unsure", checkedUrls: ["https://a.example/om"] });
   });
 
   it("opens the verdict again when the value or the status changed, and keeps the old one", () => {
@@ -149,6 +169,15 @@ describe("formatGoldFile", () => {
     expect(text).toContain("Östersund");
     expect(parseGoldFile(text, "acme.json")).toEqual(file);
   });
+
+  it("puts the reviewer keys after checkedBy and checkedUrls after note", () => {
+    const file: GoldFile = { ...freshGoldFile(company([claim(1)]), T1), checkedBy: "x", checkedOn: "2026-11-14", automatedReviewer: true, confirmedByTeam: false };
+    file.claims[0] = { ...file.claims[0], verdict: "right", note: "ok", checkedUrls: ["https://a.example/"] };
+    const json = JSON.parse(formatGoldFile(file));
+    expect(Object.keys(json)).toEqual(["slug", "company", "exportedAt", "checkedBy", "checkedOn", "automatedReviewer", "confirmedByTeam", "howTo", "claims"]);
+    expect(Object.keys(json.claims[0]).slice(-3)).toEqual(["verdict", "note", "checkedUrls"]);
+    expect(parseGoldFile(formatGoldFile(file), "acme.json")).toEqual(file);
+  });
 });
 
 describe("parseGoldFile", () => {
@@ -158,14 +187,15 @@ describe("parseGoldFile", () => {
     return JSON.stringify(json);
   };
 
-  it("accepts right, wrong and null", () => {
-    for (const verdict of ["right", "wrong", null]) {
+  it("accepts right, wrong, unsure and null", () => {
+    for (const verdict of ["right", "wrong", "unsure", null]) {
       expect(parseGoldFile(text((j) => (j.claims[0].verdict = verdict)), "acme.json").claims[0].verdict).toBe(verdict);
     }
   });
 
   it("names the file and the problem", () => {
     expect(() => parseGoldFile(text((j) => (j.claims[0].verdict = "Right")), "acme.json")).toThrow(/acme\.json[\s\S]*verdict/);
+    expect(() => parseGoldFile(text((j) => (j.checkedOn = "14 Nov")), "acme.json")).toThrow(/checkedOn/);
     expect(() => parseGoldFile(text((j) => (j.claims[0].comment = "hm")), "acme.json")).toThrow(/comment/);
     expect(() => parseGoldFile("{ nope", "acme.json")).toThrow(/acme\.json is not valid JSON/);
   });

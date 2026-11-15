@@ -2,8 +2,11 @@
   "slug": "embeddedart",
   "company": "EmbeddedArt",
   "exportedAt": "2026-11-14T18:09:48.094Z",
-  "checkedBy": "",
-  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\" or \"wrong\" (for a missing claim, \"right\" means the pages really do not say it); write why in note, and your name in checkedBy.",
+  "checkedBy": "automated reviewer (AI), not a person",
+  "checkedOn": "2026-11-14",
+  "automatedReviewer": true,
+  "confirmedByTeam": false,
+  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\", \"wrong\" or \"unsure\" (for a missing claim, \"right\" means the pages really do not say it; \"unsure\" means the pages do not settle it, and it never counts as right); write why in note, the pages you read in checkedUrls, your name in checkedBy and the day in checkedOn.",
   "claims": [
     {
       "claimId": "0e8b10ae-4614-49a7-a8c8-48bb23ab5ca9",
@@ -17,8 +20,12 @@
           "url": "https://www.embeddedart.se/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "Word for word on embeddedart.se. True but partial: the site calls marine and above all underwater technology its core ('EmbeddedArts kärna är inom marinteknik och framförallt undervattensteknik'), and om-oss names civil work too.",
+      "checkedUrls": [
+        "https://www.embeddedart.se/",
+        "https://www.embeddedart.se/om-oss"
+      ]
     },
     {
       "claimId": "937dda6e-c58a-41d4-9860-a42b39335d1e",
@@ -44,8 +51,12 @@
           "url": "https://www.embeddedart.se/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "'UV-sensors' is left untranslated. On embeddedart.se UV means undervattens (underwater): sonars and hydrophones that detect vessels or divers in the water. In English the item reads as ultraviolet sensors, which the company does not offer. The other two items are right.",
+      "checkedUrls": [
+        "https://www.embeddedart.se/",
+        "https://www.embeddedart.se/erbjudande/forsvarstjanster"
+      ]
     },
     {
       "claimId": "e34e6b2c-94b4-4042-8080-1523c5798ff2",
@@ -63,8 +74,11 @@
           "url": "https://www.embeddedart.se/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "embeddedart.se: 'lång och bred erfarenhet inom produktutveckling, hydroakustik och sensorsystem'. 'Product development' is an activity more than a technology.",
+      "checkedUrls": [
+        "https://www.embeddedart.se/"
+      ]
     },
     {
       "claimId": "8a9b48d5-d374-4cde-940a-779832be8446",
@@ -82,8 +96,11 @@
           "url": "https://www.embeddedart.se/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "embeddedart.se: 'tekniska system för sjöbevakning, spaning och marina mätstationer'. 'Monitoring' is a loose rendering of spaning (reconnaissance).",
+      "checkedUrls": [
+        "https://www.embeddedart.se/"
+      ]
     },
     {
       "claimId": "a0e0e878-72cb-408e-817f-af98e91b21ca",
@@ -99,8 +116,12 @@
           "url": "https://www.embeddedart.se/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "embeddedart.se: 'leverantör av produkter, tjänster och tillhörande tekniska lösningar inom militärt försvar'. Incomplete: om-oss also names civil technical applications.",
+      "checkedUrls": [
+        "https://www.embeddedart.se/",
+        "https://www.embeddedart.se/om-oss"
+      ]
     },
     {
       "claimId": "23c3cde4-686a-4efe-80bb-4760d425b10b",
@@ -126,8 +147,12 @@
           "url": "https://www.embeddedart.se/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "The footer lists offices in Stockholm, Karlskrona and Östersund. Incomplete: om-oss says the group is in five places, Åre and Enköping as well.",
+      "checkedUrls": [
+        "https://www.embeddedart.se/",
+        "https://www.embeddedart.se/om-oss"
+      ]
     },
     {
       "claimId": "5c14dc9f-90f4-4eae-9e01-f79549e5cf36",
@@ -136,8 +161,13 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: embeddedart.se/innovation describes goals and collaborations (innovation and research that make the world safer and cut environmental impact, work with KTH, BTH and FOI, projects such as finding ghost nets with AI). The home page alone does not say this.",
+      "checkedUrls": [
+        "https://www.embeddedart.se/innovation",
+        "https://www.embeddedart.se/om-oss",
+        "https://www.embeddedart.se/"
+      ]
     }
   ]
 }

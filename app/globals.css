@@ -83,15 +83,162 @@
   --text-display: 2.25rem;
   --text-display--line-height: 1.15;
   --text-display--letter-spacing: -0.025em;
-  --text-display--font-weight: 650;
-  --text-title: 1.625rem;
+  --text-display--font-weight: 500;
+  --text-title: 2.125rem;
   --text-title--line-height: 1.25;
-  --text-title--letter-spacing: -0.018em;
-  --text-title--font-weight: 600;
+  --text-title--letter-spacing: -0.03em;
+  --text-title--font-weight: 500;
   --text-heading: 1.125rem;
   --text-heading--line-height: 1.4;
   --text-heading--letter-spacing: -0.01em;
-  --text-heading--font-weight: 600;
+  --text-heading--font-weight: 500;
+
+  /*
+   * Motion (polish pass). Short and calm: things arrive, they do not perform.
+   *   animate-rise   content entering (cards, sections, list rows)
+   *   animate-fade   a whole page or panel appearing
+   *   animate-pop    something small the reader just caused (a badge, a saved tick)
+   *   animate-slide-down  a menu, a notice, an expanding panel
+   * Group entrances: put `stagger` on the parent; its children rise one after another.
+   * Everything stops for readers who ask for reduced motion (see the base layer).
+   */
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --animate-rise: rise 420ms var(--ease-out-soft) both;
+  --animate-fade: fade 280ms ease-out both;
+  --animate-pop: pop 240ms var(--ease-out-soft) both;
+  --animate-slide-down: slide-down 220ms var(--ease-out-soft) both;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.03);
+    }
+    100% {
+      transform: none;
+    }
+  }
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  /* The landing hero's liquid shape and its floating cards. */
+  --animate-morph: morph 14s ease-in-out infinite alternate;
+  --animate-spin-slow: spin 18s linear infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-twinkle: twinkle 5s ease-in-out infinite alternate;
+  @keyframes morph {
+    0% {
+      border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%;
+      transform: rotate(0deg) scale(1);
+    }
+    33% {
+      border-radius: 58% 42% 40% 60% / 44% 58% 42% 56%;
+      transform: rotate(8deg) scale(1.03);
+    }
+    66% {
+      border-radius: 40% 60% 54% 46% / 60% 40% 60% 40%;
+      transform: rotate(-6deg) scale(0.98);
+    }
+    100% {
+      border-radius: 54% 46% 44% 56% / 46% 56% 44% 54%;
+      transform: rotate(4deg) scale(1.02);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes twinkle {
+    from {
+      opacity: 0.35;
+    }
+    to {
+      opacity: 0.9;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 0;
+    }
+    100% {
+      background-position: -100% 0;
+    }
+  }
+}
+
+/* Children rise one after another (first ten staggered, the rest with the tenth). */
+@utility stagger {
+  & > * {
+    animation: var(--animate-rise);
+  }
+  & > :nth-child(2) { animation-delay: 45ms; }
+  & > :nth-child(3) { animation-delay: 90ms; }
+  & > :nth-child(4) { animation-delay: 135ms; }
+  & > :nth-child(5) { animation-delay: 180ms; }
+  & > :nth-child(6) { animation-delay: 225ms; }
+  & > :nth-child(7) { animation-delay: 270ms; }
+  & > :nth-child(8) { animation-delay: 315ms; }
+  & > :nth-child(9) { animation-delay: 360ms; }
+  & > :nth-child(n + 10) { animation-delay: 405ms; }
+}
+
+/* A card or row that can be clicked: lifts a little on hover and keyboard focus. */
+@utility lift {
+  transition:
+    transform 180ms var(--ease-out-soft),
+    box-shadow 180ms var(--ease-out-soft),
+    border-color 180ms ease-out;
+  &:hover,
+  &:focus-within {
+    transform: translateY(-2px);
+    /* Added to Tailwind's ring shadows, so a ring or focus ring survives the lift. */
+    box-shadow:
+      var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000), var(--tw-ring-offset-shadow, 0 0 #0000),
+      var(--tw-ring-shadow, 0 0 #0000), 0 6px 20px -8px oklch(0.3 0.08 260 / 0.25);
+    border-color: color-mix(in oklab, var(--primary) 35%, var(--border));
+  }
+}
+
+/* A press feels like a press. */
+@utility press {
+  transition: transform 120ms ease-out;
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
 :root,
@@ -150,27 +297,28 @@
   @variant dark {
     color-scheme: dark;
 
-    --background: oklch(0.19 0.028 260);
-    --foreground: oklch(0.95 0.01 250);
-    --card: oklch(0.23 0.032 260);
-    --card-foreground: oklch(0.95 0.01 250);
-    --card-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.3);
-    --popover: oklch(0.23 0.032 260);
-    --popover-foreground: oklch(0.95 0.01 250);
-    --primary: oklch(0.74 0.12 250);
-    --primary-foreground: oklch(0.2 0.05 260);
-    --secondary: oklch(0.28 0.04 260);
-    --secondary-foreground: oklch(0.93 0.015 250);
-    --muted: oklch(0.25 0.03 260);
-    --muted-foreground: oklch(0.75 0.025 255);
-    --accent: oklch(0.3 0.05 258);
-    --accent-foreground: oklch(0.95 0.01 250);
-    --destructive: oklch(0.7 0.18 22);
-    --border: oklch(1 0 0 / 12%);
-    --input: oklch(1 0 0 / 24%);
-    --ring: oklch(0.74 0.12 250);
-    --brand: oklch(0.8 0.1 250);
-    --brand-foreground: oklch(0.2 0.05 260);
+    /* The landing page's night palette: near-black, white text, white accents, sea-blue focus. */
+    --background: oklch(0.14 0.004 280);
+    --foreground: oklch(0.97 0.003 280);
+    --card: oklch(0.165 0.006 282);
+    --card-foreground: oklch(0.97 0.003 280);
+    --card-shadow: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 20px 50px -30px oklch(0 0 0 / 0.8);
+    --popover: oklch(0.18 0.007 282);
+    --popover-foreground: oklch(0.97 0.003 280);
+    --primary: oklch(0.97 0.004 280);
+    --primary-foreground: oklch(0.18 0.01 280);
+    --secondary: oklch(0.22 0.008 282);
+    --secondary-foreground: oklch(0.95 0.004 280);
+    --muted: oklch(0.2 0.007 282);
+    --muted-foreground: oklch(0.72 0.01 280);
+    --accent: oklch(0.24 0.01 282);
+    --accent-foreground: oklch(0.97 0.003 280);
+    --destructive: oklch(0.72 0.17 22);
+    --border: oklch(1 0 0 / 9%);
+    --input: oklch(1 0 0 / 16%);
+    --ring: oklch(0.82 0.11 220);
+    --brand: oklch(0.85 0.1 220);
+    --brand-foreground: oklch(0.18 0.01 280);
 
     --success: oklch(0.8 0.13 155);
     --success-soft: oklch(0.3 0.06 155);
@@ -187,7 +335,7 @@
     --chart-4: oklch(0.72 0.13 305);
     --chart-5: oklch(0.72 0.15 30);
 
-    --sidebar: oklch(0.21 0.032 260);
+    --sidebar: oklch(0.16 0.006 282);
     --sidebar-foreground: oklch(0.95 0.01 250);
     --sidebar-primary: oklch(0.74 0.12 250);
     --sidebar-primary-foreground: oklch(0.2 0.05 260);
@@ -222,5 +370,158 @@
   }
   ::selection {
     background: color-mix(in oklab, var(--primary) 22%, transparent);
+  }
+  html {
+    scroll-behavior: smooth;
+    /* The header is sticky: jump links land below it. */
+    scroll-padding-top: 6.5rem;
+  }
+  /* Readers who ask for less motion get none: no entrances, no lifts, no smooth scroll. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+ * The landing page (app/page.tsx, [data-landing]) is one continuous dark
+ * surface: the site header floats over the hero (light on dark, pill buttons)
+ * and the footer joins the dark page. Unlayered, so it wins over the header's
+ * own utility classes. Every other page keeps the normal header and footer,
+ * and the header stays the page's one banner landmark.
+ */
+body:has([data-landing]) {
+  background: oklch(0.14 0.004 280);
+}
+body:has([data-landing]) :is([data-site-header], [data-site-footer]) {
+  color-scheme: dark;
+  --foreground: oklch(0.98 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --muted-foreground: oklch(0.98 0 0 / 0.55);
+  --primary: oklch(0.99 0 0);
+  --primary-foreground: oklch(0.2 0.01 280);
+  --ring: oklch(0.99 0 0);
+  --border: oklch(1 0 0 / 0.08);
+  --muted: oklch(1 0 0 / 0.08);
+  --accent: oklch(1 0 0 / 0.08);
+  --accent-foreground: oklch(0.98 0 0);
+  --secondary: oklch(1 0 0 / 0.1);
+  --secondary-foreground: oklch(0.98 0 0);
+  --card: oklch(0.2 0.006 290);
+  --popover: oklch(0.2 0.006 290);
+  --popover-foreground: oklch(0.98 0 0);
+  color: var(--foreground);
+}
+body:has([data-landing]) [data-site-header] {
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border: 0;
+  backdrop-filter: none;
+}
+body:has([data-landing]) [data-site-header] > div {
+  padding: 0.75rem 1.25rem;
+}
+body:has([data-landing]) [data-site-header] [data-slot="button"] {
+  border-radius: 9999px;
+  padding-inline: 1rem;
+}
+@media (min-width: 40rem) {
+  body:has([data-landing]) [data-site-header] {
+    top: 1rem;
+  }
+}
+
+/* Landing: the sources strip slides past slowly; it stops while hovered. */
+.landing-marquee {
+  animation: landing-marquee 38s linear infinite;
+}
+.landing-marquee:hover {
+  animation-play-state: paused;
+}
+@keyframes landing-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Landing: a beam of light travels along the line through the three steps. */
+.landing-beam {
+  background:
+    linear-gradient(90deg, transparent, oklch(0.85 0.12 215), oklch(0.85 0.1 75), transparent) 0 0 / 35% 100% no-repeat,
+    linear-gradient(90deg, transparent, oklch(1 0 0 / 0.12) 15%, oklch(1 0 0 / 0.12) 85%, transparent);
+  animation: landing-beam 4.5s ease-in-out infinite;
+}
+@keyframes landing-beam {
+  from {
+    background-position: -40% 0, 0 0;
+  }
+  to {
+    background-position: 140% 0, 0 0;
+  }
+}
+
+/* Landing: sections rise into view as they scroll in (browsers with scroll-driven animations; others show them at once). */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: landing-reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+}
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * The night look on every page (the landing page's style): a soft purple
+ * light in the top-left corner and faint stars behind everything, cards that
+ * catch the pointer's light (components/pointer-glow.tsx sets --mx/--my), and
+ * cards that rise in as they scroll into view.
+ */
+body {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(55% 40% at 8% -5%, oklch(0.3 0.035 320 / 0.55), transparent),
+    radial-gradient(45% 35% at 100% 0%, oklch(0.28 0.05 255 / 0.35), transparent),
+    radial-gradient(1px 1px at 20px 30px, oklch(1 0 0 / 0.35), transparent),
+    radial-gradient(1px 1px at 140px 90px, oklch(1 0 0 / 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 230px 170px, oklch(1 0 0 / 0.3), transparent);
+  background-size: 100% 100%, 100% 100%, 300px 260px, 300px 260px, 300px 260px;
+  background-attachment: fixed;
+}
+[data-slot="card"],
+[data-glow] {
+  background-image: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), oklch(0.78 0.11 225 / 0.09), transparent 45%);
+}
+[data-slot="card"] {
+  transition: box-shadow 200ms ease-out;
+}
+[data-slot="card"]:hover {
+  --tw-ring-color: oklch(1 0 0 / 0.16);
+}
+@supports (animation-timeline: view()) {
+  main [data-slot="card"] {
+    animation: landing-reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 18%;
   }
 }

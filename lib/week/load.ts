@@ -8,9 +8,9 @@
  * trend notes are readable by every signed-in user.
  */
 import { and, asc, desc, eq, inArray, max, sql } from "drizzle-orm";
-import { claims, companyPrivate, feedback, handoffs, opportunities, savedItems, trendNotes, weekCards } from "../db/schema";
+import { claims, companyPrivate, feedback, handoffs, opportunities, savedItems, sourceStatus, trendNotes, weekCards } from "../db/schema";
 import type { UserTx } from "../db/user";
-import type { OpportunityKind } from "../schemas";
+import type { OpportunityKind, SourceState } from "../schemas";
 import type { CalendarItem } from "./ics";
 
 export type FeedbackKind = "useful" | "not_relevant";
@@ -24,7 +24,13 @@ export type WeekCardOpportunity = {
   opensAt: Date | null;
   deadline: Date | null;
   eventDate: Date | null;
+  /** Hand-entered, or (with a `fixture-` external id) simulated: see itemDataStatus in components/data-status-label.tsx. */
   simulated: boolean;
+  externalId: string;
+  /** The state of the opportunity's source (source_status), null when it has no row there. */
+  sourceState: SourceState | null;
+  /** For a cached source: the date of the recorded copy. */
+  cachedAt: Date | null;
 };
 
 export type WeekCardView = {
@@ -121,9 +127,14 @@ export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: s
       deadline: opportunities.deadline,
       eventDate: opportunities.eventDate,
       simulated: opportunities.simulated,
+      externalId: opportunities.externalId,
+      // For the data status label (D20): opportunities.source is the collector's label.
+      sourceState: sourceStatus.state,
+      cachedAt: sourceStatus.cachedAt,
     })
     .from(weekCards)
     .leftJoin(opportunities, eq(opportunities.id, weekCards.opportunityId))
+    .leftJoin(sourceStatus, eq(sourceStatus.label, opportunities.source))
     .leftJoin(trendNotes, eq(trendNotes.id, weekCards.trendNoteId))
     .where(and(eq(weekCards.companyId, companyId), eq(weekCards.weekOf, latest.weekOf)))
     .orderBy(asc(weekCards.position));
@@ -175,6 +186,9 @@ export async function loadWeek(tx: UserTx, { companyId, userId }: { companyId: s
               deadline: r.deadline,
               eventDate: r.eventDate,
               simulated: r.simulated ?? false,
+              externalId: r.externalId ?? "",
+              sourceState: r.sourceState,
+              cachedAt: r.cachedAt,
             }
           : null,
       saved: r.opportunityId ? savedIds.has(r.opportunityId) : false,

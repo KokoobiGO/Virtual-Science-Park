@@ -1,18 +1,18 @@
 import { useId, type ReactNode } from "react";
-import { DATA_STATUS_META, DataStatusLabel, dataStatusFromVerdict } from "@/components/data-status-label";
+import { DataStatusLabel, dataStatusFromVerdict, dataStatusName } from "@/components/data-status-label";
 import { statusDate } from "@/components/data-status-panel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { createTranslator, type Messages, type Translator } from "@/lib/i18n/translate";
 import { ProfileField } from "@/lib/schemas";
 import type { SourceHealth } from "@/lib/sources/health";
 import {
   accuracyText,
-  ELIGIBILITY_SENTENCE,
+  ELIGIBILITY_SENTENCES,
   formatDateTime,
   formatDay,
-  HAND_CHECK_NOT_FINISHED,
   handCheckStarted,
-  KNOWN_LIMITS,
-  NOT_MEASURED,
+  knownLimits,
   percentOf,
   ratingText,
   summarizeStaffSession,
@@ -21,6 +21,7 @@ import {
   type FileResult,
   type MatchingResult,
   type Run,
+  type TrustReport,
 } from "@/lib/trust/report";
 import type {
   LinkCheckSummary,
@@ -32,16 +33,30 @@ import type {
   StaffSessionResults,
   TimedTestResults,
 } from "@/lib/trust/shapes";
+import { automatedReviewCompanies } from "@/lib/trust/shapes";
 
-/** Display names for the red-team groups; the stored ids stay as they are. */
-const RED_TEAM_GROUP_LABELS: Record<string, string> = {
-  relevant: "Relevant questions",
-  unrelated: "Unrelated questions",
-  override: "Override attempts",
-  indirect_injection: "Hidden instructions in sources",
-  privacy: "Other companies' data",
-  eligibility: "\"Can we apply?\" questions",
+/**
+ * The Trust report's sections (C12). The words are in the reader's language
+ * (C19, messages/*.json `trust`): each section takes `locale`, English when
+ * left out. Numbers, source names and messages, staff quotes and notes are
+ * shown as stored.
+ */
+
+type T = Translator<"trust">;
+
+/** Display names for the red-team groups (their keys in messages/*.json); the stored ids stay as they are. */
+const RED_TEAM_GROUP_KEYS: Record<string, keyof Messages["trust"]["redTeam"]["groups"]> = {
+  relevant: "relevant",
+  unrelated: "unrelated",
+  override: "override",
+  indirect_injection: "indirectInjection",
+  privacy: "privacy",
+  eligibility: "canWeApply",
 };
+
+function redTeamGroupLabel(group: string, t: T): string {
+  return Object.hasOwn(RED_TEAM_GROUP_KEYS, group) ? t(`redTeam.groups.${RED_TEAM_GROUP_KEYS[group]}`) : group.replace(/_/g, " ");
+}
 
 const FIELDS_PER_PROFILE = ProfileField.options.length;
 
@@ -65,26 +80,26 @@ function Section({ title, description, when, children }: { title: string; descri
   );
 }
 
-function NotMeasured({ text = NOT_MEASURED }: { text?: string }) {
+function NotMeasured({ text }: { text: string }) {
   return <p className="font-medium">{text}</p>;
 }
 
-function Unreadable({ what, problem }: { what: string; problem: string }) {
+function Unreadable({ what, problem, t }: { what: string; problem: string; t: T }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="font-medium">{what}, but this page cannot read it, so no number is shown.</p>
+      <p className="font-medium">{t("unreadable", { what })}</p>
       <p className="text-xs break-words text-muted-foreground">{problem}</p>
     </div>
   );
 }
 
 /** The date in a card's corner, for a stored run. Nothing when there is no run: the card says "not measured yet". */
-function runWhen(run: Run<unknown>): ReactNode {
-  return run.status === "not_measured" ? null : <span>Run {formatDateTime(run.ranAt)}</span>;
+function runWhen(run: Run<unknown>, t: T): ReactNode {
+  return run.status === "not_measured" ? null : <span>{t("ranAt", { date: formatDateTime(run.ranAt, t.locale) })}</span>;
 }
 
-function fileWhen(result: FileResult<unknown>): ReactNode {
-  return result.status === "measured" ? <span>Held {formatDay(result.date)}</span> : null;
+function fileWhen(result: FileResult<unknown>, t: T): ReactNode {
+  return result.status === "measured" ? <span>{t("heldOn", { date: formatDay(result.date, t.locale) })}</span> : null;
 }
 
 /**
@@ -151,37 +166,137 @@ export function Table({ caption, head, rows, foot }: { caption: string; head: Re
 }
 
 // ---------------------------------------------------------------------------
+// At a glance
+// ---------------------------------------------------------------------------
+
+type Tile = { key: string; label: string; value: string; detail: string; note?: string };
+
+/** The headline number of each stored check, or "not measured yet". Pure, so it can be tested without a page. */
+export function summaryTiles(report: Pick<TrustReport, "profileAccuracy" | "quoteCheck" | "linkCheck" | "redTeam" | "privacy">, locale: Locale = DEFAULT_LOCALE): Tile[] {
+  const t = createTranslator(locale, "trust");
+  const none = t("notMeasured");
+  const tiles: Tile[] = [];
+
+  const pa = report.profileAccuracy;
+  const all = pa.status === "measured" && handCheckStarted(pa.summary) ? pa.summary.total.stated : null;
+  tiles.push(
+    all && all.checked > 0
+      ? {
+          key: "accuracy",
+          label: t("summary.accuracy.label"),
+          value: percentOf(all.right, all.checked, locale),
+          detail: t("summary.accuracy.detail", { right: all.right, checked: all.checked }),
+          note: pa.status === "measured" && automatedReviewCompanies(pa.summary).length ? t("summary.automated") : undefined,
+        }
+      : { key: "accuracy", label: t("summary.accuracy.label"), value: "-", detail: none },
+  );
+
+  const qc = report.quoteCheck;
+  tiles.push(
+    qc.status === "measured"
+      ? {
+          key: "quotes",
+          label: t("summary.quotes.label"),
+          value: percentOf(qc.summary.all.quotesFound, qc.summary.all.quotesTotal, locale),
+          detail: t("summary.quotes.detail", { found: qc.summary.all.quotesFound, total: qc.summary.all.quotesTotal }),
+        }
+      : { key: "quotes", label: t("summary.quotes.label"), value: "-", detail: none },
+  );
+
+  const lc = report.linkCheck;
+  tiles.push(
+    lc.status === "measured"
+      ? {
+          key: "links",
+          label: t("summary.links.label"),
+          value: percentOf(lc.summary.ok, lc.summary.checked, locale),
+          detail: t("summary.links.detail", { ok: lc.summary.ok, checked: lc.summary.checked, broken: lc.summary.broken }),
+        }
+      : { key: "links", label: t("summary.links.label"), value: "-", detail: none },
+  );
+
+  const rt = report.redTeam;
+  if (rt.status === "measured") {
+    const passed = rt.summary.groups.reduce((n, g) => n + g.passed, 0);
+    const total = rt.summary.groups.reduce((n, g) => n + g.total, 0);
+    tiles.push({ key: "redTeam", label: t("summary.redTeam.label"), value: percentOf(passed, total, locale), detail: t("summary.redTeam.detail", { passed, total }) });
+  } else {
+    tiles.push({ key: "redTeam", label: t("summary.redTeam.label"), value: "-", detail: none });
+  }
+
+  const pv = report.privacy;
+  tiles.push(
+    pv.status === "measured"
+      ? {
+          key: "privacy",
+          label: t("summary.privacy.label"),
+          value: percentOf(pv.summary.passed, pv.summary.total, locale),
+          detail: t("summary.privacy.detail", { passed: pv.summary.passed, total: pv.summary.total }),
+        }
+      : { key: "privacy", label: t("summary.privacy.label"), value: "-", detail: none },
+  );
+  return tiles;
+}
+
+/** The plain-language top of the report: what was checked, and the headline numbers. */
+export function TrustSummary({ report, locale = DEFAULT_LOCALE }: { report: Parameters<typeof summaryTiles>[0]; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
+  const tiles = summaryTiles(report, locale);
+  return (
+    <section aria-labelledby="trust-summary" className="flex flex-col gap-3 rounded-xl border border-primary/20 bg-card p-4 shadow-xs sm:p-5">
+      <div className="flex flex-col gap-1">
+        <h2 id="trust-summary" className="text-heading">
+          {t("summary.title")}
+        </h2>
+        <p className="max-w-prose text-sm text-muted-foreground">{t("summary.intro")}</p>
+      </div>
+      <ul aria-label={t("summary.caption")} className="grid stagger gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {tiles.map((tile) => (
+          <li key={tile.key} className="flex flex-col gap-0.5 rounded-lg bg-muted/60 px-3 py-2.5">
+            {tile.value === "-" ? null : <span className="text-2xl font-semibold tabular-nums">{tile.value}</span>}
+            <span className="text-sm font-medium">{tile.label}</span>
+            <span className="text-xs text-muted-foreground">{tile.detail}</span>
+            {tile.note ? <span className="text-xs text-muted-foreground">{tile.note}</span> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Sections
 // ---------------------------------------------------------------------------
 
-export function ProfileAccuracySection({ run }: { run: Run<ProfileAccuracySummary> }) {
+export function ProfileAccuracySection({ run, locale = DEFAULT_LOCALE }: { run: Run<ProfileAccuracySummary>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
+  const accuracy = (group: Parameters<typeof accuracyText>[0]) => accuracyText(group, locale);
   return (
-    <Section
-      title="Profile accuracy"
-      description="The team checks every claim of the three gold profiles against the company's own pages. Accuracy is right claims out of checked claims; an unchecked claim never counts as right."
-      when={runWhen(run)}
-    >
-      {run.status === "not_measured" ? <NotMeasured /> : null}
-      {run.status === "unreadable" ? <Unreadable what="An accuracy run is stored" problem={run.problem} /> : null}
+    <Section title={t("profileAccuracy.title")} description={t("profileAccuracy.description")} when={runWhen(run, t)}>
+      {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {run.status === "unreadable" ? <Unreadable what={t("profileAccuracy.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" && !handCheckStarted(run.summary) ? (
         <>
-          <NotMeasured text={HAND_CHECK_NOT_FINISHED} />
+          <NotMeasured text={t("handCheckNotFinished")} />
           <p className="text-muted-foreground">
-            The latest run found 0 of {run.summary.total.all.claims} claims checked, over {run.summary.companies.length} gold profiles.
+            {t("profileAccuracy.latestRun", { claims: run.summary.total.all.claims, profiles: run.summary.companies.length })}
           </p>
         </>
       ) : null}
       {run.status === "measured" && handCheckStarted(run.summary) ? (
         <>
+          {automatedReviewCompanies(run.summary).length ? (
+            <p className="font-medium">{t("profileAccuracy.automatedReview", { profiles: automatedReviewCompanies(run.summary).join(", ") })}</p>
+          ) : null}
           <Table
-            caption="Profile accuracy per gold profile: right claims out of checked claims"
-            head={["Gold profile", "Stated claims", "Inferred claims", "Missing (page says nothing)"]}
-            rows={run.summary.companies.map((c) => [c.company, accuracyText(c.stated), accuracyText(c.inferred), accuracyText(c.missing)])}
-            foot={[["All gold profiles", accuracyText(run.summary.total.stated), accuracyText(run.summary.total.inferred), accuracyText(run.summary.total.missing)]]}
+            caption={t("profileAccuracy.caption")}
+            head={[t("profileAccuracy.head.profile"), t("profileAccuracy.head.stated"), t("profileAccuracy.head.inferred"), t("profileAccuracy.head.missing")]}
+            rows={run.summary.companies.map((c) => [c.company, accuracy(c.stated), accuracy(c.inferred), accuracy(c.missing)])}
+            foot={[[t("allGoldProfiles"), accuracy(run.summary.total.stated), accuracy(run.summary.total.inferred), accuracy(run.summary.total.missing)]]}
           />
           {!run.summary.complete ? (
             <p className="text-muted-foreground">
-              The hand-check is not finished: {run.summary.total.all.checked} of {run.summary.total.all.claims} claims checked so far.
+              {t("profileAccuracy.notFinished", { checked: run.summary.total.all.checked, claims: run.summary.total.all.claims })}
             </p>
           ) : null}
         </>
@@ -190,59 +305,72 @@ export function ProfileAccuracySection({ run }: { run: Run<ProfileAccuracySummar
   );
 }
 
-export function QuoteCheckSection({ run }: { run: Run<QuoteCheckSummary> }) {
-  const totalRow = (name: string, t: QuoteTotals) => [
+export function QuoteCheckSection({ run, locale = DEFAULT_LOCALE }: { run: Run<QuoteCheckSummary>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
+  const found = (part: number, whole: number) => t("ofPercent", { part, whole, percent: percentOf(part, whole, locale) });
+  const totalRow = (name: string, q: QuoteTotals) => [
     name,
-    `${t.quotesFound} of ${t.quotesTotal} (${percentOf(t.quotesFound, t.quotesTotal)})`,
-    String(t.quotesTotal - t.quotesFound),
-    `${t.droppedFields} of ${t.profileFields}`,
+    found(q.quotesFound, q.quotesTotal),
+    String(q.quotesTotal - q.quotesFound),
+    t("of", { part: q.droppedFields, whole: q.profileFields }),
     "",
   ];
   return (
-    <Section
-      title="Quote check"
-      description="Every quote behind a profile field must appear word for word in the stored page text. A field whose quotes fail twice is dropped and shown as missing, never kept without proof."
-      when={runWhen(run)}
-    >
-      {run.status === "not_measured" ? <NotMeasured /> : null}
-      {run.status === "unreadable" ? <Unreadable what="A quote-check run is stored" problem={run.problem} /> : null}
+    <Section title={t("quoteCheck.title")} description={t("quoteCheck.description")} when={runWhen(run, t)}>
+      {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {run.status === "unreadable" ? <Unreadable what={t("quoteCheck.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
         <Table
-          caption="Quote check per profile: quotes found word for word on the stored page, and fields dropped"
-          head={["Profile", "Quotes found on the page", "Quotes not found", "Fields dropped", "Profiled"]}
+          caption={t("quoteCheck.caption")}
+          head={[
+            t("quoteCheck.head.profile"),
+            t("quoteCheck.head.found"),
+            t("quoteCheck.head.notFound"),
+            t("quoteCheck.head.dropped"),
+            t("quoteCheck.head.profiled"),
+          ]}
           rows={run.summary.gold.companies.map((c) => [
             c.slug,
-            `${c.quotesFound} of ${c.quotesTotal} (${percentOf(c.quotesFound, c.quotesTotal)})`,
+            found(c.quotesFound, c.quotesTotal),
             String(c.quotesTotal - c.quotesFound),
-            c.dropped.length ? `${c.dropped.length} of ${FIELDS_PER_PROFILE}: ${c.dropped.join(", ")}` : `0 of ${FIELDS_PER_PROFILE}`,
-            formatDateTime(new Date(c.storedAt)),
+            c.dropped.length
+              ? `${t("of", { part: c.dropped.length, whole: FIELDS_PER_PROFILE })}: ${c.dropped.join(", ")}`
+              : t("of", { part: 0, whole: FIELDS_PER_PROFILE }),
+            formatDateTime(new Date(c.storedAt), locale),
           ])}
-          foot={[totalRow("All gold profiles", run.summary.gold.total), totalRow(`All ${run.summary.all.runs} profiled members`, run.summary.all)]}
+          foot={[
+            totalRow(t("allGoldProfiles"), run.summary.gold.total),
+            totalRow(t("quoteCheck.allProfiled", { count: run.summary.all.runs }), run.summary.all),
+          ]}
         />
       ) : null}
     </Section>
   );
 }
 
-export function LinkHealthSection({ run }: { run: Run<LinkCheckSummary> }) {
+export function LinkHealthSection({ run, locale = DEFAULT_LOCALE }: { run: Run<LinkCheckSummary>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
   return (
-    <Section
-      title="Link health"
-      description="Every opportunity's source link, and every source a week card cites, requested once. Unclear: the site would not answer a script (a login, a refusal or no answer), so a person must look."
-      when={runWhen(run)}
-    >
-      {run.status === "not_measured" ? <NotMeasured /> : null}
-      {run.status === "unreadable" ? <Unreadable what="A link-check run is stored" problem={run.problem} /> : null}
+    <Section title={t("linkHealth.title")} description={t("linkHealth.description")} when={runWhen(run, t)}>
+      {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {run.status === "unreadable" ? <Unreadable what={t("linkHealth.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
         <Table
-          caption="Link health: source links checked, working, broken and unclear"
-          head={["Links checked", "Working", "Broken", "Unclear: check by hand"]}
+          caption={t("linkHealth.caption")}
+          head={[
+            t("linkHealth.head.checked"),
+            t("linkHealth.head.ok"),
+            t("linkHealth.head.broken"),
+            t("linkHealth.head.blocked"),
+            t("linkHealth.head.unverifiable"),
+          ]}
           rows={[
             [
               String(run.summary.checked),
-              `${run.summary.ok} (${percentOf(run.summary.ok, run.summary.checked)})`,
+              `${run.summary.ok} (${percentOf(run.summary.ok, run.summary.checked, locale)})`,
               String(run.summary.broken),
               String(run.summary.blocked),
+              String(run.summary.unverifiable),
             ],
           ]}
         />
@@ -251,92 +379,96 @@ export function LinkHealthSection({ run }: { run: Run<LinkCheckSummary> }) {
   );
 }
 
-export function SourceStatusSection({ sources }: { sources: SourceHealth[] }) {
+/** The labels a source can carry, in the order the description explains them. */
+const SOURCE_KINDS = ["live", "stale", "cached", "hand_entered"] as const;
+
+export function SourceStatusSection({ sources, locale = DEFAULT_LOCALE }: { sources: SourceHealth[]; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
+  const kinds = SOURCE_KINDS.map((kind) => {
+    const { label, description } = dataStatusName(kind, locale);
+    return `${label}: ${description}`;
+  });
   return (
-    <Section
-      title="Source status"
-      description={`Where the opportunities come from. ${SOURCE_KINDS.map((kind) => `${DATA_STATUS_META[kind].label}: ${DATA_STATUS_META[kind].description}`).join(" ")}`}
-    >
+    <Section title={t("sourceStatus.title")} description={`${t("sourceStatus.intro")} ${kinds.join(" ")}`}>
       {sources.length ? (
         <Table
-          caption="Source status: each source's data label, last success, items and note"
-          head={["Source", "Status", "Last success", "Items", "Note"]}
+          caption={t("sourceStatus.caption")}
+          head={[
+            t("sourceStatus.head.source"),
+            t("sourceStatus.head.status"),
+            t("sourceStatus.head.lastSuccess"),
+            t("sourceStatus.head.items"),
+            t("sourceStatus.head.note"),
+          ]}
           rows={sources.map((s) => {
             const kind = dataStatusFromVerdict(s.verdict);
             return [
               s.label,
-              <DataStatusLabel key="status" kind={kind} date={statusDate(s, kind)} />,
-              s.lastSuccessAt ? formatDateTime(s.lastSuccessAt) : "never",
+              <DataStatusLabel key="status" kind={kind} date={statusDate(s, kind)} locale={locale} />,
+              s.lastSuccessAt ? formatDateTime(s.lastSuccessAt, locale) : t("sourceStatus.never"),
               s.itemCount === null ? "-" : String(s.itemCount),
-              sourceNote(s),
+              sourceNote(s, t),
             ];
           })}
         />
       ) : (
-        <NotMeasured />
+        <NotMeasured text={t("notMeasured")} />
       )}
     </Section>
   );
 }
 
-/** The labels a source can carry, in the order the description explains them. */
-const SOURCE_KINDS = ["live", "stale", "cached", "hand_entered"] as const;
-
-function sourceNote(s: SourceHealth): string {
+/** Our note on a source, then the source's own message as stored. */
+function sourceNote(s: SourceHealth, t: T): string {
   const parts: string[] = [];
-  if (s.verdict === "cached" && !s.cachedAt) parts.push("Date of the copy unknown.");
-  if (s.verdict === "stale") parts.push("No success in the last 48 hours.");
+  if (s.verdict === "cached" && !s.cachedAt) parts.push(t("sourceStatus.copyDateUnknown"));
+  if (s.verdict === "stale") parts.push(t("sourceStatus.noRecentSuccess"));
   if (s.message) parts.push(s.message);
   return parts.join(" ");
 }
 
-const MODE_LABEL = { public: "Public", personal: "Personal" } as const;
-
-const MATCHING_SCOPE_TEXT = {
-  all_members:
-    "Counted over every member's ranked matches (each company's top 20 now), public and personal, by the matching eval. Only totals are stored: no member's own matches are shown.",
-  all_members_public:
-    "The matching eval has not been stored yet, so this is your own count: every member's public ranking. Personal rankings are private to each company, so staff cannot count them.",
-  own_company:
-    "The matching eval has not been stored yet, so this is your own count: your own company's matches only, since other members' matches are private to them.",
-} as const;
-
-function matchingWhen(matching: MatchingResult): ReactNode {
-  if (matching.status === "unreadable") return <span>Run {formatDateTime(matching.ranAt)}</span>;
+function matchingWhen(matching: MatchingResult, t: T): ReactNode {
+  if (matching.status === "unreadable") return <span>{t("ranAt", { date: formatDateTime(matching.ranAt, t.locale) })}</span>;
   if (matching.status !== "measured") return null;
-  const judged = matching.lastJudgedAt ? `last judged ${formatDateTime(matching.lastJudgedAt)}` : "nothing judged yet";
+  const judged = matching.lastJudgedAt
+    ? t("matching.lastJudged", { date: formatDateTime(matching.lastJudgedAt, t.locale) })
+    : t("matching.nothingJudged");
   return matching.countedAt ? (
-    <span>
-      Counted {formatDateTime(matching.countedAt)}, {judged}
-    </span>
+    <span>{t("matching.counted", { date: formatDateTime(matching.countedAt, t.locale), judged })}</span>
   ) : (
     <span>{judged.charAt(0).toUpperCase() + judged.slice(1)}</span>
   );
 }
 
-export function MatchingSection({ matching }: { matching: MatchingResult }) {
+export function MatchingSection({ matching, locale = DEFAULT_LOCALE }: { matching: MatchingResult; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
+  const share = (part: number, whole: number) => `${part} (${percentOf(part, whole, locale)})`;
   return (
-    <Section
-      title="Matching"
-      description="The judge reads each ranked match and keeps it, with a reason and a next step, or rejects it with a reason. It can reject a match but never adds one. The public ranking uses public profile data only; the personal one adds the company's private data."
-      when={matchingWhen(matching)}
-    >
-      <p className="rounded-lg border bg-muted/50 px-3 py-2 font-medium">{ELIGIBILITY_SENTENCE}</p>
-      {matching.status === "not_measured" ? <NotMeasured /> : null}
-      {matching.status === "unreadable" ? <Unreadable what="A matching run is stored" problem={matching.problem} /> : null}
+    <Section title={t("matching.title")} description={t("matching.description")} when={matchingWhen(matching, t)}>
+      <p className="rounded-lg border bg-muted/50 px-3 py-2 font-medium">{ELIGIBILITY_SENTENCES[locale]}</p>
+      {matching.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {matching.status === "unreadable" ? <Unreadable what={t("matching.unreadable")} problem={matching.problem} t={t} /> : null}
       {matching.status === "measured" ? (
         <>
-          <p className="text-muted-foreground">{MATCHING_SCOPE_TEXT[matching.scope]}</p>
+          <p className="text-muted-foreground">{t(`matching.scope.${matching.scope}`)}</p>
           <Table
-            caption="Matching per ranking: members, ranked, judged, kept, rejected and not judged yet"
-            head={["Ranking", "Members", "Ranked", "Judged", "Kept", "Rejected", "Not judged yet"]}
+            caption={t("matching.caption")}
+            head={[
+              t("matching.head.ranking"),
+              t("matching.head.members"),
+              t("matching.head.ranked"),
+              t("matching.head.judged"),
+              t("matching.head.kept"),
+              t("matching.head.rejected"),
+              t("matching.head.notJudged"),
+            ]}
             rows={matching.modes.map((m) => [
-              MODE_LABEL[m.mode],
+              t(`matching.modes.${m.mode}`),
               String(m.companies),
               String(m.ranked),
               String(m.judged),
-              `${m.kept} (${percentOf(m.kept, m.judged)})`,
-              `${m.rejected} (${percentOf(m.rejected, m.judged)})`,
+              share(m.kept, m.judged),
+              share(m.rejected, m.judged),
               String(m.notJudgedYet),
             ])}
           />
@@ -346,71 +478,66 @@ export function MatchingSection({ matching }: { matching: MatchingResult }) {
   );
 }
 
-export function RedTeamSection({ run }: { run: Run<RedTeamSummary> }) {
+export function RedTeamSection({ run, locale = DEFAULT_LOCALE }: { run: Run<RedTeamSummary>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
   return (
-    <Section
-      title="Red-team tests"
-      description="Prompts written on purpose to make the system misbehave, in groups. The pass rate is the share of prompts in a group that the system handled as it should."
-      when={runWhen(run)}
-    >
-      {run.status === "not_measured" ? <NotMeasured /> : null}
-      {run.status === "unreadable" ? <Unreadable what="A red-team run is stored" problem={run.problem} /> : null}
+    <Section title={t("redTeam.title")} description={t("redTeam.description")} when={runWhen(run, t)}>
+      {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {run.status === "unreadable" ? <Unreadable what={t("redTeam.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
         <Table
-          caption="Red-team tests per group: prompts passed and pass rate"
-          head={["Group", "Passed", "Pass rate"]}
-          rows={run.summary.groups.map((g) => [RED_TEAM_GROUP_LABELS[g.group] ?? g.group.replace(/_/g, " "), `${g.passed} of ${g.total}`, percentOf(g.passed, g.total)])}
+          caption={t("redTeam.caption")}
+          head={[t("redTeam.head.group"), t("redTeam.head.passed"), t("redTeam.head.rate")]}
+          rows={run.summary.groups.map((g) => [
+            redTeamGroupLabel(g.group, t),
+            t("of", { part: g.passed, whole: g.total }),
+            percentOf(g.passed, g.total, locale),
+          ])}
         />
       ) : null}
     </Section>
   );
 }
 
-export function PrivacySection({ run }: { run: Run<PrivacySummary> }) {
+export function PrivacySection({ run, locale = DEFAULT_LOCALE }: { run: Run<PrivacySummary>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
   return (
-    <Section
-      title="Privacy tests"
-      description="Row-level security tests against the database: one member's account must get no rows of another company's private data, and staff never read chats."
-      when={runWhen(run)}
-    >
-      {run.status === "not_measured" ? <NotMeasured /> : null}
-      {run.status === "unreadable" ? <Unreadable what="A privacy-test run is stored" problem={run.problem} /> : null}
+    <Section title={t("privacy.title")} description={t("privacy.description")} when={runWhen(run, t)}>
+      {run.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {run.status === "unreadable" ? <Unreadable what={t("privacy.unreadable")} problem={run.problem} t={t} /> : null}
       {run.status === "measured" ? (
         <p>
-          <span className="font-medium">
-            {run.summary.passed} of {run.summary.total}
-          </span>{" "}
-          tests passed ({percentOf(run.summary.passed, run.summary.total)}).
+          {t.rich("privacy.result", {
+            count: (chunk) => <span className="font-medium">{chunk}</span>,
+            passed: run.summary.passed,
+            total: run.summary.total,
+            percent: percentOf(run.summary.passed, run.summary.total, locale),
+          })}
         </p>
       ) : null}
     </Section>
   );
 }
 
-const TASK_LABEL = { A: "A: test facilities for an underwater sensor", B: "B: funding for Techinova, safer electricity grids" } as const;
-
-export function TimedTestSection({ result }: { result: FileResult<TimedTestResults> }) {
+export function TimedTestSection({ result, locale = DEFAULT_LOCALE }: { result: FileResult<TimedTestResults>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
   return (
-    <Section
-      title="Timed test"
-      description="A tester does each of two tasks once by hand (their own search) and once with the tool, against the clock. One point for each correct result found within 15 minutes, scored against the team's answer key."
-      when={fileWhen(result)}
-    >
-      {result.status === "not_measured" ? <NotMeasured /> : null}
-      {result.status === "unreadable" ? <Unreadable what="A timed-test results file is there" problem={result.problem} /> : null}
+    <Section title={t("timed.title")} description={t("timed.description")} when={fileWhen(result, t)}>
+      {result.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {result.status === "unreadable" ? <Unreadable what={t("timed.unreadable")} problem={result.problem} t={t} /> : null}
       {result.status === "measured" ? (
         <>
           <Table
-            caption="Timed test per task and tester: by hand next to with the tool"
-            head={["Task", "Tester", "By hand", "With the tool"]}
+            caption={t("timed.caption")}
+            head={[t("timed.head.task"), t("timed.head.tester"), t("timed.head.byHand"), t("timed.head.withTool")]}
             rows={summarizeTimedTest(result.data).map((row) => [
-              TASK_LABEL[row.task],
+              t(`timed.tasks.${row.task}`),
               row.participant,
-              timedRunText(row.byHand, row.keyItems),
-              timedRunText(row.withTool, row.keyItems),
+              timedRunText(row.byHand, row.keyItems, locale),
+              timedRunText(row.withTool, row.keyItems, locale),
             ])}
           />
-          <p className="text-muted-foreground">Time is the time used, 15 minutes at most; &quot;not finished&quot; means the tester gave up or the time ran out.</p>
+          <p className="text-muted-foreground">{t("timed.timeNote")}</p>
           {result.data.notes ? <p className="text-muted-foreground">{result.data.notes}</p> : null}
         </>
       ) : null}
@@ -418,30 +545,29 @@ export function TimedTestSection({ result }: { result: FileResult<TimedTestResul
   );
 }
 
-export function StaffSessionSection({ result }: { result: FileResult<StaffSessionResults> }) {
+export function StaffSessionSection({ result, locale = DEFAULT_LOCALE }: { result: FileResult<StaffSessionResults>; locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
   const summary = result.status === "measured" ? summarizeStaffSession(result.data) : null;
   return (
-    <Section
-      title="Staff session"
-      description="BSP staff rate each claim of a gold member's profile right, wrong or unsure against the source, and each of its top five public matches relevant or not."
-      when={fileWhen(result)}
-    >
-      {result.status === "not_measured" ? <NotMeasured /> : null}
-      {result.status === "unreadable" ? <Unreadable what="A staff-session results file is there" problem={result.problem} /> : null}
+    <Section title={t("staffSession.title")} description={t("staffSession.description")} when={fileWhen(result, t)}>
+      {result.status === "not_measured" ? <NotMeasured text={t("notMeasured")} /> : null}
+      {result.status === "unreadable" ? <Unreadable what={t("staffSession.unreadable")} problem={result.problem} t={t} /> : null}
       {result.status === "measured" && summary ? (
         <>
-          <p className="text-muted-foreground">
-            {result.data.staff} {result.data.staff === 1 ? "member" : "members"} of BSP staff took part.
-          </p>
+          <p className="text-muted-foreground">{t("staffSession.tookPart", { count: result.data.staff })}</p>
           <Table
-            caption="Staff session per gold member: profile claims rated right and top-five matches rated relevant"
-            head={["Gold member", "Profile claims right", "Top-five matches relevant"]}
-            rows={summary.members.map((m) => [m.member, claimsText(m.claims), ratingText(m.top5)])}
-            foot={summary.members.length > 1 ? [["All gold members", claimsText(summary.total.claims), ratingText(summary.total.top5)]] : undefined}
+            caption={t("staffSession.caption")}
+            head={[t("staffSession.head.member"), t("staffSession.head.claims"), t("staffSession.head.top5")]}
+            rows={summary.members.map((m) => [m.member, claimsText(m.claims, t), ratingText(m.top5, locale)])}
+            foot={
+              summary.members.length > 1
+                ? [[t("staffSession.all"), claimsText(summary.total.claims, t), ratingText(summary.total.top5, locale)]]
+                : undefined
+            }
           />
           {summary.quotes.length ? (
             <div className="flex flex-col gap-2">
-              <p className="text-muted-foreground">What staff said, quoted with their permission:</p>
+              <p className="text-muted-foreground">{t("staffSession.quotesIntro")}</p>
               {summary.quotes.map((quote, i) => (
                 <blockquote key={i} className="border-l-2 pl-3 italic">
                   &ldquo;{quote}&rdquo;
@@ -449,11 +575,7 @@ export function StaffSessionSection({ result }: { result: FileResult<StaffSessio
               ))}
             </div>
           ) : null}
-          {summary.quotesWithheld ? (
-            <p className="text-muted-foreground">
-              {summary.quotesWithheld} more {summary.quotesWithheld === 1 ? "quote is" : "quotes are"} not shown: no permission to quote.
-            </p>
-          ) : null}
+          {summary.quotesWithheld ? <p className="text-muted-foreground">{t("staffSession.withheld", { count: summary.quotesWithheld })}</p> : null}
           {result.data.notes ? <p className="text-muted-foreground">{result.data.notes}</p> : null}
         </>
       ) : null}
@@ -462,15 +584,17 @@ export function StaffSessionSection({ result }: { result: FileResult<StaffSessio
 }
 
 /** "5 of 7 (71%); 1 wrong, 1 unsure". */
-function claimsText(claims: { rated: number; good: number; wrong: number; unsure: number }): string {
-  return claims.rated ? `${ratingText(claims)}; ${claims.wrong} wrong, ${claims.unsure} unsure` : ratingText(claims);
+function claimsText(claims: { rated: number; good: number; wrong: number; unsure: number }, t: T): string {
+  const rating = ratingText(claims, t.locale);
+  return claims.rated ? t("staffSession.claims", { rating, wrong: claims.wrong, unsure: claims.unsure }) : rating;
 }
 
-export function KnownLimitsSection() {
+export function KnownLimitsSection({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+  const t = createTranslator(locale, "trust");
   return (
-    <Section title="Known limits" description="What the numbers above do not prove.">
+    <Section title={t("knownLimits.title")} description={t("knownLimits.description")}>
       <ul className="flex list-disc flex-col gap-2 pl-5">
-        {KNOWN_LIMITS.map((limit) => (
+        {knownLimits(locale).map((limit) => (
           <li key={limit}>{limit}</li>
         ))}
       </ul>

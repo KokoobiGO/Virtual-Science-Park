@@ -1,20 +1,38 @@
-import Link from "next/link";
+import { List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { filtersToQuery, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
 import { project, ringPath, type TestbedMap } from "@/lib/explore/map";
 import { AREA_LABELS, LAKES, LAND } from "@/lib/explore/sweden-outline";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { createTranslator, type Translator } from "@/lib/i18n/translate";
 import { ItemStatusLabel, MatchNote, NoResults, SourceLink } from "./opportunity-bits";
 import { TestbedMapPicker, type PickerPin } from "./testbed-map-picker";
 
-/** The third view (C15): test facilities as pins on a sketch of southern Sweden. Tag and search apply; the kind is fixed. */
-export function ExploreMap({ map, matches, filters }: { map: TestbedMap; matches: Map<string, MatchInfo> | null; filters: ExploreFilters }) {
+type T = Translator<"explore">;
+
+/**
+ * The third view (C15): test facilities as pins on a sketch of southern Sweden. Tag and search apply; the kind is fixed.
+ * Words in the reader's language (C19); build `map` with the same locale, so each pin's place line matches.
+ */
+export function ExploreMap({
+  map,
+  matches,
+  filters,
+  locale = DEFAULT_LOCALE,
+}: {
+  map: TestbedMap;
+  matches: Map<string, MatchInfo> | null;
+  filters: ExploreFilters;
+  locale?: Locale;
+}) {
+  const t = createTranslator(locale, "explore");
   const shown = map.pins.length + map.unplaced.length;
   const noPlace = map.unplaced.filter((u) => !u.outsideTown);
   const outside = map.unplaced.filter((u) => u.outsideTown);
   const listHref = (item: ExploreItem) =>
     `/explore${filtersToQuery(filters, { view: "list", kind: "testbed", due: null })}#opportunity-${item.id}`;
   const cardFor = (item: ExploreItem, place: { town: string; source: string } | null) => (
-    <TestbedCard item={item} match={matches?.get(item.id) ?? null} place={place} listHref={listHref(item)} />
+    <TestbedCard item={item} match={matches?.get(item.id) ?? null} place={place} listHref={listHref(item)} t={t} />
   );
 
   const pins: PickerPin[] = map.pins.map((pin) => ({
@@ -27,46 +45,37 @@ export function ExploreMap({ map, matches, filters }: { map: TestbedMap; matches
   }));
   const cards = Object.fromEntries(map.pins.map((pin) => [pin.id, cardFor(pin.item, { town: pin.town, source: pin.placeSource })]));
 
+  const facilities =
+    shown === map.total ? t("map.facilitiesAll", { total: map.total }) : t("map.facilitiesSome", { shown, total: map.total });
+  const placed = map.unplaced.length
+    ? t("map.placedAndBelow", { facilities, pins: map.pins.length, below: map.unplaced.length })
+    : t("map.placed", { facilities, pins: map.pins.length });
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1 text-sm">
         <p className="text-muted-foreground" aria-live="polite">
-          {shown === map.total ? `All ${map.total} test facilities` : `${shown} of ${map.total} test facilities`}: {map.pins.length} on the map
-          {map.unplaced.length ? `, ${map.unplaced.length} listed below it` : ""}.
+          {placed}
         </p>
-        <p className="text-muted-foreground">
-          A locator sketch, not a survey map: the outline is simplified and each pin sits on its town, with pins in the same town spread
-          around it.
-        </p>
+        <p className="text-muted-foreground">{t("map.notice")}</p>
       </div>
 
-      <h2 className="sr-only">Test facilities on the map</h2>
-      <TestbedMapPicker
-        label={`Sketch map of southern Sweden with ${map.pins.length} test ${map.pins.length === 1 ? "facility" : "facilities"}`}
-        drawing={<SwedenSketch map={map} />}
-        pins={pins}
-        cards={cards}
-      />
+      <h2 className="sr-only">{t("map.heading")}</h2>
+      <TestbedMapPicker label={t("map.mapLabel", { count: map.pins.length })} drawing={<SwedenSketch map={map} t={t} />} pins={pins} cards={cards} />
 
-      <Legend />
+      <Legend t={t} />
 
-      {shown === 0 ? (
-        <NoResults
-          filters={filters}
-          filtered="No test facility fits these filters."
-          empty="No test facilities are stored yet. They appear here once BSP staff have added them."
-        />
-      ) : null}
+      {shown === 0 ? <NoResults filters={filters} filtered={t("map.emptyFiltered")} empty={t("map.empty")} locale={locale} /> : null}
 
       {noPlace.length ? (
         <section className="flex flex-col gap-3" aria-labelledby="no-location-heading">
           <div className="flex flex-col gap-1">
             <h2 id="no-location-heading" className="text-heading">
-              Location not stored
+              {t("map.noLocationTitle")}
             </h2>
-            <p className="text-sm text-muted-foreground">The stored text for these does not say where they are, so they have no pin.</p>
+            <p className="text-sm text-muted-foreground">{t("map.noLocationIntro")}</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="stagger grid gap-3 md:grid-cols-2">
             {noPlace.map(({ item }) => (
               <div key={item.id}>{cardFor(item, null)}</div>
             ))}
@@ -77,11 +86,11 @@ export function ExploreMap({ map, matches, filters }: { map: TestbedMap; matches
       {outside.length ? (
         <section className="flex flex-col gap-3" aria-labelledby="outside-heading">
           <h2 id="outside-heading" className="text-heading">
-            Outside the area drawn
+            {t("map.outsideTitle")}
           </h2>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="stagger grid gap-3 md:grid-cols-2">
             {outside.map(({ item, outsideTown }) => (
-              <div key={item.id}>{cardFor(item, { town: outsideTown!, source: "Outside the area this sketch covers." })}</div>
+              <div key={item.id}>{cardFor(item, { town: outsideTown!, source: t("map.outsideSource") })}</div>
             ))}
           </div>
         </section>
@@ -91,7 +100,7 @@ export function ExploreMap({ map, matches, filters }: { map: TestbedMap; matches
 }
 
 /** The outline, the two big lakes, the reference towns and the lines from each spread pin to its town. Decorative: the pins carry the content. */
-function SwedenSketch({ map }: { map: TestbedMap }) {
+function SwedenSketch({ map, t }: { map: TestbedMap; t: T }) {
   const { frame } = map;
   return (
     <svg viewBox={`0 0 ${map.width} ${map.height.toFixed(1)}`} className="block h-auto w-full" aria-hidden="true" focusable="false">
@@ -104,8 +113,8 @@ function SwedenSketch({ map }: { map: TestbedMap }) {
       {AREA_LABELS.map((area) => {
         const at = project(frame, area.at);
         return (
-          <text key={area.text} x={at.x} y={at.y} fontSize={12} className="fill-muted-foreground italic">
-            {area.text}
+          <text key={area.id} x={at.x} y={at.y} fontSize={12} className="fill-muted-foreground italic">
+            {t(`map.areas.${area.id}`)}
           </text>
         );
       })}
@@ -135,22 +144,20 @@ function SwedenSketch({ map }: { map: TestbedMap }) {
   );
 }
 
-function Legend() {
+function Legend({ t }: { t: T }) {
   return (
-    <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:gap-6" aria-label="Pin key">
+    <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground sm:flex-row sm:gap-6" aria-label={t("map.legendLabel")}>
       <li className="flex items-center gap-2">
         <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-primary bg-primary" />
-        Verified: an official page confirms it and that outside companies can use it.
+        {t("map.legendVerified")}
       </li>
       <li className="flex items-center gap-2">
         <span aria-hidden className="size-4 shrink-0 rounded-full border-2 border-primary bg-background" />
-        Not verified.
+        {t("map.legendNotVerified")}
       </li>
     </ul>
   );
 }
-
-const NOT_VERIFIED = "Not verified: no official page has been found yet that confirms outside companies can use it.";
 
 /** A test facility's card: what it is, where it is and why, the member's match note, and links to the source and the list. */
 function TestbedCard({
@@ -158,27 +165,30 @@ function TestbedCard({
   match,
   place,
   listHref,
+  t,
 }: {
   item: ExploreItem;
   match: MatchInfo | null;
   place: { town: string; source: string } | null;
   listHref: string;
+  t: T;
 }) {
   const verified = item.verified === true;
+  const notVerifiedWhy = t("map.notVerifiedWhy");
   return (
     <article className="flex h-full min-w-0 flex-col gap-2 rounded-xl border bg-card p-4 text-card-foreground shadow-card">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <Badge variant="secondary">Test facility</Badge>
-        <ItemStatusLabel item={item} />
+        <Badge variant="secondary">{createTranslator(t.locale, "common")("kinds.testbed")}</Badge>
+        <ItemStatusLabel item={item} locale={t.locale} />
         {verified ? null : (
-          <Badge variant="muted" title={NOT_VERIFIED}>
-            Not verified
+          <Badge variant="muted" title={notVerifiedWhy}>
+            {t("map.notVerified")}
           </Badge>
         )}
         <span className="break-words text-muted-foreground">{item.source}</span>
       </div>
       <h3 className="text-base">
-        <SourceLink url={item.url} title={item.title} />
+        <SourceLink url={item.url} title={item.title} locale={t.locale} />
       </h3>
       {place ? (
         <p className="text-sm break-words">
@@ -186,11 +196,13 @@ function TestbedCard({
         </p>
       ) : null}
       {item.description ? <p className="line-clamp-4 text-sm break-words text-muted-foreground">{item.description}</p> : null}
-      {verified ? null : <p className="text-xs text-muted-foreground">{NOT_VERIFIED}</p>}
-      {match ? <MatchNote match={match} /> : null}
-      <Link href={listHref} className="w-fit text-sm text-primary underline-offset-4 hover:underline">
-        Show it in the list
-      </Link>
+      {verified ? null : <p className="text-xs text-muted-foreground">{notVerifiedWhy}</p>}
+      {match ? <MatchNote match={match} locale={t.locale} /> : null}
+      {/* A plain <a>, not <Link>: a client-side navigation does not set :target, so the row would not be highlighted. */}
+      <a href={listHref} className="inline-flex w-fit items-center gap-1 text-sm text-primary underline-offset-4 hover:underline">
+        <List aria-hidden className="size-4" />
+        {t("map.showInList")}
+      </a>
     </article>
   );
 }

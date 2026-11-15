@@ -1,43 +1,63 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { LoadingState, Skeleton } from "@/components/loading-skeleton";
+import { LoadingState, PageShellSkeleton, Skeleton } from "@/components/loading-skeleton";
 import { getViewer } from "@/lib/auth";
-import { EXPLORE_VIEW_TITLES, filterItems, parseFilters } from "@/lib/explore/filter";
-import { buildTestbedMap } from "@/lib/explore/map";
+import { filterItems, parseFilters } from "@/lib/explore/filter";
+import { buildTestbedMap, SOUTHERN_SWEDEN } from "@/lib/explore/map";
 import { loadExplore } from "@/lib/explore/query";
 import { buildTimeline } from "@/lib/explore/timeline";
+import { LocaleProvider } from "@/lib/i18n/client";
+import type { Locale } from "@/lib/i18n/config";
+import { getLocale, getT } from "@/lib/i18n/server";
+import { createTranslator } from "@/lib/i18n/translate";
 import { ExploreList } from "./explore-list";
 import { ExploreMap } from "./explore-map";
 import { ExploreTimeline } from "./explore-timeline";
 import { FilterForm, ViewTabs } from "./filter-form";
 
-/** Each view has its own title, so a tab or a bookmark says which one it is. */
+/** Each view has its own title, so a tab or a bookmark says which one it is. In the reader's language (C19). */
 export async function generateMetadata({ searchParams }: PageProps<"/explore">): Promise<Metadata> {
-  return { title: EXPLORE_VIEW_TITLES[parseFilters(await searchParams).view] };
+  const [t, params] = await Promise.all([getT("explore"), searchParams]);
+  return { title: t(`titles.${parseFilters(params).view}`) };
 }
 
+/**
+ * The opportunity explorer (C14, C15, C16). The words follow the reader's
+ * language (C19); titles, sources, descriptions and the judge's why are shown
+ * as stored.
+ */
 export default function Page({ searchParams }: PageProps<"/explore">) {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-title">Explore</h1>
-        <p className="text-muted-foreground">
-          Every funding call, test facility, event and news item collected so far, each linked to its source. Filter by
-          kind, tag or deadline, or search the titles.
-        </p>
-      </div>
-      <Suspense fallback={<ExploreSkeleton />}>
-        <Explorer searchParams={searchParams} />
+      <Suspense fallback={<PageShellSkeleton />}>
+        <ExploreFrame searchParams={searchParams} />
       </Suspense>
     </section>
   );
 }
 
-/** The view tabs, the filter box, the count line and a few rows, while the opportunities load. */
-function ExploreSkeleton() {
+/** Reads the language only, then waits for the session and the data behind a skeleton in that language. */
+async function ExploreFrame({ searchParams }: Pick<PageProps<"/explore">, "searchParams">) {
+  const locale = await getLocale();
+  const t = createTranslator(locale, "explore");
   return (
-    <LoadingState label="Loading the opportunities…" className="gap-5">
+    <LocaleProvider locale={locale}>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title">{t("title")}</h1>
+        <p className="max-w-prose text-muted-foreground">{t("intro")}</p>
+      </div>
+      <Suspense fallback={<ExploreSkeleton label={t("loading")} />}>
+        <Explorer searchParams={searchParams} locale={locale} />
+      </Suspense>
+    </LocaleProvider>
+  );
+}
+
+/** The view tabs, the filter box, the count line and a few rows, while the opportunities load. */
+function ExploreSkeleton({ label }: { label: string }) {
+  return (
+    <LoadingState label={label} className="gap-5">
       <div className="flex gap-1 border-b pb-2">
         <Skeleton className="h-6 w-12" />
         <Skeleton className="h-6 w-32" />
@@ -67,7 +87,7 @@ function ExploreSkeleton() {
 }
 
 /** Reads the session, the URL and the data, so it streams in behind the Suspense boundary above. */
-async function Explorer({ searchParams }: Pick<PageProps<"/explore">, "searchParams">) {
+async function Explorer({ searchParams, locale }: Pick<PageProps<"/explore">, "searchParams"> & { locale: Locale }) {
   const viewer = await getViewer();
   if (!viewer) redirect("/sign-in?next=/explore");
   const filters = parseFilters(await searchParams);
@@ -76,15 +96,18 @@ async function Explorer({ searchParams }: Pick<PageProps<"/explore">, "searchPar
 
   return (
     <div className="flex flex-col gap-5">
-      <ViewTabs filters={filters} />
-      <FilterForm filters={filters} />
-      {filters.view === "timeline" ? (
-        <ExploreTimeline timeline={buildTimeline(items, filters, now)} matches={matches} filters={filters} now={now} />
-      ) : filters.view === "map" ? (
-        <ExploreMap map={buildTestbedMap(items, filters)} matches={matches} filters={filters} />
-      ) : (
-        <ExploreList items={filterItems(items, filters, now)} total={items.length} matches={matches} filters={filters} now={now} />
-      )}
+      <ViewTabs filters={filters} locale={locale} />
+      <FilterForm filters={filters} locale={locale} />
+      {/* Keyed by the view, so switching views fades the new one in. */}
+      <div key={filters.view} className="animate-fade">
+        {filters.view === "timeline" ? (
+          <ExploreTimeline timeline={buildTimeline(items, filters, now)} matches={matches} filters={filters} now={now} locale={locale} />
+        ) : filters.view === "map" ? (
+          <ExploreMap map={buildTestbedMap(items, filters, SOUTHERN_SWEDEN, locale)} matches={matches} filters={filters} locale={locale} />
+        ) : (
+          <ExploreList items={filterItems(items, filters, now)} total={items.length} matches={matches} filters={filters} now={now} locale={locale} />
+        )}
+      </div>
     </div>
   );
 }

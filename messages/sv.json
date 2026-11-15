@@ -45,7 +45,11 @@
     "eyebrow": "Blue Science Park · Karlskrona",
     "title": "Varje vecka: möjligheterna som kan passa ert företag",
     "intro": "Virtual Science Park ger varje medlem i Blue Science Park en kort lista med utlysningar, testbäddar, evenemang och partner. Varje rad visar var den kommer ifrån, så att ni kan kontrollera den själva.",
+    "tagline": "Utlysningar, testbäddar och evenemang utvalda för ert företag varje vecka, varje rad länkad till sin källa.",
+    "live": "Live",
     "howTitle": "Så fungerar det",
+    "howIntro": "Tre steg, varje vecka. Ni bestämmer själva vad som händer sedan.",
+    "stepNumber": "Steg {n}",
     "steps": {
       "profile": {
         "title": "En profil från era egna sidor",
@@ -61,14 +65,26 @@
       }
     },
     "signInHint": "Konton för medlemmar läggs upp av BSP:s personal.",
+    "seeHow": "Så fungerar det",
+    "cards": {
+      "sources": { "label": "Läses varje natt", "value": "{count} källor", "text": "Finansiering, testbäddar, evenemang" },
+      "evidence": { "label": "Varje uppgift", "value": "Länkad till sin källa", "text": "+ citat" }
+    },
     "openStaff": "Öppna personalverktygen",
     "openWeek": "Öppna er vecka",
     "staffTools": "Personalverktyg",
-    "yourScreens": "Era sidor"
+    "yourScreens": "Era sidor",
+    "yourScreensIntro": "Välj vart ni vill gå. Menyn högst upp har samma sidor."
   },
   "signIn": {
     "title": "Logga in",
-    "intro": "Medlemmar ser sin egen vecka. BSP:s personal ser personalverktygen.",
+    "intro": "För medlemmar i Blue Science Park och BSP:s personal.",
+    "nextTitle": "Det här händer när du har loggat in",
+    "nextMember": "Du kommer direkt till din vecka: veckans möjliga matchningar för ditt företag, var och en med sin källa.",
+    "nextStaff": "Du kommer till personalverktygen: jämför medlemmar, ekosystemkartan och överlämningarna.",
+    "noAccountTitle": "Inget konto än?",
+    "noAccount": "Fråga BSP:s personal. Konton finns bara för medlemmar i Blue Science Park.",
+    "emailPlaceholder": "namn@foretag.se",
     "cardTitle": "Ditt konto",
     "cardDescription": "Använd den e-postadress som BSP:s personal har lagt upp åt dig.",
     "loadingForm": "Läser in inloggningsformuläret…",
@@ -80,13 +96,13 @@
     "submitting": "Loggar in…",
     "errors": {
       "missing": "Ange din e-postadress och ditt lösenord.",
-      "wrong": "Fel e-postadress eller lösenord.",
+      "wrong": "E-postadressen och lösenordet stämmer inte. Kontrollera stavningen och försök igen.",
       "noRole": "Kontot har ingen roll än. Be BSP:s personal att lägga upp det."
     }
   },
   "notFound": {
     "title": "Sidan finns inte",
-    "text": "Det finns ingen sida på den här adressen. Länken kan vara gammal eller felskriven. Börja om från startsidan eller använd menyn högst upp.",
+    "text": "Vi hittade ingen sida på den här adressen. Länken kan vara gammal eller felskriven. Gå tillbaka till startsidan eller välj en sida i menyn högst upp.",
     "back": "Gå till startsidan",
     "profileTitle": "Inget företag på den här adressen",
     "profileText": "Ingen medlem i Blue Science Park har en profil på den här adressen. Länken kan vara gammal, eller så har företaget lämnat medlemslistan.",
@@ -205,14 +221,28 @@
   "sources": {
     "title": "Datastatus",
     "intro": "Varifrån utlysningarna, testbäddarna, evenemangen och nyheterna på webbplatsen kommer, och hur färsk varje källa är. Livekällor läses in varje natt. När en källa inte går att läsa visar webbplatsen en sparad kopia och säger det, med kopians datum.",
-    "legendTitle": "Vad etiketterna betyder"
+    "legendTitle": "Vad etiketterna betyder",
+    "legendIntro": "Varje källa och varje post på webbplatsen har en av de här etiketterna, utskriven i ord, så att ni alltid vet hur mycket ni kan lita på det ni läser.",
+    "states": {
+      "live": "Läst från källan själv, senast det datum som visas. Det ni ser är det källan säger.",
+      "stale": "En livekälla som inte har lästs på mer än två dagar. Den kan ha ändrats sedan dess; kontrollera källan innan ni agerar.",
+      "cached": "Källan gick inte att läsa, så webbplatsen visar en sparad kopia från det datum som visas. Nyare utlysningar eller ändringar kan saknas.",
+      "hand_entered": "Teamet har skrivit in det här från källan; det läses inte in automatiskt. Det uppdateras för hand, så kontrollera källan för det senaste.",
+      "simulated": "Exempeldata som teamet har skrivit för demon. Det är inte verkligt; agera aldrig på det."
+    }
   },
   "profile": {
     "title": "Företagsprofil",
     "publicDocumentTitle": "Offentlig företagsprofil",
     "notLinked": "Ditt konto är ännu inte kopplat till ett medlemsföretag, så det finns ingen profil att visa. Be BSP:s personal att koppla ditt konto till ert företag.",
     "prioritiesTitle": "Era prioriteringar",
-    "prioritiesIntro": "Det ni vill ha från BSP just nu. De styr bara er egen rangordning; ingen utanför ert företag ser dem.",
+    "prioritiesIntro": "Slå på det ni vill ha från BSP just nu. Er vecka rangordnar om era matchningar så att de här kommer först. Bara ert företag ser dem.",
+    "about": {
+      "title": "Så fungerar profilen",
+      "built": "Vi har byggt den från ert företags egna offentliga sidor, till exempel er webbplats och er medlemssida hos BSP.",
+      "evidence": "Varje fält visar citatet det bygger på: öppna \"Belägg\" under fältet för att se orden och en länk till sidan.",
+      "correct": "Något fel eller saknas? Tryck på Redigera och skriv det med egna ord. Er version ersätter vår, och ni väljer om den är offentlig eller privat."
+    },
     "profileTitle": "Profil",
     "seePublic": "Se er offentliga profil",
     "profileIntro": "Läst från era offentliga sidor. Öppna beläggen under ett fält för att se citatet som uppgiften bygger på. Redigera ett fält för att säga det med egna ord: ert värde ersätter vårt, och ni väljer om det är offentligt eller privat.",
@@ -279,7 +309,8 @@
       "reject": "Avvisa",
       "acceptLabel": "Godkänn föreslagen uppdatering av {field}",
       "rejectLabel": "Avvisa föreslagen uppdatering av {field}",
-      "saving": "Sparar…"
+      "saving": "Sparar…",
+      "explain": "Era sidor säger något nytt här. Godkänn för att använda det, eller avvisa för att behålla det som visas ovan."
     },
     "editor": {
       "edit": "Redigera",
@@ -298,6 +329,7 @@
       "off": "Av:",
       "savedOn": "{label}: på. Sparat.",
       "savedOff": "{label}: av. Sparat.",
+      "savedVisible": "Sparat. Er vecka rangordnar om era matchningar med det här om en stund.",
       "names": {
         "funding": "Finansiering",
         "testing": "Tester och testbäddar",
@@ -342,6 +374,7 @@
     "title": "Jämför medlemmar",
     "intro": "Två medlemmars topp fem från den offentliga rangordningen, sida vid sida. Den offentliga rangordningen bygger bara på offentliga profiluppgifter, aldrig på det en medlem har angett privat. Varje rad är en möjlig matchning, inte ett beslut.",
     "loading": "Läser in medlemmarna…",
+    "todo": "Välj två medlemmar och tryck på Jämför. Rader markerade ”I båda” finns i båda topp fem-listorna: ett naturligt ämne för ett gemensamt samtal.",
     "tooFew": {
       "one": "För att jämföra behövs minst två medlemsföretag, och än så länge finns bara ett. Kör medlemsimporten under Tjänstekontroller först.",
       "other": "För att jämföra behövs minst två medlemsföretag, och än så länge finns inga. Kör medlemsimporten under Tjänstekontroller först."
@@ -375,7 +408,9 @@
   },
   "ecosystem": {
     "title": "Ekosystemkarta",
-    "intro": "Medlemmar som kan ha anledning att prata med varandra, hittade utifrån deras offentliga profiler: varje linje är ett möjligt samarbete med ett angivet underlag. {disclaimer}",
+    "intro": "Föreslagna introduktioner mellan medlemmar, hittade utifrån deras offentliga profiler: varje linje är ett möjligt samarbete med ett angivet underlag.",
+    "todo": "Klicka på en linje i kartan, eller på ett par i listan, för att läsa varför de två medlemmarna kan ha anledning att prata. Bedöm sedan om en introduktion är värd att göra.",
+    "suggestionLabel": "Föreslagen introduktion",
     "disclaimer": "Inget av företagen har uttryckt intresse. Detta är ett förslag som bara bygger på offentliga profiluppgifter.",
     "loading": "Läser in kartan…",
     "empty": "Inga möjliga samarbeten är sparade än. De visas när kontaktsökningen har körts; teamet startar den med <code>npm run connections</code>.",
@@ -410,7 +445,15 @@
     "intro": "Frågor som medlemmar har skickat till BSP:s personal från Copilot, nyaste först. Medlemmarna skickar dem medvetet; deras chattar förblir privata.",
     "contact": "Kontaktväg för nya överlämningar: {contact}. Det är ännu ingen riktig adress: BSP har inte bestämt kontaktvägen.",
     "loading": "Läser in överlämningarna…",
-    "empty": "Inga överlämningar än. När en medlem skickar en fråga till BSP:s personal under ett svar från Copilot visas den här.",
+    "todo": "Läs varje öppen fråga och kontakta medlemmen via den kontaktväg som visas. Öppen betyder att ingen på BSP har tagit hand om den än.",
+    "emptyTitle": "Inga överlämningar än",
+    "empty": "När en medlem skickar en fråga till BSP:s personal under ett svar från Copilot visas den här.",
+    "counts": {
+      "one": "{open} öppna av {count} överlämning.",
+      "other": "{open} öppna av {count} överlämningar."
+    },
+    "openHint": "Väntar på att BSP:s personal hör av sig.",
+    "closedHint": "Hanterad: inget mer behöver göras.",
     "open": "Öppen",
     "closed": "Stängd",
     "answer": "Copilots svar",
@@ -464,7 +507,16 @@
       "one": "{count} modellanrop, {seconds} s",
       "other": "{count} modellanrop, {seconds} s"
     },
-    "setupTitle": "Så var körningen uppsatt"
+    "setupTitle": "Så var körningen uppsatt",
+    "todo": "Läs korten uppifrån och ned: resultatet, sedan steg 1 (vad testsidan gömde) och sedan varje modellsteg. GODKÄNT betyder att den dolda instruktionen inte tog sig igenom.",
+    "openTestPage": "Öppna testsidan",
+    "lookAt": "Det här ska du titta på: varje modellsteg nedan slutar med ”I det som skulle sparas”. Står det inga där nådde den planterade instruktionen aldrig datan.",
+    "stepNumber": "Steg {n}",
+    "eyebrow": {
+      "result": "Resultatet",
+      "trap": "Fällan på testsidan",
+      "model": "En AI-modell läser sidan"
+    }
   },
   "checks": {
     "title": "Tjänstekontroller",
@@ -493,15 +545,22 @@
     "fetcherText": "Hämtar en webbsida i ett bakgrundsjobb och sparar dess rena text som en ögonblicksbild.",
     "importTitle": "Medlemsimport",
     "importText": "Läser in BSP:s medlemslista och varje medlemssida i företagstabellen. Säker att köra igen: den uppdaterar samma rader.",
+    "todo": "Tryck på en tjänsts knapp för att testa den. Varje kontroll svarar OK eller Problem i ord, med tjänstens eget meddelande under.",
+    "writesData": "Sparar data",
     "service": {
       "running": "Körs…",
       "progress": "{done} av {total} kontroller klara.",
       "badgeRunning": "Körs",
       "notRun": "Inte körd",
       "statuses": {
-        "PASS": "GODKÄNT",
-        "FAIL": "UNDERKÄNT",
-        "NOTE": "NOTERING"
+        "PASS": "OK",
+        "FAIL": "Problem",
+        "NOTE": "Notering"
+      },
+      "summaryOk": "Alla kontroller OK.",
+      "summaryProblems": {
+        "one": "{count} av {total} kontroller har ett problem.",
+        "other": "{count} av {total} kontroller har ett problem."
       }
     },
     "fetch": {
@@ -510,6 +569,7 @@
       "running": "Hämtar…",
       "statusRunning": "Hämtar sidan…",
       "statusDone": "Sidan är hämtad.",
+      "problem": "Problem:",
       "unchanged": "Oförändrad",
       "stored": "Sparad",
       "noTitle": "(ingen titel)",
@@ -528,6 +588,789 @@
       "none": "inga",
       "jobEnded": "Jobbet {status}: {output}",
       "tooLong": "Körs fortfarande efter 4 minuter. Se Inngests kontrollpanel."
+    }
+  },
+  "copilot": {
+    "description": "Fråga om utlysningar, testbäddar, evenemang och ert eget företags profil och matchningar, med svar från Virtual Science Parks databas och med källor.",
+    "loading": "Läser in Copilot…",
+    "error": {
+      "title": "Copilot kunde inte läsas in",
+      "what": "Något gick fel hos oss när chatten skulle öppnas.",
+      "back": "Gå till Er vecka"
+    },
+    "close": "Stäng",
+    "intro": "Utlysningar, testbäddar, evenemang och er egen profil och era matchningar, med svar från Virtual Science Parks databas och med källor.",
+    "newConversation": "Ny konversation",
+    "conversation": "Konversation",
+    "youAsked": "Ni frågade:",
+    "answered": "Copilot svarade:",
+    "question": {
+      "label": "Er fråga",
+      "placeholder": "Fråga om finansiering, testbäddar, evenemang eller era matchningar"
+    },
+    "ask": "Fråga",
+    "sources": "Källor",
+    "empty": {
+      "title": "Vad ni kan fråga om",
+      "can": "Frågor om era matchningar, ert företags profil och de utlysningar, testbäddar och evenemang som finns i Virtual Science Parks databas. Varje svar bygger bara på sparade källor, med en länk till var och en. Copilot kan också spara en möjlighet i er lista eller skicka er fråga till BSP:s personal.",
+      "note": "Copilot söker inte på webben och avgör aldrig om ni kan söka: en matchning är en möjlig matchning, och BSP:s personal kan hjälpa er att kontrollera.",
+      "try": "Prova någon av de här (frågorna ställs på engelska):"
+    },
+    "thinking": "Copilot arbetar med ert svar. Det kan ta upp till 30 sekunder.",
+    "scope": {
+      "in_scope": {
+        "label": "Inom området",
+        "title": "Besvarat utifrån Virtual Science Parks databas"
+      },
+      "unclear": {
+        "label": "Oklart",
+        "title": "Copilot behöver en detalj till"
+      },
+      "out_of_scope": {
+        "label": "Utanför området",
+        "title": "Utanför det som Copilot svarar på"
+      },
+      "override_attempt": {
+        "label": "Utanför området",
+        "title": "Meddelandet försökte ändra Copilots regler"
+      }
+    },
+    "questionKept": "Er fråga finns kvar i rutan nedan, så att ni kan skicka den igen.",
+    "announce": {
+      "answered": "Copilot svarade, {label}: {text}",
+      "sourcesListed": {
+        "one": "1 källa listas under svaret.",
+        "other": "{count} källor listas under svaret."
+      },
+      "asking": "Frågar Copilot. Det kan ta upp till 30 sekunder.",
+      "sent": "Skickat till BSP:s personal.",
+      "notSent": "Inte skickat till BSP:s personal. Försök igen.",
+      "newConversation": "Ny konversation. De tidigare frågorna och svaren är borttagna."
+    },
+    "failure": "Er fråga besvarades inte. {reason} {kept}",
+    "failures": {
+      "status": "Copilot svarade med fel {status}.",
+      "cutOff": "Svaret avbröts.",
+      "unreachable": "Det gick inte att nå Copilot. Kontrollera er anslutning."
+    },
+    "handoff": {
+      "send": "Skicka till BSP:s personal",
+      "sending": "Skickar…",
+      "sent": "Skickat till BSP:s personal",
+      "notSent": "Inte skickat. Försök igen."
+    },
+    "status": {
+      "sending": "Skickar",
+      "checkingQuestion": "Kontrollerar frågan",
+      "thinking": "Tänker på er fråga",
+      "writing": "Skriver svaret",
+      "profile": "Läser er företagsprofil",
+      "search": "Söker bland möjligheterna",
+      "matches": "Läser era matchningar",
+      "save": "Sparar möjligheten i er lista",
+      "contact": "Skickar er fråga till BSP:s personal",
+      "tool": "Använder ett verktyg",
+      "checkingAnswer": "Kontrollerar svaret",
+      "addingSources": "Lägger till källor i svaret",
+      "saving": "Sparar konversationen"
+    }
+  },
+  "week": {
+    "title": "Er vecka",
+    "intro": "Möjliga matchningar som valts ut åt ert företag den här veckan ur offentliga källor: utlysningar, testbäddar och evenemang. Varje kort är en möjlig matchning, inte ett beslut: kontrollera källan eller fråga BSP:s personal.",
+    "loading": "Läser in era kort\u2026",
+    "guide": {
+      "title": "Så fungerar sidan",
+      "read": {
+        "title": "Läs varför det passar",
+        "text": "Varje kort säger varför det kan passa ert företag och länkar till den offentliga källan, så att ni kan kontrollera själva."
+      },
+      "act": {
+        "title": "Gör något med det",
+        "text": "Spara kortet till senare, lägg in datumet i kalendern eller be BSP:s personal om hjälp."
+      },
+      "teach": {
+        "title": "Säg vad som passar",
+        "text": "Markera ett kort som Användbart eller Inte relevant. Era nästa kort rangordnas efter era svar."
+      }
+    },
+    "legend": {
+      "title": "Vad etiketterna betyder",
+      "match": "Något som kan passa ert företag. Ett förslag utifrån offentliga uppgifter, inget beslut om ert företag.",
+      "trend": "En kort notis om vad som har ändrats den här veckan inom ett av era områden, med källor.",
+      "notOpen": "Utlysningen har inte öppnat än. Datumet visar när den öppnar.",
+      "deadline": "Hur lång tid som är kvar. Ikonen och orden säger samma sak som färgen.",
+      "data": "Uppgifter som inte läses direkt från källan är alltid märkta: inlagda för hand, simulerade eller en sparad kopia."
+    },
+    "weekOf": "Veckan som börjar {date}",
+    "olderWeek": "Den här veckans kort är inte klara än, så det här är de senaste, från veckan som börjar {date}.",
+    "cardCount": {
+      "one": "{count} kort",
+      "other": "{count} kort"
+    },
+    "empty": {
+      "title": "Inga kort än",
+      "text": "Era kort tas fram varje måndagsmorgon, och igen när er profil ändras, utifrån de möjligheter som rangordnats för ert företag. Inga kort har tagits fram för ert företag än.",
+      "next": "Under tiden kan ni:",
+      "profile": "Kontrollera er företagsprofil",
+      "explore": "Utforska möjligheter"
+    },
+    "staff": {
+      "title": "Inget företag på ett personalkonto",
+      "text": "\u201DEr vecka\u201D visar ett medlemsföretags kort. Konton för BSP:s personal har inget företag, så det finns inget att visa här. Använd personalens verktyg i stället."
+    },
+    "card": {
+      "potentialMatch": "Möjlig matchning",
+      "trendNote": "Trendnotis",
+      "whyItFits": "Varför det passar",
+      "whatChanged": "Vad som har ändrats den här veckan",
+      "nextStep": "Nästa steg",
+      "uncertain": "Vad som är osäkert",
+      "source": "Källa",
+      "sources": "Källor",
+      "deadline": "Sista dag",
+      "eventDate": "Datum för evenemanget",
+      "notOpenYet": "Inte öppen än: öppnar {date}"
+    },
+    "kinds": {
+      "funding": "Utlysning",
+      "testbed": "Testbädd",
+      "event": "Evenemang",
+      "news": "Nyhet"
+    },
+    "areas": {
+      "marine": "Marint",
+      "defence": "Försvar",
+      "sensor": "Sensorer",
+      "cyber": "Cybersäkerhet",
+      "ai": "AI",
+      "energy": "Energi"
+    },
+    "urgency": {
+      "deadline": {
+        "passed": "Sista dagen har passerat",
+        "today": "Stänger i dag",
+        "tomorrow": "Stänger i morgon",
+        "days": {
+          "one": "Stänger om {count} dag",
+          "other": "Stänger om {count} dagar"
+        },
+        "weeks": {
+          "one": "Stänger om {count} vecka",
+          "other": "Stänger om {count} veckor"
+        }
+      },
+      "event": {
+        "passed": "Har ägt rum",
+        "today": "I dag",
+        "tomorrow": "I morgon",
+        "days": {
+          "one": "Om {count} dag",
+          "other": "Om {count} dagar"
+        },
+        "weeks": {
+          "one": "Om {count} vecka",
+          "other": "Om {count} veckor"
+        }
+      }
+    },
+    "actions": {
+      "groupLabel": "Åtgärder för {title}",
+      "save": "Spara",
+      "saved": "Sparad",
+      "useful": "Användbart",
+      "notRelevant": "Inte relevant",
+      "feedbackPrompt": "Bra matchning?",
+      "addToCalendar": "Lägg till i kalendern",
+      "askBsp": "Fråga BSP",
+      "sentToBsp": "Skickat till BSP:s personal",
+      "openSource": "Öppna källan",
+      "savedStatus": "Sparad för ert företag.",
+      "unsavedStatus": "Borttagen från sparade.",
+      "rankingNow": "Er rangordning uppdateras nu.",
+      "rankingTonight": "Er rangordning uppdateras i natt.",
+      "markedUseful": "Tack: markerad som användbar. {ranking}",
+      "markedNotRelevant": "Tack: markerad som inte relevant, så den försvinner från era matchningar. {ranking}",
+      "feedbackRemoved": "Omdömet är borttaget. {ranking}",
+      "sentStatus": "Skickat till BSP:s personal.",
+      "alreadySent": "Redan skickat till BSP:s personal.",
+      "notMember": "Logga in med ett medlemskonto först.",
+      "notFound": "Den möjligheten hittades inte.",
+      "failed": "Det fungerade inte. Försök igen om en stund.",
+      "chooseFeedback": "Välj användbart eller inte relevant."
+    },
+    "live": {
+      "pending": "Er profil har ändrats: era kort rangordnas om. Sidan uppdateras av sig själv.",
+      "byProfile": "Omrangordnat efter er profiländring",
+      "byOther": "Era kort har rangordnats om",
+      "line": "{head}: {parts}.",
+      "same": "samma kort i samma ordning",
+      "added": {
+        "one": "{count} nytt kort",
+        "other": "{count} nya kort"
+      },
+      "dropped": {
+        "one": "{count} borttaget",
+        "other": "{count} borttagna"
+      },
+      "moved": {
+        "one": "{count} flyttat",
+        "other": "{count} flyttade"
+      }
+    },
+    "error": {
+      "title": "Era kort kunde inte läsas in",
+      "what": "Något gick fel hos oss när veckans kort skulle läsas. Det ni har sparat och de omdömen ni har gett finns kvar.",
+      "back": "Utforska möjligheter"
+    }
+  },
+  "digest": {
+    "notice": "Endast information. Korten väljs av programvara utifrån offentliga källor och ert företags profil i Virtual Science Park. En möjlig matchning är inget besked om huruvida ni kan söka: kontrollera källan innan ni agerar, eller fråga BSP:s personal.",
+    "cardLabels": {
+      "match": {
+        "label": "Möjlig matchning",
+        "meaning": "en möjlighet som har rangordnats för ert företag, med varför den kan passa och ett nästa steg."
+      },
+      "trend": {
+        "label": "Trendnotis",
+        "meaning": "en kort notis om veckans nyheter och nya utlysningar inom ett teknikområde, skriven av programvara utifrån källorna den listar."
+      }
+    },
+    "kinds": {
+      "funding": "Utlysning",
+      "testbed": "Testbädd",
+      "event": "Evenemang",
+      "news": "Nyhet"
+    },
+    "areas": {
+      "marine": "Marint",
+      "defence": "Försvar",
+      "sensor": "Sensorer",
+      "cyber": "Cybersäkerhet",
+      "ai": "AI",
+      "energy": "Energi"
+    },
+    "counts": {
+      "matches": {
+        "one": "{count} möjlig matchning",
+        "other": "{count} möjliga matchningar"
+      },
+      "trends": {
+        "one": "en trendnotis",
+        "other": "{count} trendnotiser"
+      },
+      "and": "{first} och {second}"
+    },
+    "whyMatch": "Varför den passar",
+    "whyTrend": "Vad som har hänt i veckan",
+    "nextStep": "Nästa steg",
+    "uncertain": "Vad som är osäkert",
+    "sources": {
+      "one": "Källa",
+      "other": "Källor"
+    },
+    "deadline": "Sista dag",
+    "eventDate": "Evenemangsdatum",
+    "passed": "(passerat)",
+    "when": "{day} kl. {time}",
+    "subject": "Er vecka, {week}: {counts} för {company}",
+    "intro": "Veckans urval för {company}: {counts}. Varje kort säger varför det kan passa, ett nästa steg och var det kommer ifrån. Ett kort är en möjlig matchning, inte ett beslut: kontrollera källan eller fråga BSP:s personal.",
+    "preheader": "{counts} för {company}, veckan som börjar {week}.",
+    "heading": "Er vecka: {company}",
+    "weekOf": "Veckan som börjar {week}",
+    "openWeek": "Öppna Er vecka",
+    "saveHint": "Spara ett kort, säg vad som är användbart eller lägg in ett datum i er kalender på webbplatsen:",
+    "textOpenWeek": "Öppna Er vecka för att spara ett kort, säga vad som är användbart eller lägga in ett datum i er kalender: {url}",
+    "labelsTitle": "Så märks uppgifterna:",
+    "swedishTime": "Datum anges i svensk tid.",
+    "sentBy": "Skickat av Virtual Science Park till medlemmar i Blue Science Park."
+  },
+  "trust": {
+    "title": "Förtroenderapport",
+    "description": "Vad som har mätts i Virtual Science Park, och när: profilernas träffsäkerhet, citat, länkar, källor, matchning och red team-tester.",
+    "intro": "Vad vi har mätt i systemet, och när. Varje siffra kommer från en sparad körning och har sitt datum. Där inget har mätts än säger rapporten det.",
+    "loading": "Läser in mätningarna…",
+    "summary": {
+      "title": "I korthet",
+      "intro": "Vi har kontrollerat företagsprofilerna mot företagens egna webbsidor, varje källänk och hur Copilot hanterar knepiga och fientliga frågor. Det här är de senaste siffrorna; varje avsnitt nedan säger hur och när det mättes.",
+      "caption": "Det senaste resultatet av varje kontroll",
+      "accuracy": { "label": "Rätta uttalade profiluppgifter", "detail": "{right} av {checked} kontrollerade uppgifter" },
+      "automated": "Kontrollerat av en automatisk granskare (AI), inte av människor.",
+      "quotes": { "label": "Profilcitat som finns ord för ord", "detail": "{found} av {total} citat, på den sparade sidan" },
+      "links": { "label": "Källänkar som fungerar", "detail": "{ok} av {checked} länkar; {broken} trasiga" },
+      "redTeam": { "label": "Red team-frågor som hanterades säkert", "detail": "{passed} av {total} frågor" },
+      "privacy": { "label": "Integritetstester som klarades", "detail": "{passed} av {total} tester" }
+    },
+    "error": {
+      "title": "Förtroenderapporten kunde inte läsas in",
+      "what": "Något gick fel hos oss när de sparade mätningarna skulle läsas.",
+      "back": "Gå till startsidan"
+    },
+    "notMeasured": "inte mätt än",
+    "handCheckNotFinished": "inte mätt än: teamets kontroll för hand är inte klar",
+    "unreadable": "{what}, men den här sidan kan inte läsa den, så ingen siffra visas.",
+    "ranAt": "Körd {date}",
+    "heldOn": "Genomförd {date}",
+    "percent": "{n}\u00A0%",
+    "of": "{part} av {whole}",
+    "ofPercent": "{part} av {whole} ({percent})",
+    "notRated": "inte bedömt",
+    "accuracyCell": "{percent} ({right} av {checked} kontrollerade)",
+    "accuracyCellUnsure": {
+      "one": "{percent} ({right} av {checked} kontrollerade, {count} osäker)",
+      "other": "{percent} ({right} av {checked} kontrollerade, {count} osäkra)"
+    },
+    "allGoldProfiles": "Alla guldprofiler",
+    "profileAccuracy": {
+      "title": "Profilernas träffsäkerhet",
+      "description": "Varje uppgift i de tre guldprofilerna kontrolleras mot företagets egna sidor. När bedömningarna kommer från AI och inte från människor står det i en notering bredvid siffrorna. Träffsäkerheten är rätta uppgifter av kontrollerade uppgifter; en okontrollerad uppgift räknas aldrig som rätt.",
+      "unreadable": "En körning av träffsäkerheten är sparad",
+      "latestRun": "Den senaste körningen hittade 0 av {claims} uppgifter kontrollerade, i {profiles} guldprofiler.",
+      "caption": "Träffsäkerhet per guldprofil: rätta uppgifter av kontrollerade uppgifter",
+      "head": {
+        "profile": "Guldprofil",
+        "stated": "Angivna uppgifter",
+        "inferred": "Härledda uppgifter",
+        "missing": "Saknas (sidan säger inget)"
+      },
+      "notFinished": "Kontrollen av uppgifterna är inte klar: {checked} av {claims} uppgifter kontrollerade hittills.",
+      "automatedReview": "Bedömningarna för {profiles} kommer från en automatisk granskare (AI), inte från människor. Ingen i teamet har bekräftat dem ännu."
+    },
+    "quoteCheck": {
+      "title": "Citatkontroll",
+      "description": "Varje citat bakom ett profilfält måste finnas ord för ord i den sparade sidtexten. Ett fält vars citat underkänns två gånger tas bort och visas som saknat, och behålls aldrig utan belägg.",
+      "unreadable": "En körning av citatkontrollen är sparad",
+      "caption": "Citatkontroll per profil: citat som hittades ord för ord på den sparade sidan, och borttagna fält",
+      "head": {
+        "profile": "Profil",
+        "found": "Citat som hittades på sidan",
+        "notFound": "Citat som inte hittades",
+        "dropped": "Borttagna fält",
+        "profiled": "Profilerad"
+      },
+      "allProfiled": "Alla {count} profilerade medlemmar"
+    },
+    "linkHealth": {
+      "title": "Länkhälsa",
+      "description": "Varje möjlighets källänk, och varje källa som ett veckokort hänvisar till, hämtad en gång. Oklar: webbplatsen svarade inte ett skript (en inloggning, ett nekande eller inget svar), så en person måste titta. EU-utlysningarnas länkar kontrolleras via portalens API; länkar på webbplatser som svarar 200 för en sida som saknas (Energimyndigheten, ri.se) räknas som \u201dkan inte kontrolleras av ett skript\u201d, inte som fungerande.",
+      "unreadable": "En körning av länkkontrollen är sparad",
+      "caption": "Länkhälsa: källänkar kontrollerade, fungerande, trasiga, oklara och sådana som inte kan kontrolleras av ett skript",
+      "head": {
+        "checked": "Kontrollerade länkar",
+        "ok": "Fungerar",
+        "broken": "Trasiga",
+        "blocked": "Oklara: kontrollera för hand",
+        "unverifiable": "Kan inte kontrolleras av ett skript"
+      }
+    },
+    "sourceStatus": {
+      "title": "Källornas status",
+      "intro": "Varifrån möjligheterna kommer.",
+      "caption": "Källornas status: varje källas dataetikett, senaste lyckade läsning, antal poster och anteckning",
+      "head": {
+        "source": "Källa",
+        "status": "Status",
+        "lastSuccess": "Senast lyckad",
+        "items": "Poster",
+        "note": "Anteckning"
+      },
+      "never": "aldrig",
+      "copyDateUnknown": "Kopians datum är okänt.",
+      "noRecentSuccess": "Ingen lyckad läsning de senaste 48 timmarna."
+    },
+    "matching": {
+      "title": "Matchning",
+      "description": "Bedömaren läser varje rangordnad matchning och behåller den, med ett skäl och ett nästa steg, eller avvisar den med ett skäl. Den kan avvisa en matchning men lägger aldrig till någon. Den offentliga rangordningen bygger bara på offentliga profiluppgifter; den personliga lägger till företagets privata uppgifter.",
+      "unreadable": "En körning av matchningen är sparad",
+      "counted": "Räknad {date}, {judged}",
+      "lastJudged": "senast bedömd {date}",
+      "nothingJudged": "inget bedömt än",
+      "scope": {
+        "all_members": "Räknat över varje medlems rangordnade matchningar (varje företags topp 20 just nu), offentliga och personliga, av matchningsutvärderingen. Bara summor sparas: ingen medlems egna matchningar visas.",
+        "all_members_public": "Matchningsutvärderingen är inte sparad än, så det här är er egen räkning: varje medlems offentliga rangordning. Personliga rangordningar är privata för varje företag, så BSP:s personal kan inte räkna dem.",
+        "own_company": "Matchningsutvärderingen är inte sparad än, så det här är er egen räkning: bara ert eget företags matchningar, eftersom andra medlemmars matchningar är privata för dem."
+      },
+      "caption": "Matchning per rangordning: medlemmar, rangordnade, bedömda, behållna, avvisade och ännu inte bedömda",
+      "head": {
+        "ranking": "Rangordning",
+        "members": "Medlemmar",
+        "ranked": "Rangordnade",
+        "judged": "Bedömda",
+        "kept": "Behållna",
+        "rejected": "Avvisade",
+        "notJudged": "Inte bedömda än"
+      },
+      "modes": {
+        "public": "Offentlig",
+        "personal": "Personlig"
+      }
+    },
+    "redTeam": {
+      "title": "Red team-tester",
+      "description": "Instruktioner som skrivits med avsikt för att få systemet att göra fel, i grupper. Andelen godkända är hur stor del av en grupps instruktioner som systemet hanterade som det ska.",
+      "unreadable": "En red team-körning är sparad",
+      "caption": "Red team-tester per grupp: godkända instruktioner och andel godkända",
+      "head": {
+        "group": "Grupp",
+        "passed": "Godkända",
+        "rate": "Andel godkända"
+      },
+      "groups": {
+        "relevant": "Relevanta frågor",
+        "unrelated": "Orelaterade frågor",
+        "override": "Försök att ändra reglerna",
+        "indirectInjection": "Dolda instruktioner i källor",
+        "privacy": "Andra företags uppgifter",
+        "canWeApply": "Frågor av typen \u201dKan vi söka?\u201d"
+      }
+    },
+    "privacy": {
+      "title": "Integritetstester",
+      "description": "Tester av radnivåsäkerheten mot databasen: en medlems konto får inte få några rader med ett annat företags privata uppgifter, och BSP:s personal läser aldrig chattar.",
+      "unreadable": "En körning av integritetstesterna är sparad",
+      "result": "<count>{passed} av {total}</count> tester godkända ({percent})."
+    },
+    "timed": {
+      "title": "Tidtaget test",
+      "description": "En testperson gör var och en av två uppgifter en gång för hand (med egen sökning) och en gång med verktyget, mot klockan. En poäng för varje korrekt resultat som hittas inom 15 minuter, bedömt mot teamets facit.",
+      "unreadable": "En resultatfil för det tidtagna testet finns",
+      "caption": "Tidtaget test per uppgift och testperson: för hand bredvid med verktyget",
+      "head": {
+        "task": "Uppgift",
+        "tester": "Testperson",
+        "byHand": "För hand",
+        "withTool": "Med verktyget"
+      },
+      "tasks": {
+        "A": "A: testbäddar för en undervattenssensor",
+        "B": "B: finansiering för Techinova, säkrare elnät"
+      },
+      "timeNote": "Tiden är den tid som användes, högst 15 minuter; \u201dinte klar\u201d betyder att testpersonen gav upp eller att tiden tog slut.",
+      "run": "{time}, {points} ({results})",
+      "timeNotFinished": "{time} (inte klar)",
+      "points": {
+        "one": "{count} poäng",
+        "other": "{count} poäng"
+      },
+      "pointsOf": "{points} av {total} poäng",
+      "results": {
+        "one": "{count} resultat angivet",
+        "other": "{count} resultat angivna"
+      },
+      "notRun": "inte genomfört"
+    },
+    "staffSession": {
+      "title": "Session med BSP:s personal",
+      "description": "BSP:s personal bedömer varje uppgift i en guldmedlems profil som rätt, fel eller osäker mot källan, och var och en av dess fem främsta offentliga matchningar som relevant eller inte.",
+      "unreadable": "En resultatfil för sessionen med BSP:s personal finns",
+      "tookPart": {
+        "one": "{count} person från BSP:s personal deltog.",
+        "other": "{count} personer från BSP:s personal deltog."
+      },
+      "caption": "Session med BSP:s personal per guldmedlem: profiluppgifter bedömda som rätt och topp fem-matchningar bedömda som relevanta",
+      "head": {
+        "member": "Guldmedlem",
+        "claims": "Rätta profiluppgifter",
+        "top5": "Relevanta topp fem-matchningar"
+      },
+      "all": "Alla guldmedlemmar",
+      "quotesIntro": "Vad personalen sa, citerat med deras tillstånd:",
+      "withheld": {
+        "one": "{count} citat till visas inte: inget tillstånd att citera.",
+        "other": "{count} citat till visas inte: inget tillstånd att citera."
+      },
+      "claims": "{rating}; {wrong} fel, {unsure} osäkra"
+    },
+    "knownLimits": {
+      "title": "Kända begränsningar",
+      "description": "Vad siffrorna ovan inte bevisar.",
+      "items": {
+        "quotes": "Ett profilcitat bevisar att citatet finns på företagets sida, ord för ord. Det bevisar inte att citatet stöder värdet som visas bredvid: det är vad kontrollen av uppgifterna är till för.",
+        "euPortal": "Sidan i EU:s portal Funding & Tenders svarar 200 för vilket ämnes-id som helst, så länkkontrollen slår i stället upp varje EU-ämne i portalens API; när API:t inte går att nå markeras länken för kontroll av en person. Energimyndigheten och ri.se svarar 200 för en sida som saknas, så deras länkar räknas som \u201dkan inte kontrolleras av ett skript\u201d, inte som fungerande.",
+        "model": "Från den 15 nov. 2026 körs varje modellsteg på Claude: Claude Haiku 5.5 för Copilots omfångskontroll, taggarna och matchningsbedömaren, och Claude Sonnet 5.5 för profiler, kontakter, trendnotiser, Scout och Copilots svar. En körning daterad före dess mätte en kostnadsfri testmodell från NVIDIA: nvidia/nemotron-3.5-super-vl-120b-a12b från kvällen den 14 nov. 2026, och den mindre nvidia/nemotron-3.5-lightning-30b-a3b före det. Svar som inte klarar kontrollerna begärs på nytt eller tas bort, och visas aldrig.",
+        "handEntered": "Vissa källor läggs in för hand av teamet: regional finansiering, den kurerade listan över testbäddar och BSP:s återkommande evenemang. De har etiketten Inlagt för hand och ändras bara när teamet redigerar dem.",
+        "redTeam": "Red team-testerna är fallen i eval/redteam-prompts.json, vart och ett kört en gång mot livemodellen. Att de godkänns bevisar inte att Copilot står emot varje attack, och en ny körning kan bli annorlunda eftersom modellens svar varierar.",
+        "outputCheck": "Copilots kontroll av svaret hittar ett påstått faktum genom dess siffror, datum, namn och några rapporterande verb. Den kan missa ett faktum som skrivs utan dem, till exempel \u201dsista ansökningsdag är nästa vecka\u201d, och släppa igenom det utan källa."
+      }
+    }
+  },
+  "explore": {
+    "title": "Utforska",
+    "intro": "Alla utlysningar, testbäddar, evenemang och nyheter som har samlats in hittills, var och en med länk till sin källa. Välj en vy, smalna av den med filtren och öppna en titel för att läsa den hos källan.",
+    "loading": "Läser in möjligheterna…",
+    "titles": {
+      "list": "Utforska",
+      "timeline": "Tidslinje för sista dagar · Utforska",
+      "map": "Karta över testbäddar · Utforska"
+    },
+    "views": {
+      "label": "Vy",
+      "list": "Lista",
+      "timeline": "Tidslinje för sista dagar",
+      "map": "Karta"
+    },
+    "filters": {
+      "search": "Sök i titlarna",
+      "searchPlaceholder": "Till exempel: havsbaserad vindkraft",
+      "kind": "Typ",
+      "allKinds": "Alla typer",
+      "tag": "Tagg",
+      "allTags": "Alla taggar",
+      "deadline": "Sista dag",
+      "anyDate": "Alla datum",
+      "submit": "Filtrera",
+      "clear": "Rensa",
+      "clearAll": "Rensa filtren",
+      "hintList": "Sök i titlarna eller välj typ, tagg eller sista dag och tryck sedan på Filtrera. Varje filter smalnar av listan ytterligare.",
+      "hintOther": "Den här vyn väljer själv typer och datum, så bara sökningen och taggen gäller här. Tryck på Filtrera för att använda dem.",
+      "active": "Aktiva filter",
+      "chip": "{name}: {value}",
+      "remove": "Ta bort filter: {value}"
+    },
+    "due": {
+      "open": "Öppen nu",
+      "soon": "Stänger inom {days} dagar",
+      "none": "Inget datum"
+    },
+    "tags": {
+      "marine": "Marin",
+      "defence": "Försvar",
+      "sensor": "Sensorer",
+      "cyber": "Cyber",
+      "ai": "AI",
+      "energy": "Energi"
+    },
+    "dates": {
+      "noDate": "Inget datum",
+      "tookPlace": "Ägde rum {day}",
+      "closed": "Stängde {day}",
+      "deadline": "Sista dag {day}",
+      "opensLater": "Öppnar {opens}, sista dag {day}",
+      "soon": "{date} ({when})",
+      "today": "i dag",
+      "tomorrow": "i morgon",
+      "inDays": "om {days} dagar"
+    },
+    "list": {
+      "countAll": "Alla {total} möjligheter.",
+      "countSome": "{shown} av {total} möjligheter.",
+      "countAllMatched": "Alla {total} möjligheter, varav {matched} finns bland era rangordnade matchningar.",
+      "countSomeMatched": "{shown} av {total} möjligheter, varav {matched} finns bland era rangordnade matchningar.",
+      "emptyFiltered": "Ingen möjlighet passar de här filtren. Prova att ta bort ett filter ovan, eller sök på färre eller andra ord.",
+      "empty": "Inga möjligheter har samlats in än. De visas här när den nattliga insamlingen har körts; om listan förblir tom, säg till BSP:s personal.",
+      "closingSoon": "Stänger snart",
+      "closed": "Stängd",
+      "tags": "Taggar:"
+    },
+    "match": {
+      "note": "Möjlig matchning för er, nummer {position} i er rangordning.",
+      "notJudged": "Inte bedömd än, så det finns ingen motivering nedskriven.",
+      "badge": "Er möjliga matchning, nummer {position}",
+      "badgeNotJudged": "Inte bedömd än."
+    },
+    "timeline": {
+      "callsTitle": "Sista dagar för utlysningar",
+      "callsIntro": {
+        "one": "{count} utlysning vars sista dag inte har passerat, efter månaden för sista dagen. Utlysningar som öppnar senare säger det. Välj en månads stapel för att gå till dess utlysningar.",
+        "other": "{count} utlysningar vars sista dag inte har passerat, efter månaden för sista dagen. Utlysningar som öppnar senare säger det. Välj en månads stapel för att gå till dess utlysningar."
+      },
+      "callsEmptyFiltered": "Ingen öppen utlysning passar de här filtren.",
+      "callsEmpty": "Ingen utlysning med sista dag framöver är sparad just nu. Nya utlysningar visas efter den nattliga insamlingen.",
+      "eventsTitle": "Evenemang",
+      "eventsIntro": {
+        "one": "{count} daterat evenemang från i dag och framåt, efter datum.",
+        "other": "{count} daterade evenemang från i dag och framåt, efter datum."
+      },
+      "undated": {
+        "one": "{count} återkommande serie har inget sparat datum och listas efter dem.",
+        "other": "{count} återkommande serier har inget sparat datum och listas efter dem."
+      },
+      "eventsEmptyFiltered": "Inget daterat evenemang framöver passar de här filtren.",
+      "eventsEmpty": "Inget daterat evenemang framöver är sparat just nu. Nya evenemang visas efter den nattliga insamlingen.",
+      "undatedTitle": "Återkommande, inget datum sparat",
+      "barsLabel": "Sista dagar per månad",
+      "bar": {
+        "one": "{month}: {count} sista dag",
+        "other": "{month}: {count} sista dagar"
+      },
+      "monthCalls": {
+        "one": "{count} utlysning",
+        "other": "{count} utlysningar"
+      },
+      "monthEvents": {
+        "one": "{count} evenemang",
+        "other": "{count} evenemang"
+      },
+      "notOpenYet": "Inte öppen än: öppnar {day}."
+    },
+    "map": {
+      "facilitiesAll": "Alla {total} testbäddar",
+      "facilitiesSome": "{shown} av {total} testbäddar",
+      "placed": "{facilities}: {pins} på kartan.",
+      "placedAndBelow": "{facilities}: {pins} på kartan, {below} listade under den.",
+      "notice": "En översiktsskiss, inte en exakt karta: konturen är förenklad och varje nål sitter på sin ort, med nålar i samma ort utspridda runt den.",
+      "heading": "Testbäddar på kartan",
+      "mapLabel": {
+        "one": "Skisskarta över södra Sverige med {count} testbädd",
+        "other": "Skisskarta över södra Sverige med {count} testbäddar"
+      },
+      "legendLabel": "Teckenförklaring",
+      "legendVerified": "Verifierad: en officiell sida bekräftar den och att externa företag kan använda den.",
+      "legendNotVerified": "Inte verifierad.",
+      "emptyFiltered": "Ingen testbädd passar de här filtren.",
+      "empty": "Inga testbäddar är sparade än. De visas här när BSP:s personal har lagt in dem.",
+      "noLocationTitle": "Plats inte sparad",
+      "noLocationIntro": "Den sparade texten för de här säger inte var de finns, så de har ingen nål.",
+      "outsideTitle": "Utanför det ritade området",
+      "outsideSource": "Utanför området som skissen täcker.",
+      "notVerified": "Inte verifierad",
+      "notVerifiedWhy": "Inte verifierad: ingen officiell sida har hittats än som bekräftar att externa företag kan använda den.",
+      "showInList": "Visa den i listan",
+      "pickHint": "Välj en nål för att se testbädden. Varje nål går också att nå med Tab-tangenten.",
+      "pinTitle": "{title} ({town})",
+      "pinTitleNotVerified": "{title} ({town}), inte verifierad",
+      "areas": {
+        "norway": "Norge",
+        "balticSea": "Östersjön"
+      },
+      "place": {
+        "fromField": "Från {field}: \u201d{quote}\u201d.",
+        "fromList": "Från teamets lista över testbäddar.",
+        "fields": {
+          "title": "titeln",
+          "description": "beskrivningen",
+          "contact": "den sparade kontakten",
+          "note": "teamets anteckning i listan över testbäddar"
+        }
+      }
+    },
+    "error": {
+      "title": "Möjligheterna kunde inte läsas in",
+      "what": "Något gick fel hos oss när utlysningarna, testbäddarna och evenemangen skulle läsas.",
+      "back": "Gå till startsidan"
+    }
+  },
+  "scout": {
+    "title": "Scout",
+    "titleWithQuestion": "{question} · Scout",
+    "intro": "Fråga om finansiering, testbäddar eller evenemang. Scout söker i Blue Science Parks samling av aktuella möjligheter, läser de sidor den behöver och skriver en kort sammanställning där varje alternativ anger sin källa. Varje alternativ är en möjlig matchning för er att kontrollera: om ni får delta avgör finansiären eller testbädden.",
+    "loading": "Läser in era sammanställningar…",
+    "how": {
+      "title": "Så fungerar Scout",
+      "ask": "Ställ en fråga om finansiering, testbäddar eller evenemang.",
+      "search": "Scout söker bland aktuella möjligheter för ert företag och läser de sidor den behöver. Det tar en till fyra minuter.",
+      "read": "Läs sammanställningen: varje alternativ är en möjlig matchning med källa, krav och vem ni kan kontakta."
+    },
+    "notLinked": "Ditt konto är ännu inte kopplat till ett medlemsföretag, så Scout har ingen profil att söka för. Be BSP:s personal att koppla ditt konto till ert företag.",
+    "form": {
+      "label": "Er fråga",
+      "placeholder": "Vilka testbäddar och vilken finansiering kan passa en undervattenssensor som vi vill testa nästa år?",
+      "notStarted": "Inte startad.",
+      "signInAgain": "Logga in igen",
+      "submit": "Fråga Scout",
+      "submitting": "Frågar…",
+      "working": "Scout arbetar…",
+      "help": "Minst 10 tecken. En sammanställning tar en till fyra minuter. Ni kan lämna sidan och öppna den igen under Era sammanställningar.",
+      "helpRunning": "Scout svarar på en fråga i taget; ni kan fråga igen när den här sammanställningen är klar.",
+      "prerun": "Förberedda frågor (öppnas direkt i demoläget):",
+      "askedBefore": "Ställda tidigare:"
+    },
+    "failures": {
+      "kept": "Er fråga finns kvar i rutan.",
+      "signedOut": "Du är utloggad, så Scout kunde inte starta. Logga in igen i en ny flik, kom sedan tillbaka hit och tryck på Fråga Scout.",
+      "membersOnly": "Scout är bara till för medlemsföretag.",
+      "busy": "Scout arbetar fortfarande med er förra fråga och svarar på en fråga i taget. Vänta tills den sammanställningen är klar (den är öppen nedan), och fråga sedan igen.",
+      "unreadable": "Frågan kunde inte läsas.",
+      "notStarted": "Scout kunde inte startas (fel {status}). Försök igen om en stund.",
+      "network": "Scout gick inte att nå. Kontrollera anslutningen och försök igen."
+    },
+    "empty": {
+      "title": "Inga sammanställningar än.",
+      "text": "Skriv en fråga ovan och tryck på Fråga Scout. Sammanställningen visas här, och varje sammanställning sparas under Era sammanställningar.",
+      "textWithSuggestions": "Skriv en fråga ovan och tryck på Fråga Scout, eller välj en av frågorna under rutan. Sammanställningen visas här, och varje sammanställning sparas under Era sammanställningar.",
+      "pick": "Välj en sammanställning under Era sammanställningar, eller ställ en ny fråga ovan."
+    },
+    "briefs": {
+      "title": "Era sammanställningar",
+      "intro": "Varje sammanställning sparas här för ert företag, så den här listan är era sparade sammanställningar.",
+      "none": "Inga än. Varje fråga ni ställer sparas här."
+    },
+    "status": {
+      "running": "Pågår",
+      "done": "Klar",
+      "failed": "Misslyckades"
+    },
+    "options": {
+      "one": "{count} alternativ",
+      "other": "{count} alternativ"
+    },
+    "brief": {
+      "asked": "Ställd {when}",
+      "stats": "· {seconds} s, {modelCalls} modellanrop, {searches} sökningar, {pagesRead} lästa sidor",
+      "recorded": "En sparad kopia av en tidigare Scout-körning från {day}, visad direkt i stället för en ny körning. Källorna kan ha ändrats sedan dess: kontrollera varje källsida innan ni agerar på den.",
+      "working": "Scout arbetar med frågan. Sidan uppdateras av sig själv, och varje steg läses upp för skärmläsare.",
+      "takes": "En sammanställning tar oftast en till fyra minuter. Ni kan lämna sidan; sammanställningen sparas under Era sammanställningar.",
+      "summary": "Kort sagt",
+      "now": "Nu:",
+      "failed": "Misslyckades:",
+      "failedDefault": "Scout kunde inte göra klart den här sammanställningen.",
+      "askAgain": "Fråga igen för att starta en ny sammanställning.",
+      "howBuilt": "Så byggde Scout den här sammanställningen",
+      "waiting": "Väntar på första steget…",
+      "problem": "Problem:",
+      "stepsInEnglish": "Stegen visas på engelska, som de sparades.",
+      "noWebNote": "Webbsökning var inte tillgänglig; sammanställningen bygger på sparade källor."
+    },
+    "option": {
+      "potentialMatch": "Möjlig matchning",
+      "webPage": "Webbsida",
+      "takesPlace": "Äger rum {day}",
+      "closes": "Stänger {day}",
+      "whyTitle": "Varför den kan passa",
+      "forYou": "För er:",
+      "theSource": "Källan:",
+      "requirementsTitle": "Krav, som källan anger dem",
+      "contactTitle": "Så tar ni kontakt",
+      "openQuestionsTitle": "Öppna frågor",
+      "source": "Källa:",
+      "fromStore": "Från samlingen av möjligheter",
+      "fromWeb": "Från webbsökning",
+      "fromLive": "Från en finansiärs livesökning",
+      "retrieved": "hämtad {day}",
+      "pageRead": "sidan lästes av Scout {day}",
+      "pageStored": "sparad kopia av sidan från {day}",
+      "liveResult": "liveresultat ({source}), hämtat {when}",
+      "liveResultNoSource": "liveresultat, hämtat {when}",
+      "linkChecked": "länken kontrollerad live {when}",
+      "euTopicConfirmed": "ämnet bekräftat i EU-portalens sökning {when}",
+      "linkNotConfirmed": "länken inte bekräftad {when}: {reason}",
+      "euPortalHint": "EU-portalen visar ibland \"Page not found\" för ett ämne som finns. Öppna i så fall länken igen.",
+      "injection": "Innehåller text som ser ut som instruktioner till en AI; den behandlades som data.",
+      "save": "Spara",
+      "saved": "Sparad"
+    },
+    "announce": {
+      "ready": {
+        "one": "Sammanställningen är klar: {count} alternativ.",
+        "other": "Sammanställningen är klar: {count} alternativ."
+      },
+      "failed": "Scout kunde inte göra klart sammanställningen.",
+      "storedOpen": "En sparad sammanställning för den här frågan är öppen nedan.",
+      "started": "Scout har startat. Varje steg läses upp när det kommer.",
+      "saved": "Sparat för ert företag.",
+      "removed": "Borttaget från sparade."
+    },
+    "notices": {
+      "saveFailed": "Alternativet kunde inte sparas. Försök igen.",
+      "unsaveFailed": "Alternativet kunde inte tas bort från sparade. Försök igen.",
+      "openFailed": "Sammanställningen kunde inte öppnas ({error}). Försök igen, eller ladda om sidan.",
+      "errorStatus": "fel {status}",
+      "noConnection": "ingen anslutning"
+    },
+    "error": {
+      "title": "Scout kunde inte läsas in",
+      "what": "Något gick fel hos oss när era sammanställningar skulle läsas. Sammanställningarna finns kvar, och en sammanställning som pågick fortsätter.",
+      "back": "Gå till Er vecka"
     }
   }
 }

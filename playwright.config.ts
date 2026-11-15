@@ -62,5 +62,21 @@ export default defineConfig({
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"] },
     },
+    // Copilot side panel, not-found pages, language switch: each describe picks its role.
+    {
+      name: "site",
+      testMatch: /site\.spec\.ts$/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // One h1, named buttons and links, labelled fields, on every page the suite visits.
+    {
+      name: "a11y",
+      testMatch: /a11y\.spec\.ts$/,
+      dependencies: ["setup"],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // The profile-change re-rank on /week. Skips itself unless E2E_RERANK=1.
+    { name: "rerank", testMatch: /rerank\.spec\.ts$/, use: { ...devices["Desktop Chrome"] } },
   ],
 });

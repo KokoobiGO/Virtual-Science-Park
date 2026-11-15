@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, LoaderCircle, SendHorizontal, TriangleAlert } from "lucide-react";
+import { CircleAlert, Info, LoaderCircle, MessageCircleQuestion, SendHorizontal, TriangleAlert } from "lucide-react";
 import { Fragment, useEffect, useId, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { DataStatusLabel } from "@/components/data-status-label";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { ChatTurnReply } from "@/lib/copilot/chat";
 import { isSafeUrl, type Citation } from "@/lib/copilot/sources";
+import { useLocale, useT } from "@/lib/i18n/client";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { createTranslator, MESSAGES } from "@/lib/i18n/translate";
 import { INFORMATION_ONLY_NOTE, type ScopeLabel } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 
@@ -20,40 +23,58 @@ type Entry =
 
 type NewEntry = Entry extends infer E ? (E extends Entry ? Omit<E, "id"> : never) : never;
 
+/**
+ * Questions to start with. They stay in English in every interface language:
+ * a click sends them to the Copilot as they are, and what the model reads stays English.
+ */
 const SUGGESTIONS = [
   "Which test facilities could we use for an underwater sensor?",
   "Which funding calls close in the next month?",
   "Why is the first item in our list a match?",
+  "What does our company profile say we work on?",
 ];
 
-const SCOPE_CHIP: Record<ScopeLabel, { label: string; variant: "secondary" | "outline" | "destructive"; title: string }> = {
-  in_scope: { label: "In scope", variant: "secondary", title: "Answered from the Virtual Science Park store" },
-  unclear: { label: "Unclear", variant: "outline", title: "The Copilot needs one more detail" },
-  out_of_scope: { label: "Out of scope", variant: "destructive", title: "Outside what the Copilot answers" },
-  override_attempt: { label: "Out of scope", variant: "destructive", title: "The message tried to change the Copilot's rules" },
+/** The look of each scope chip; its words are in messages/*.json (`copilot.scope`). */
+const SCOPE_VARIANT: Record<ScopeLabel, "secondary" | "outline" | "destructive"> = {
+  in_scope: "secondary",
+  unclear: "outline",
+  out_of_scope: "destructive",
+  override_attempt: "destructive",
 };
 
 /** Turns that did not answer the question: the question goes back into the box so it can be sent again. */
 const FAILED_OUTCOMES: ReadonlySet<ChatTurnReply["outcome"]> = new Set(["timeout", "busy", "error"]);
 
-export const QUESTION_KEPT = "Your question is still in the box below, so you can send it again.";
+/** In English; the panel shows it in the reader's language (C19). */
+export const QUESTION_KEPT = MESSAGES.en.copilot.questionKept;
 
 /** What a screen reader hears when an answer arrives: the answer without its cite numbers and the fixed note. */
-export function answerAnnouncement(reply: Pick<ChatTurnReply, "label" | "text" | "citations" | "outcome">): string {
+export function answerAnnouncement(reply: Pick<ChatTurnReply, "label" | "text" | "citations" | "outcome">, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "copilot");
   const text = reply.text
     .replace(INFORMATION_ONLY_NOTE, "")
     .replace(/\s*\[\d+\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
   const n = reply.citations.length;
-  const sources = n ? ` ${n === 1 ? "1 source is" : `${n} sources are`} listed under the answer.` : "";
-  const kept = FAILED_OUTCOMES.has(reply.outcome) ? ` ${QUESTION_KEPT}` : "";
-  return `The Copilot answered, ${SCOPE_CHIP[reply.label].label}: ${text}${sources}${kept}`;
+  const sources = n ? ` ${t("announce.sourcesListed", { count: n })}` : "";
+  const kept = FAILED_OUTCOMES.has(reply.outcome) ? ` ${t("questionKept")}` : "";
+  return `${t("announce.answered", { label: t(`scope.${reply.label}.label`), text })}${sources}${kept}`;
 }
 
 /** The message for a turn that failed before an answer: what happened, and that the question was kept. */
-export function failureText(reason: string): string {
-  return `Your question was not answered. ${reason.trim()} ${QUESTION_KEPT}`;
+export function failureText(reason: string, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "copilot");
+  return t("failure", { reason: reason.trim(), kept: t("questionKept") });
+}
+
+/**
+ * The progress line in the reader's language. The server sends it in English
+ * (lib/copilot); a line the catalogue does not know is shown as sent.
+ */
+export function statusText(status: string, locale: Locale = DEFAULT_LOCALE): string {
+  const known = Object.entries(MESSAGES.en.copilot.status).find(([, english]) => english === status);
+  return known ? MESSAGES[locale].copilot.status[known[0] as keyof typeof MESSAGES.en.copilot.status] : status;
 }
 
 /** Reads `event:` / `data:` blocks from a text/event-stream body. */
@@ -77,6 +98,7 @@ async function readEvents(body: ReadableStream<Uint8Array>, onEvent: (event: str
 }
 
 function CitationLink({ citation, children }: { citation: Citation | undefined; children: ReactNode }) {
+  const common = useT("common");
   if (!citation || !isSafeUrl(citation.url)) return <>{children}</>;
   const external = /^https?:/i.test(citation.url);
   return (
@@ -87,7 +109,7 @@ function CitationLink({ citation, children }: { citation: Citation | undefined; 
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
     >
       {children}
-      {external ? <span className="sr-only"> (opens in a new tab)</span> : null}
+      {external ? <span className="sr-only">{common("opensInNewTab")}</span> : null}
     </a>
   );
 }
@@ -113,11 +135,12 @@ function AnswerText({ text, citations }: { text: string; citations: Citation[] }
 /** The sources under an answer: title, publisher, dates, the data label (D20) and any injection warning. */
 export function Sources({ citations }: { citations: Citation[] }) {
   const heading = useId();
+  const t = useT("copilot");
   if (!citations.length) return null;
   return (
-    <div className="flex flex-col gap-1 border-t pt-2">
-      <p id={heading} className="text-xs font-medium text-muted-foreground">
-        Sources
+    <div className="flex flex-col gap-1.5 rounded-md bg-muted/60 px-2.5 py-2">
+      <p id={heading} className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        {t("sources")}
       </p>
       <ol aria-labelledby={heading} className="flex flex-col gap-1.5 text-xs">
         {citations.map((c) => (
@@ -126,7 +149,7 @@ export function Sources({ citations }: { citations: Citation[] }) {
             <CitationLink citation={c}>{c.title}</CitationLink>
             {c.publisher && <span className="text-muted-foreground">· {c.publisher}</span>}
             {c.dates.length > 0 && <span className="text-muted-foreground">· {c.dates.join(", ")}</span>}
-            {c.label && <DataStatusLabel kind={c.label} date={c.cachedAt} />}
+            {c.label && <DataStatusLabel kind={c.label} date={c.cachedAt} locale={t.locale} />}
             {c.warning && (
               <span className="flex basis-full items-start gap-1 text-warning">
                 <TriangleAlert aria-hidden className="mt-px size-3.5 shrink-0" />
@@ -140,31 +163,37 @@ export function Sources({ citations }: { citations: Citation[] }) {
   );
 }
 
-/** What an empty conversation shows: what the Copilot answers, and three questions to start with. */
+/** What an empty conversation shows: what the Copilot answers, what it will not do, and questions to start with. */
 export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, event: MouseEvent) => void; busy: boolean }) {
   const tryId = useId();
+  const t = useT("copilot");
   return (
-    <div className="flex flex-col gap-3 text-sm">
-      <div className="flex flex-col gap-1">
-        <p className="font-medium">What you can ask</p>
-        <ul className="flex list-disc flex-col gap-0.5 pl-5 text-muted-foreground">
-          <li>About funding calls, test facilities, events and BSP news in the Virtual Science Park store.</li>
-          <li>About your own company profile, and why an opportunity is in your matches.</li>
-          <li>To save an opportunity to your list, or to send your question to BSP staff.</li>
-        </ul>
-        <p className="text-muted-foreground">
-          Every fact comes with its source. The Copilot does not search the web, and it never decides whether you can apply:
-          a match is a potential match, and BSP staff can help you check.
+    <div className="flex animate-fade flex-col gap-4 text-sm">
+      <div className="flex flex-col gap-2">
+        <p className="font-medium">{t("empty.title")}</p>
+        <p className="flex items-start gap-2 text-muted-foreground">
+          <MessageCircleQuestion aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{t("empty.can")}</span>
+        </p>
+        <p className="flex items-start gap-2 text-muted-foreground">
+          <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{t("empty.note")}</span>
         </p>
       </div>
-      <div className="flex flex-col items-start gap-1">
+      <div className="flex flex-col gap-2">
         <p id={tryId} className="text-muted-foreground">
-          Try one of these:
+          {t("empty.try")}
         </p>
-        <ul aria-labelledby={tryId} className="flex flex-col items-start">
+        <ul aria-labelledby={tryId} className="flex stagger flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
-            <li key={s}>
-              <Button variant="ghost" size="sm" className="h-auto text-left whitespace-normal" onClick={(event) => onAsk(s, event)} disabled={busy}>
+            <li key={s} className="max-w-full">
+              <Button
+                variant="outline"
+                size="sm"
+                className="press h-auto max-w-full rounded-full px-3 py-1.5 text-left whitespace-normal"
+                onClick={(event) => onAsk(s, event)}
+                disabled={busy}
+              >
                 {s}
               </Button>
             </li>
@@ -172,6 +201,17 @@ export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, e
         </ul>
       </div>
     </div>
+  );
+}
+
+/** Three dots that pulse one after another while the Copilot works. Still for readers who ask for reduced motion. */
+function ThinkingDots() {
+  return (
+    <span aria-hidden className="flex items-center gap-1">
+      {[0, 150, 300].map((delay) => (
+        <span key={delay} className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" style={{ animationDelay: `${delay}ms` }} />
+      ))}
+    </span>
   );
 }
 
@@ -187,6 +227,8 @@ export function EmptyConversation({ onAsk, busy }: { onAsk: (question: string, e
  * (busy, not disabled), and a failed turn puts the question back in the box.
  */
 export function CopilotPanel({ className }: { className?: string }) {
+  const locale = useLocale();
+  const t = useT("copilot");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -217,13 +259,13 @@ export function CopilotPanel({ className }: { className?: string }) {
     if (!text || busy) return;
     setInput("");
     setBusy(true);
-    setStatus("Sending");
-    announce("Asking the Copilot. This can take up to 30 seconds.");
+    setStatus(MESSAGES.en.copilot.status.sending);
+    announce(t("announce.asking"));
     add({ role: "user", text });
 
     /** The turn failed: say so, and put the question back unless something new was typed. */
     const fail = (reason: string) => {
-      const shown = failureText(reason);
+      const shown = failureText(reason, locale);
       add({ role: "error", text: shown });
       announce(shown);
       setInput((current) => current || text);
@@ -237,7 +279,7 @@ export function CopilotPanel({ className }: { className?: string }) {
       });
       if (!res.ok || !res.body) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        fail(body?.error ?? `The Copilot answered with error ${res.status}.`);
+        fail(body?.error ?? t("failures.status", { status: res.status }));
         return;
       }
       let answered = false;
@@ -248,7 +290,7 @@ export function CopilotPanel({ className }: { className?: string }) {
           threadId.current = reply.threadId;
           answered = true;
           add({ role: "assistant", reply, handoff: reply.handoffSent ? "sent" : "idle" });
-          announce(answerAnnouncement(reply));
+          announce(answerAnnouncement(reply, locale));
           if (FAILED_OUTCOMES.has(reply.outcome)) setInput((current) => current || text);
         }
         if (event === "error") {
@@ -256,9 +298,9 @@ export function CopilotPanel({ className }: { className?: string }) {
           fail((data as { message: string }).message);
         }
       });
-      if (!answered) fail("The answer was cut off.");
+      if (!answered) fail(t("failures.cutOff"));
     } catch {
-      fail("The Copilot could not be reached. Check your connection.");
+      fail(t("failures.unreachable"));
     } finally {
       setBusy(false);
       setStatus(null);
@@ -282,10 +324,10 @@ export function CopilotPanel({ className }: { className?: string }) {
         body: JSON.stringify({ threadId: reply.threadId, chatId: reply.chatId }),
       });
       set(res.ok ? "sent" : "error");
-      announce(res.ok ? "Sent to BSP staff." : "Not sent to BSP staff. Try again.");
+      announce(res.ok ? t("announce.sent") : t("announce.notSent"));
     } catch {
       set("error");
-      announce("Not sent to BSP staff. Try again.");
+      announce(t("announce.notSent"));
     }
   }
 
@@ -299,7 +341,7 @@ export function CopilotPanel({ className }: { className?: string }) {
     setEntries([]);
     // The button goes away with the conversation, so focus moves to the question field.
     inputRef.current?.focus();
-    announce("New conversation. The earlier questions and answers are cleared.");
+    announce(t("announce.newConversation"));
   }
 
   const canSend = !busy && input.trim().length > 0;
@@ -309,14 +351,11 @@ export function CopilotPanel({ className }: { className?: string }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <h2 className="text-base font-semibold">Copilot</h2>
-          <p className="text-sm text-muted-foreground">
-            Funding calls, test facilities, events and your own profile and matches, answered from the Virtual Science Park store
-            with sources.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("intro")}</p>
         </div>
         {entries.length > 0 && (
           <Button variant="outline" size="sm" onClick={reset} disabled={busy}>
-            New conversation
+            {t("newConversation")}
           </Button>
         )}
       </div>
@@ -325,44 +364,43 @@ export function CopilotPanel({ className }: { className?: string }) {
         {entries.length === 0 && <EmptyConversation onAsk={askSuggestion} busy={busy} />}
 
         {entries.length > 0 && (
-          <ol aria-label="Conversation" className="flex min-w-0 flex-col gap-3">
+          <ol aria-label={t("conversation")} className="flex min-w-0 flex-col gap-3">
             {entries.map((entry) => {
               if (entry.role === "user") {
                 return (
                   <li
                     key={entry.id}
-                    className="max-w-[85%] self-end rounded-lg bg-secondary px-3 py-2 text-sm wrap-anywhere whitespace-pre-wrap text-secondary-foreground"
+                    className="max-w-[85%] animate-rise self-end rounded-lg bg-secondary px-3 py-2 text-sm wrap-anywhere whitespace-pre-wrap text-secondary-foreground"
                   >
-                    <span className="sr-only">You asked: </span>
+                    <span className="sr-only">{`${t("youAsked")} `}</span>
                     {entry.text}
                   </li>
                 );
               }
               if (entry.role === "error") {
                 return (
-                  <li key={entry.id} className="flex items-start gap-1.5">
+                  <li key={entry.id} className="flex animate-rise items-start gap-1.5">
                     <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
                     <p className="text-sm text-destructive">{entry.text}</p>
                   </li>
                 );
               }
               const { reply } = entry;
-              const chip = SCOPE_CHIP[reply.label];
               return (
-                <li key={entry.id} className="flex max-w-[95%] min-w-0 flex-col gap-2 rounded-lg border px-3 py-2">
+                <li key={entry.id} className="flex max-w-[95%] min-w-0 animate-rise flex-col gap-2 rounded-lg border bg-card px-3 py-2.5 shadow-xs">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="sr-only">The Copilot answered:</span>
-                    <Badge variant={chip.variant} title={chip.title} data-testid="scope-chip">
-                      {chip.label}
+                    <span className="sr-only">{t("answered")}</span>
+                    <Badge variant={SCOPE_VARIANT[reply.label]} title={t(`scope.${reply.label}.title`)} data-testid="scope-chip">
+                      {t(`scope.${reply.label}.label`)}
                     </Badge>
                   </div>
                   <AnswerText text={reply.text} citations={reply.citations} />
                   <Sources citations={reply.citations} />
-                  {FAILED_OUTCOMES.has(reply.outcome) && <p className="text-xs text-muted-foreground">{QUESTION_KEPT}</p>}
+                  {FAILED_OUTCOMES.has(reply.outcome) && <p className="text-xs text-muted-foreground">{t("questionKept")}</p>}
                   {reply.chatId && (
                     <div className="flex flex-wrap items-center gap-2">
                       {entry.handoff === "sent" ? (
-                        <span className="text-xs font-medium text-muted-foreground">Sent to BSP staff</span>
+                        <span className="text-xs font-medium text-muted-foreground">{t("handoff.sent")}</span>
                       ) : (
                         <Button
                           variant="outline"
@@ -372,10 +410,10 @@ export function CopilotPanel({ className }: { className?: string }) {
                           focusableWhenDisabled
                           className="data-disabled:opacity-50"
                         >
-                          {entry.handoff === "sending" ? "Sending…" : "Send to BSP staff"}
+                          {entry.handoff === "sending" ? t("handoff.sending") : t("handoff.send")}
                         </Button>
                       )}
-                      {entry.handoff === "error" && <span className="text-xs text-destructive">Not sent. Try again.</span>}
+                      {entry.handoff === "error" && <span className="text-xs text-destructive">{t("handoff.notSent")}</span>}
                     </div>
                   )}
                 </li>
@@ -385,10 +423,13 @@ export function CopilotPanel({ className }: { className?: string }) {
         )}
 
         {status && (
-          <p id={statusId} className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <LoaderCircle aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />
-            {status}…
-          </p>
+          <div className="flex w-fit max-w-[95%] animate-fade flex-col gap-1 rounded-lg border border-dashed px-3 py-2">
+            <p id={statusId} className="flex items-center gap-2 text-sm text-foreground">
+              <ThinkingDots />
+              {statusText(status, locale)}…
+            </p>
+            <p className="text-xs text-muted-foreground">{t("thinking")}</p>
+          </div>
         )}
         <div ref={endRef} />
       </div>
@@ -401,8 +442,8 @@ export function CopilotPanel({ className }: { className?: string }) {
       <form onSubmit={submit} className="flex gap-2">
         <Input
           ref={inputRef}
-          aria-label="Your question"
-          placeholder="Ask about funding, test facilities, events or your matches"
+          aria-label={t("question.label")}
+          placeholder={t("question.placeholder")}
           value={input}
           maxLength={2000}
           onChange={(event) => setInput(event.target.value)}
@@ -410,9 +451,9 @@ export function CopilotPanel({ className }: { className?: string }) {
           readOnly={busy}
           aria-describedby={status ? statusId : undefined}
         />
-        <Button type="submit" disabled={!canSend} focusableWhenDisabled aria-busy={busy || undefined} className="data-disabled:opacity-50">
+        <Button type="submit" disabled={!canSend} focusableWhenDisabled aria-busy={busy || undefined} className="press data-disabled:opacity-50">
           {busy ? <LoaderCircle aria-hidden className="animate-spin motion-reduce:animate-none" /> : <SendHorizontal aria-hidden />}
-          Ask
+          {t("ask")}
         </Button>
       </form>
     </section>

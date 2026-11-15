@@ -7,6 +7,7 @@ import { buildTimeline } from "@/lib/explore/timeline";
 import { ExploreList } from "./explore-list";
 import { ExploreMap } from "./explore-map";
 import { ExploreTimeline } from "./explore-timeline";
+import { FilterForm } from "./filter-form";
 
 const NOW = new Date("2026-11-14T12:00:00Z");
 const days = (n: number) => new Date(NOW.getTime() + n * 86_400_000);
@@ -91,5 +92,41 @@ describe("empty states", () => {
     const map = renderToString(createElement(ExploreMap, { map: buildTestbedMap(all, mapFilters), matches: null, filters: mapFilters }));
     expect(map).toContain("No test facility fits these filters.");
     expect(map).toContain('href="/explore?view=map"');
+  });
+});
+
+describe("active filter chips", () => {
+  it("shows one removable chip per applied filter, each link dropping only its own filter", () => {
+    const filters = { ...NO_FILTERS, kind: "funding" as const, tag: "marine" as const, q: "sonar" };
+    const html = renderToString(createElement(FilterForm, { filters })).replaceAll("<!-- -->", "");
+    expect(html).toContain("Active filters");
+    expect(html).toMatch(/aria-label="Remove filter: Funding call"[^>]*href="\/explore\?tag=marine&amp;q=sonar"/);
+    expect(html).toMatch(/aria-label="Remove filter: Marine"[^>]*href="\/explore\?kind=funding&amp;q=sonar"/);
+    expect(html).toMatch(/aria-label="Remove filter: sonar"[^>]*href="\/explore\?kind=funding&amp;tag=marine"/);
+    expect(html).toContain(">Kind: Funding call</span>");
+    // The chips' names never hold a field's label, so getByLabel("Kind") or ("Deadline") finds only the field (e2e/member.spec.ts 4a, 4b).
+    expect(html).not.toMatch(/aria-label="[^"]*(Kind|Tag|Deadline|Search titles)[^"]*"/);
+  });
+
+  it("names a deadline chip by its value only", () => {
+    const html = renderToString(createElement(FilterForm, { filters: { ...NO_FILTERS, due: "open" } }));
+    expect(html).toContain('aria-label="Remove filter: Open now"');
+    expect(html).not.toMatch(/aria-label="[^"]*Deadline/);
+  });
+
+  it("shows no chips without filters, and none for the kind on the timeline, which ignores it", () => {
+    expect(renderToString(createElement(FilterForm, { filters: NO_FILTERS }))).not.toContain("Active filters");
+    const timeline = renderToString(createElement(FilterForm, { filters: { ...NO_FILTERS, view: "timeline", kind: "funding" } }));
+    expect(timeline).not.toContain("Active filters");
+    expect(timeline).toContain("only the search and the tag apply here");
+  });
+});
+
+describe("map card", () => {
+  it("links to the list row with a plain link, so the row becomes :target and is highlighted", () => {
+    const html = renderToString(createElement(ExploreMap, { map: buildTestbedMap([{ ...facility, externalId: "nowhere" }], NO_FILTERS), matches: null, filters: { ...NO_FILTERS, view: "map" } }));
+    expect(html).toMatch(/<a href="\/explore\?kind=testbed#opportunity-mtc-salto-karlskrona"[^>]*>.*Show it in the list<\/a>/);
+    const list = renderToString(createElement(ExploreList, { items: [facility], total: 1, matches: null, filters: NO_FILTERS, now: NOW }));
+    expect(list).toMatch(/id="opportunity-mtc-salto-karlskrona"[^>]*class="[^"]*target:border-primary/);
   });
 });

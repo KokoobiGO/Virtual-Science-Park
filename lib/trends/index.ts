@@ -5,7 +5,7 @@
  * job and scripts/trends.ts both run this.
  */
 import type { OpportunityKind, OpportunityTag } from "../schemas";
-import { inputsForArea, MIN_INPUTS } from "./inputs";
+import { inputsForArea, isFresh, tooFewReason } from "./inputs";
 import { inputId } from "./prompt";
 import { noteSources, storeNote, type NoteSource } from "./store";
 import { weekOf as weekOfDate } from "./week";
@@ -14,11 +14,12 @@ import { writeNote, type TrendUsage } from "./write";
 export { emptyTrendUsage, type TrendUsage } from "./write";
 export { weekOf } from "./week";
 
-/** One input as the run log and the script show it. */
-export type InputSummary = { id: string; kind: OpportunityKind; source: string; title: string; url: string };
+/** One input as the run log and the script show it. `fresh`: new by its own dates (inputs.ts, `isFresh`). */
+export type InputSummary = { id: string; kind: OpportunityKind; source: string; title: string; url: string; fresh: boolean };
 
 export type TrendOutcome = { area: OpportunityTag; weekOf: string; inputs: InputSummary[] } & (
-  | { status: "too_few_inputs" }
+  /** `why`: fewer than two inputs, or none of them new. */
+  | { status: "too_few_inputs"; why: string }
   | { status: "failed_checks"; problems: string[]; rejected: { title: string; body: string; cited: string[] } | null; attempts: number; seconds: number }
   | {
       status: "written";
@@ -46,11 +47,12 @@ export type TrendOptions = {
 export async function trendNoteForArea(area: OpportunityTag, options: TrendOptions): Promise<TrendOutcome> {
   const weekOf = weekOfDate(options.now);
   const inputs = await inputsForArea(area, options.now);
-  const summary = inputs.map((input, i) => ({ id: inputId(i), kind: input.kind, source: input.source, title: input.title, url: input.url }));
+  const summary = inputs.map((input, i) => ({ id: inputId(i), kind: input.kind, source: input.source, title: input.title, url: input.url, fresh: isFresh(input, options.now) }));
   const base = { area, weekOf, inputs: summary };
-  if (inputs.length < MIN_INPUTS) return { ...base, status: "too_few_inputs" };
+  const tooFew = tooFewReason(inputs, options.now);
+  if (tooFew) return { ...base, status: "too_few_inputs", why: tooFew };
 
-  const written = await writeNote(area, inputs, weekOf, { model: options.model, usage: options.usage });
+  const written = await writeNote(area, inputs, weekOf, { model: options.model, usage: options.usage, now: options.now });
   if (!written.ok) {
     const { problems, rejected, attempts, seconds } = written;
     return { ...base, status: "failed_checks", problems, rejected: rejected && { title: rejected.title, body: rejected.body, cited: rejected.sources }, attempts, seconds };

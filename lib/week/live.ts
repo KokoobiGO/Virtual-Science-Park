@@ -7,6 +7,8 @@
  * The page polls instead of using Supabase Realtime: week_cards is not in the
  * supabase_realtime publication, and adding it takes a migration.
  */
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
+import { createTranslator, MESSAGES } from "../i18n/translate";
 import type { WeekStatus } from "./load";
 
 /** How long after a profile change the page waits for the new cards before it stops saying so. */
@@ -16,7 +18,13 @@ export const POLL_PENDING_MS = 4_000;
 /** ...and this often otherwise (feedback or the nightly run may rebuild them too). */
 export const POLL_IDLE_MS = 30_000;
 
-export const PENDING_TEXT = "Your profile changed: your cards are being re-ranked. This page updates by itself.";
+/** The line shown while new cards are on their way, in the reader's language. */
+export function pendingText(locale: Locale = DEFAULT_LOCALE): string {
+  return MESSAGES[locale].week.live.pending;
+}
+
+/** The English line, for tests and logs. */
+export const PENDING_TEXT = pendingText();
 
 /** What the page and the poll route send to the browser. */
 export type WeekStatusJson = { weekOf: string | null; builtAt: string | null; profileChangedAt: string | null; pending: boolean };
@@ -92,17 +100,15 @@ export function orderChange(before: readonly string[], after: readonly string[])
   };
 }
 
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
-/** "Re-ranked after your profile change: 1 new card, 1 dropped, 2 moved." */
-export function changeLine(byProfile: boolean, { added, dropped, moved }: OrderChange): string {
-  const head = byProfile ? "Re-ranked after your profile change" : "Your cards were re-ranked";
+/** "Re-ranked after your profile change: 1 new card, 1 dropped, 2 moved." In the reader's language. */
+export function changeLine(byProfile: boolean, { added, dropped, moved }: OrderChange, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "week");
   const parts = [
-    added ? count(added, "new card", "new cards") : null,
-    dropped ? `${dropped} dropped` : null,
-    moved ? `${moved} moved` : null,
+    added ? t("live.added", { count: added }) : null,
+    dropped ? t("live.dropped", { count: dropped }) : null,
+    moved ? t("live.moved", { count: moved }) : null,
   ].filter(Boolean);
-  return `${head}: ${parts.length ? parts.join(", ") : "the same cards in the same order"}.`;
+  return t("live.line", { head: t(byProfile ? "live.byProfile" : "live.byOther"), parts: parts.length ? parts.join(", ") : t("live.same") });
 }
 
 export type RowBox = { key: string; top: number; height: number };

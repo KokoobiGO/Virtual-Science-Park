@@ -9,6 +9,7 @@ import {
   PROMISE_WORDS,
   retryFeedback,
   TITLE_MAX_CHARS,
+  unsupportedAnalysis,
   yearsIn,
   type CheckedInput,
   type TrendDraft,
@@ -30,7 +31,7 @@ const INPUTS: CheckedInput[] = [
 ];
 
 const BODY =
-  "Two open calls fund autonomous systems for watching the sea and the security of undersea cables. Vinnova's Baltic Marine Watchdog Challenge closes on 2 December 2026, and the EU's Regional Cable Hubs call closes on 14 January 2027. For a small company with sensors or autonomy for the sea, this is demand for products that can be tested and shown at sea.";
+  "Vinnova's Baltic Marine Watchdog Challenge, for autonomous systems that watch the sea, closes on 2 December 2026, and the EU's Regional Cable Hubs call on the security of undersea cables closes on 14 January 2027. Both are for companies with sensors or autonomy for use at sea.";
 
 const note = (fields: Partial<TrendDraft> = {}): TrendDraft => ({
   title: "New money for watching the sea and undersea cables",
@@ -56,7 +57,7 @@ describe("checkNote", () => {
     expect(checkNote(note({ sources: ["S1"] }), INPUTS)).toContainEqual(tooFew);
     expect(checkNote(note({ sources: ["S1", "S1"] }), INPUTS)).toContainEqual(tooFew);
     const onlyS2 =
-      "The EU's Regional Cable Hubs call funds the security of undersea cables and closes on 14 January 2027. It opened on 1 September 2026. For a small company with sensors for the sea, this is demand for detection products.";
+      "The EU's Regional Cable Hubs call funds the security of undersea cables and closes on 14 January 2027. It opened on 1 September 2026.";
     expect(checkNote(note({ body: onlyS2, sources: ["S2", "S2"] }), INPUTS)).toEqual([tooFew]);
     // An unknown id does not count towards the two.
     expect(checkNote(note({ body: onlyS2, sources: ["S2", "S7"] }), INPUTS)).toEqual([expect.stringContaining("S7"), tooFew]);
@@ -77,10 +78,10 @@ describe("checkNote", () => {
     expect(checkNote(note({ body: long }), INPUTS)).toEqual([expect.stringContaining(`at most ${BODY_MAX_CHARS}`)]);
   });
 
-  it("needs three to five sentences", () => {
-    const two = "Vinnova's Baltic Marine Watchdog Challenge closes on 2 December 2026 and the EU's Regional Cable Hubs call on 14 January 2027. Both fund watching the sea and the cables under it, for small companies with sensors and autonomy.";
-    expect(checkNote(note({ body: two }), INPUTS)).toEqual([expect.stringContaining("The body has 2 sentences")]);
-    expect(checkNote(note({ body: `${BODY} One more. And another. And a sixth.` }), INPUTS)).toEqual([expect.stringContaining("The body has 6 sentences")]);
+  it("needs two or three sentences", () => {
+    const one = "Vinnova's Baltic Marine Watchdog Challenge closes on 2 December 2026 and the EU's Regional Cable Hubs call on 14 January 2027, both for companies with sensors and autonomy at sea.";
+    expect(checkNote(note({ body: one }), INPUTS)).toEqual([expect.stringContaining("The body has 1 sentence;")]);
+    expect(checkNote(note({ body: `${BODY} One more. And another.` }), INPUTS)).toEqual([expect.stringContaining("The body has 4 sentences")]);
   });
 
   it("counts sentences without stopping at decimals or abbreviations", () => {
@@ -168,7 +169,7 @@ describe("checkNote", () => {
   it("rejects a funder that no cited input names", () => {
     // S1 is Vinnova's, S2 the EU's: an Energimyndigheten call or EU money in a note on S1 alone is made up.
     const onlyS1 =
-      "Vinnova's Baltic Marine Watchdog Challenge funds autonomous systems for watching the sea and closes on 2 December 2026. It pays for demonstrations at sea. For a small company with sensors or autonomy for the sea, this is demand for products that can be shown at sea.";
+      "Vinnova's Baltic Marine Watchdog Challenge funds autonomous systems for watching the sea and closes on 2 December 2026. It is for companies with sensors or autonomy that can be shown at sea.";
     expect(checkNote(note({ body: onlyS1, sources: ["S1", "S3"] }), INPUTS)).toEqual([]);
     expect(checkNote(note({ body: `${onlyS1} The EU adds more.`, sources: ["S1", "S3"] }), INPUTS)).toEqual([expect.stringContaining("names the EU")]);
     expect(checkNote(note({ body: `${BODY} Energimyndigheten adds more.` }), INPUTS)).toEqual([expect.stringContaining("names Energimyndigheten")]);
@@ -227,6 +228,36 @@ describe("checkNote", () => {
     }
   });
 
+  it("needs at least one new input among the cited ones, when any input is new", () => {
+    const marked = INPUTS.map((input) => ({ ...input, fresh: input.id === "S3" }));
+    expect(checkNote(note(), marked)).toEqual([expect.stringContaining("cites only inputs that are not new (S1, S2). Write about what is new: S3.")]);
+    // No input is new: nothing to ask for.
+    expect(checkNote(note(), INPUTS.map((input) => ({ ...input, fresh: false })))).toEqual([]);
+    expect(checkNote(note(), INPUTS.map((input) => ({ ...input, fresh: input.id === "S1" })))).toEqual([]);
+  });
+
+  it("rejects analysis and predictions that no cited input states", () => {
+    for (const phrase of [
+      "This reflects growing demand for maritime autonomy.",
+      "It signals a shift towards undersea security.",
+      "Demand is rising.",
+      "The market is expected to grow.",
+      "Sensors are a key driver here.",
+      "It gives small firms a competitive edge.",
+      "Sea surveillance is increasingly funded.",
+      "Both underline the importance of the sea.",
+    ]) {
+      expect(checkNote(note({ body: `${BODY} ${phrase}` }), INPUTS), phrase).toEqual([expect.stringContaining("which no input it cites says")]);
+    }
+  });
+
+  it("allows an analysis word when a cited input uses it", () => {
+    const inputs = [...INPUTS, { id: "S4", text: "kind: news\nsource: Blue Science Park\ntitle: Nytt\ndescription: The report points to rising demand for undersea sensors." }];
+    expect(unsupportedAnalysis("Rising demand for undersea sensors.", inputs[3].text)).toEqual([]);
+    expect(checkNote(note({ body: `${BODY} Blue Science Park points to rising demand for undersea sensors.`, sources: ["S1", "S2", "S4"] }), inputs)).toEqual([]);
+    expect(unsupportedAnalysis("Funding is rising and will grow.", "")).toEqual(["rising", "will grow"]);
+  });
+
   it("lists every problem at once", () => {
     // Too few sources, short title, short body, one sentence, a promise word, a stray year, S1's closing date missing and a stray amount.
     const problems = checkNote({ title: "x", body: "We guarantee EUR 9 million in 2031.", sources: ["S1"] }, INPUTS);
@@ -236,7 +267,7 @@ describe("checkNote", () => {
   it("needs every cited call's closing date in the note", () => {
     // "Both close on 14 January 2027" is wrong for S1, which closes on 2 December 2026.
     const wrong =
-      "Two open calls, Vinnova's Baltic Marine Watchdog Challenge and the EU's Regional Cable Hubs, both close on 14 January 2027. Both are about the sea. For a small company with sensors or autonomy for the sea, this is demand for products that can be shown at sea.";
+      "Two open calls, Vinnova's Baltic Marine Watchdog Challenge and the EU's Regional Cable Hubs, both close on 14 January 2027. Both are for companies with sensors or autonomy for use at sea.";
     expect(checkNote(note({ body: wrong }), INPUTS)).toEqual([expect.stringContaining("S1 closes on 2026-12-02")]);
     // A month and year is enough.
     const monthOnly = BODY.replace("on 2 December 2026", "in December 2026");

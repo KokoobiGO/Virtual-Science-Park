@@ -1,5 +1,6 @@
+import { readFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
-import { expect, main, open, test } from "./helpers";
+import { checkHandEnteredLabels, expect, handEnteredSources, main, open, test } from "./helpers";
 
 /**
  * The staff half of the demo path (step 9), signed in as the BSP staff demo
@@ -96,6 +97,51 @@ test("9e. /staff/handoffs and /staff/injection-demo open", async ({ page }) => {
   await expect(main(page).getByText(/Loading the last run/)).toHaveCount(0);
   const injectionText = (await main(page).innerText()).replace(/\s+/g, " ");
   expect(injectionText, "the injection demo should show a recorded run").not.toContain("No run recorded yet");
+});
+
+test("9g. the 'Company profiles' and 'Injection test' menu items open their screens", async ({ page }) => {
+  await open(page, "/staff/compare", "Compare members");
+  for (const [item, path, heading] of [
+    ["Company profiles", /\/profile$/, "Company profiles"],
+    ["Injection test", /\/staff\/injection-demo$/, "Planted instruction test"],
+  ] as const) {
+    const link = staffMenu(page).getByRole("link", { name: item, exact: true });
+    await expect(link, `the staff menu should have "${item}"`).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(path);
+    await expect(page.getByRole("heading", { level: 1, name: heading }), `"${item}" should open "${heading}"`).toBeVisible();
+    await expect(staffMenu(page).getByRole("link", { name: item, exact: true }), "the menu marks the open screen").toHaveAttribute("aria-current", "page");
+  }
+});
+
+test("9h. /trust: the red-team table shows group display names, not raw ids", async ({ page }) => {
+  const prompts = JSON.parse(readFileSync("eval/redteam-prompts.json", "utf8")) as { groups: { id: string }[] };
+  const ids = prompts.groups.map((g) => g.id);
+  await open(page, "/trust", "Trust report");
+  const section = main(page).locator('[data-slot="card"]').filter({ has: page.getByRole("heading", { level: 2, name: "Red-team tests" }) });
+  await expect(section, "the Red-team tests section").toHaveCount(1);
+  const labels = (await section.locator("tbody tr > :first-child").allInnerTexts()).map((t) => t.trim());
+  test.info().annotations.push({ type: "groups", description: labels.join("; ") });
+  expect(labels.length, "the red-team run should be measured (one row per group)").toBeGreaterThan(0);
+  const raw = labels.filter((l) => ids.includes(l) || /^[a-z]+(_[a-z]+)*$/.test(l));
+  expect(raw, `rows labelled with a raw group id (ids: ${ids.join(", ")}):\n${raw.join("\n")}`).toEqual([]);
+});
+
+test("9i. data labels: hand-entered items on /staff/compare say 'Hand-entered', not 'Simulated'", async ({ page }) => {
+  const sources = await handEnteredSources(page);
+  await open(page, "/staff/compare?a=embeddedart&b=malvacom", "Compare members");
+  const sides = main(page).locator('.grid > [data-slot="card"]');
+  await expect(sides).toHaveCount(2);
+  const rows = sides.locator("ol > li");
+  await expect(rows.first()).toBeVisible();
+  const { problems, seen, handEntered, total } = await checkHandEnteredLabels(rows, sources, "/staff/compare");
+  test.info().annotations.push({
+    type: "labels",
+    description: handEntered
+      ? `${handEntered} of ${total} items in the two top fives are hand-entered: ${JSON.stringify(seen)}`
+      : `none of the ${total} items in the two top fives is hand-entered, so the label could not be seen`,
+  });
+  expect(problems, problems.join("\n")).toEqual([]);
 });
 
 test("9f. /week is not offered to staff", async ({ page }) => {

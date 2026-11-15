@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheck, Loader2, Pencil } from "lucide-react";
 import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -83,7 +84,7 @@ export function ClaimEditor({
   return (
     <div className="flex flex-col gap-2">
       {editing ? (
-        <form action={action} className="flex flex-col gap-2">
+        <form action={action} className="flex animate-slide-down flex-col gap-2 rounded-lg border border-primary/30 bg-muted/40 p-3">
           <input type="hidden" name="field" value={field} />
           <input type="hidden" name="claimId" value={claimId} />
           <Label htmlFor={`${id}-value`}>{isList ? t("editor.listLabel", { field: label }) : label}</Label>
@@ -116,6 +117,7 @@ export function ClaimEditor({
           ) : null}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={pending}>
+              {pending ? <Loader2 aria-hidden className="size-3.5 animate-spin" /> : null}
               {pending ? t("editor.saving") : t("editor.save")}
             </Button>
             <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={close}>
@@ -128,14 +130,20 @@ export function ClaimEditor({
           {children}
           <div>
             <Button ref={editButton} type="button" variant="outline" size="sm" onClick={open} aria-label={verbLabel}>
+              <Pencil aria-hidden className="size-3.5" />
               {verb}
             </Button>
           </div>
         </>
       )}
-      {/* Always in the page, so screen readers hear "Saved." when it changes. */}
-      <p role="status" className="text-xs text-muted-foreground empty:hidden">
-        {editing ? "" : notice}
+      {/* Always in the page, so screen readers hear "Saved." when it changes. Keyed by the text, so each save pops in. */}
+      <p role="status" className="text-sm font-medium text-success empty:hidden">
+        {editing || !notice ? null : (
+          <span key={notice} className="inline-flex animate-pop items-center gap-1.5">
+            <CircleCheck aria-hidden className="size-4 shrink-0" />
+            {notice}
+          </span>
+        )}
       </p>
     </div>
   );

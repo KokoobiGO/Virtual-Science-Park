@@ -8,6 +8,8 @@ import { getLocale, getT } from "@/lib/i18n/server";
 import { createTranslator } from "@/lib/i18n/translate";
 import { unconnected } from "@/lib/staff-views/ecosystem";
 import { loadEcosystem } from "@/lib/staff-views/query";
+import { Info } from "lucide-react";
+import { StaffPageIntro } from "../page-intro";
 import { EcosystemView } from "./ecosystem-view";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -34,10 +36,14 @@ async function EcosystemFrame({ searchParams }: Pick<PageProps<"/staff/ecosystem
   const t = createTranslator(locale, "ecosystem");
   return (
     <LocaleProvider locale={locale}>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-title">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("intro", { disclaimer: t("disclaimer") })}</p>
-      </div>
+      <StaffPageIntro title={t("title")} intro={t("intro")} todo={t("todo")}>
+        <p role="note" className="flex w-fit max-w-full items-start gap-2 rounded-lg border border-warning/40 bg-warning-soft px-3 py-2 text-sm text-warning">
+          <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span className="min-w-0 break-words">
+            <span className="font-medium">{t("suggestionLabel")}.</span> {t("disclaimer")}
+          </span>
+        </p>
+      </StaffPageIntro>
       <Suspense
         fallback={
           <LoadingState label={t("loading")}>
@@ -74,11 +80,11 @@ async function Ecosystem({ searchParams, locale }: Pick<PageProps<"/staff/ecosys
       {connections.length ? (
         <EcosystemView connections={connections} openId={openId} />
       ) : (
-        <p className="rounded-xl border p-6 text-sm text-muted-foreground">
+        <p className="animate-fade rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
           {t.rich("empty", { code: (chunk) => <code className="font-mono">{chunk}</code> })}
         </p>
       )}
-      <div className="flex flex-col gap-2">
+      <div className="flex animate-rise flex-col gap-2">
         <h2 className="text-heading">{t("aloneTitle", { count: alone.length })}</h2>
         {alone.length ? (
           <>

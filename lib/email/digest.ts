@@ -9,10 +9,17 @@
  * goes through escapeHtml(), and only http(s) addresses become links.
  *
  * No cards, no email: buildDigest() returns null for an empty week.
+ *
+ * Language (C19): the email's own words come from messages/*.json (`digest`)
+ * in the `locale` the caller passes, English by default. Card titles, why,
+ * next step, doubts, source names and company names are shown as stored.
  */
-import { DATA_STATUS_META, dataStatusText, itemDataStatus, type DataStatusKind } from "../../components/data-status-label";
+import { dataStatusName, dataStatusText, itemDataStatus, type DataStatusKind } from "../../components/data-status-label";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
+import { formatDay } from "../i18n/format";
+import { createTranslator, MESSAGES, type Translator } from "../i18n/translate";
 import type { OpportunityKind, SourceState } from "../schemas";
-import { cardDates, isWebLink, kindLabel, sourceLabel, weekLabel } from "../week/format";
+import { isWebLink, isWholeDay, sourceLabel, swedishTime } from "../week/format";
 
 export type DigestOpportunity = {
   kind: OpportunityKind;
@@ -54,20 +61,24 @@ export type DigestInput = {
   siteUrl: string;
   /** For "(passed)" on dates; defaults to now. */
   now?: Date;
+  /**
+   * The language of the email's own words (C19). English when left out: the
+   * digest job sends English. Pass "sv" for a Swedish email.
+   */
+  locale?: Locale;
 };
 
 export type DigestEmail = { subject: string; html: string; text: string };
 
-/** Information-only notice, shared by the HTML and the text version. */
-export const DIGEST_NOTICE =
-  "Information only. These cards are picked by software from public sources and your company's profile on Virtual Science Park. " +
-  "A potential match is not a decision on whether you can apply: check the source before you act, or ask BSP staff.";
+type T = Translator<"digest">;
+
+/** Information-only notice, shared by the HTML and the text version. In English; messages/*.json `digest.notice`. */
+export const DIGEST_NOTICE = MESSAGES.en.digest.notice;
 
 /** The card labels every digest explains. */
-const CARD_LABELS: readonly { label: string; meaning: string }[] = [
-  { label: "Potential match", meaning: "an opportunity ranked for your company, with why it may fit and a next step." },
-  { label: "Trend note", meaning: "a short note on this week's news and new calls in one technology area, written by software from the sources it lists." },
-];
+function cardLabelMeanings(t: T): { label: string; meaning: string }[] {
+  return (["match", "trend"] as const).map((kind) => ({ label: t(`cardLabels.${kind}.label`), meaning: t(`cardLabels.${kind}.meaning`) }));
+}
 
 /** The data label of a card's opportunity (D20, the same rule as on the screens), or null for one read live. */
 export function opportunityDataStatus(o: DigestOpportunity): DataStatusKind | null {
@@ -75,33 +86,27 @@ export function opportunityDataStatus(o: DigestOpportunity): DataStatusKind | nu
 }
 
 /** The words on the label: "Hand-entered", "Simulated", "Cached copy · 10 Nov 2026". */
-function dataLabelText(o: DigestOpportunity, kind: DataStatusKind): string {
-  return dataStatusText(kind, kind === "cached" ? o.cachedAt : null);
+function dataLabelText(o: DigestOpportunity, kind: DataStatusKind, locale: Locale): string {
+  return dataStatusText(kind, kind === "cached" ? o.cachedAt : null, locale);
 }
 
 /**
  * How the data is labelled, shared by the HTML and the text version: the two
  * card labels, then each data label this email uses, with what it means.
  */
-export function digestLabels(cards: readonly DigestCard[]): { label: string; meaning: string }[] {
+export function digestLabels(cards: readonly DigestCard[], locale: Locale = DEFAULT_LOCALE): { label: string; meaning: string }[] {
   const used = new Set(cards.map((c) => (c.opportunity ? opportunityDataStatus(c.opportunity) : null)));
   const data = (["hand_entered", "cached", "simulated"] as const)
     .filter((kind) => used.has(kind))
     .map((kind) => {
-      const { label, description } = DATA_STATUS_META[kind];
+      const { label, description } = dataStatusName(kind, locale);
       return { label, meaning: `${description.charAt(0).toLowerCase()}${description.slice(1)}` };
     });
-  return [...CARD_LABELS, ...data];
+  return [...cardLabelMeanings(createTranslator(locale, "digest")), ...data];
 }
 
-const AREA_LABELS: Record<string, string> = {
-  marine: "Marine",
-  defence: "Defence",
-  sensor: "Sensors",
-  cyber: "Cyber security",
-  ai: "AI",
-  energy: "Energy",
-};
+/** The technology areas of trend cards with a display name; another area is shown as stored. */
+const AREAS = MESSAGES.en.digest.areas;
 
 const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 
@@ -123,41 +128,65 @@ export function weekPageUrl(siteUrl: string): string {
   return url.href;
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-
 /** "6 potential matches and a trend note", "a trend note", "1 potential match". */
-export function countsText(cards: readonly DigestCard[]): string {
+export function countsText(cards: readonly DigestCard[], locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "digest");
   const matches = cards.filter((c) => c.kind === "match").length;
   const trends = cards.length - matches;
   const parts = [
-    ...(matches ? [plural(matches, "potential match", "potential matches")] : []),
-    ...(trends ? [trends === 1 ? "a trend note" : `${trends} trend notes`] : []),
+    ...(matches ? [t("counts.matches", { count: matches })] : []),
+    ...(trends ? [t("counts.trends", { count: trends })] : []),
   ];
-  return parts.join(" and ");
+  return parts.length === 2 ? t("counts.and", { first: parts[0], second: parts[1] }) : parts.join("");
 }
 
-function areaLabel(area: string | null): string | null {
-  return area ? (AREA_LABELS[area] ?? area) : null;
+function areaLabel(area: string | null, t: T): string | null {
+  if (!area) return null;
+  return Object.hasOwn(AREAS, area) ? t(`areas.${area as keyof typeof AREAS}`) : area;
+}
+
+/** The kind of opportunity: "Funding call", "Testbed" (as on Your week). */
+const kindLabel = (kind: OpportunityKind, t: T) => t(`kinds.${kind}`);
+
+/** "3 Dec 2026", or "3 Dec 2026, 14:00" when the source gives a time; Swedish time (as lib/week/format.ts formatWhen). */
+function when(instant: Date, t: T): string {
+  const day = formatDay(instant, t.locale);
+  return isWholeDay(instant) ? day : t("when", { day, time: swedishTime(instant) });
+}
+
+/** The `week_of` date (a Monday, YYYY-MM-DD) as "9 Nov 2026". Noon UTC is the same day in Sweden. */
+const weekLabel = (weekOf: string, locale: Locale) => formatDay(`${weekOf}T12:00:00Z`, locale);
+
+type CardDate = { label: string; text: string; passed: boolean };
+
+/** The dates a match card shows: the deadline and the event date, when the source gives them. */
+function cardDates(card: DigestCard, now: Date, t: T): CardDate[] {
+  const o = card.kind === "match" ? card.opportunity : null;
+  if (!o) return [];
+  const dates: CardDate[] = [];
+  if (o.deadline) dates.push({ label: t("deadline"), text: when(o.deadline, t), passed: o.deadline < now });
+  if (o.eventDate) dates.push({ label: t("eventDate"), text: when(o.eventDate, t), passed: o.eventDate < now });
+  return dates;
 }
 
 type LabelStyle = "main" | "plain" | "simulated" | "cached";
 
 /** The labels on a card, in order, e.g. ["Potential match", "Testbed", "Curated testbed list", "Hand-entered"]. */
-function cardLabels(card: DigestCard): { text: string; style: LabelStyle }[] {
+function cardLabels(card: DigestCard, t: T): { text: string; style: LabelStyle }[] {
   if (card.kind === "trend") {
-    const area = areaLabel(card.trendArea);
-    return [{ text: "Trend note", style: "main" }, ...(area ? [{ text: area, style: "plain" as const }] : [])];
+    const area = areaLabel(card.trendArea, t);
+    return [{ text: t("cardLabels.trend.label"), style: "main" }, ...(area ? [{ text: area, style: "plain" as const }] : [])];
   }
   const o = card.opportunity;
   const status = o ? opportunityDataStatus(o) : null;
   return [
-    { text: "Potential match", style: "main" },
-    ...(o ? [{ text: kindLabel(o.kind), style: "plain" as const }, { text: oneLine(o.source), style: "plain" as const }] : []),
-    ...(o && status ? [{ text: dataLabelText(o, status), style: status === "cached" ? ("cached" as const) : ("simulated" as const) }] : []),
+    { text: t("cardLabels.match.label"), style: "main" },
+    ...(o ? [{ text: kindLabel(o.kind, t), style: "plain" as const }, { text: oneLine(o.source), style: "plain" as const }] : []),
+    ...(o && status ? [{ text: dataLabelText(o, status, t.locale), style: status === "cached" ? ("cached" as const) : ("simulated" as const) }] : []),
   ];
 }
 
-const whyHeading = (card: DigestCard) => (card.kind === "trend" ? "What changed this week" : "Why it fits");
+const whyHeading = (card: DigestCard, t: T) => (card.kind === "trend" ? t("whyTrend") : t("whyMatch"));
 
 /** The sources worth a link: http(s) only, each address once. */
 function webSources(card: DigestCard): { url: string; label: string; host: string }[] {
@@ -244,22 +273,22 @@ function section(heading: string, body: string): string {
   );
 }
 
-function cardHtml(card: DigestCard, now: Date): string {
-  const dates = card.kind === "match" && card.opportunity ? cardDates(card.opportunity, now) : [];
+function cardHtml(card: DigestCard, now: Date, t: T): string {
+  const dates = cardDates(card, now, t);
   const sources = webSources(card);
   const parts = [
-    `<p style="margin:0 0 4px;">${cardLabels(card).map(badge).join("")}</p>`,
+    `<p style="margin:0 0 4px;">${cardLabels(card, t).map(badge).join("")}</p>`,
     `<h2 class="vsp-text" style="margin:0;font-family:${FONT};font-size:18px;line-height:1.35;font-weight:600;color:${COLOR.text};">${escapeHtml(oneLine(card.title))}</h2>`,
     dates.length
       ? `<p class="vsp-muted" style="${mutedStyle}margin-top:6px;">${dates
-          .map((d) => `${escapeHtml(d.label)}: <strong>${escapeHtml(d.text)}</strong>${d.passed ? " (passed)" : ""}`)
+          .map((d) => `${escapeHtml(d.label)}: <strong>${escapeHtml(d.text)}</strong>${d.passed ? ` ${escapeHtml(t("passed"))}` : ""}`)
           .join("<br>")}</p>`
       : "",
-    section(whyHeading(card), `<p class="vsp-text" style="${textStyle}">${escapeLines(card.why)}</p>`),
-    section("Next step", `<p class="vsp-text" style="${textStyle}">${escapeLines(card.nextStep)}</p>`),
+    section(whyHeading(card, t), `<p class="vsp-text" style="${textStyle}">${escapeLines(card.why)}</p>`),
+    section(t("nextStep"), `<p class="vsp-text" style="${textStyle}">${escapeLines(card.nextStep)}</p>`),
     card.uncertainties.length
       ? section(
-          "What is uncertain",
+          t("uncertain"),
           `<ul style="margin:0;padding:0 0 0 20px;">${card.uncertainties
             .map((u) => `<li class="vsp-text" style="${textStyle}margin-bottom:4px;">${escapeHtml(oneLine(u))}</li>`)
             .join("")}</ul>`,
@@ -267,7 +296,7 @@ function cardHtml(card: DigestCard, now: Date): string {
       : "",
     sources.length
       ? section(
-          sources.length === 1 ? "Source" : "Sources",
+          t("sources", { count: sources.length }),
           sources
             .map(
               (s) =>
@@ -285,7 +314,7 @@ function cardHtml(card: DigestCard, now: Date): string {
   );
 }
 
-function html({ subject, preheader, company, week, intro, cards, weekUrl, now }: {
+function html({ subject, preheader, company, week, intro, cards, weekUrl, now, t }: {
   subject: string;
   preheader: string;
   company: string;
@@ -294,13 +323,14 @@ function html({ subject, preheader, company, week, intro, cards, weekUrl, now }:
   cards: readonly DigestCard[];
   weekUrl: string;
   now: Date;
+  t: T;
 }): string {
-  const labels = digestLabels(cards)
+  const labels = digestLabels(cards, t.locale)
     .map((l) => `<strong>${escapeHtml(l.label)}</strong>: ${escapeHtml(l.meaning)}`)
     .join("<br>");
   return [
     "<!doctype html>",
-    '<html lang="en">',
+    `<html lang="${t.locale}">`,
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -317,19 +347,19 @@ function html({ subject, preheader, company, week, intro, cards, weekUrl, now }:
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">`,
     `<tr><td style="padding:0 4px 20px 4px;">`,
     `<p class="vsp-muted" style="${smallStyle}">Virtual Science Park</p>`,
-    `<h1 class="vsp-text" style="margin:4px 0 0 0;font-family:${FONT};font-size:24px;line-height:1.3;font-weight:700;color:${COLOR.text};">Your week: ${escapeHtml(company)}</h1>`,
-    `<p class="vsp-muted" style="${mutedStyle}margin-top:4px;">Week of ${escapeHtml(week)}</p>`,
+    `<h1 class="vsp-text" style="margin:4px 0 0 0;font-family:${FONT};font-size:24px;line-height:1.3;font-weight:700;color:${COLOR.text};">${escapeHtml(t("heading", { company }))}</h1>`,
+    `<p class="vsp-muted" style="${mutedStyle}margin-top:4px;">${escapeHtml(t("weekOf", { week }))}</p>`,
     `<p class="vsp-text" style="${textStyle}margin-top:16px;">${escapeHtml(intro)}</p>`,
     `</td></tr>`,
-    ...cards.map((card) => cardHtml(card, now)),
+    ...cards.map((card) => cardHtml(card, now, t)),
     `<tr><td align="center" style="padding:8px 0 24px 0;">`,
-    `<a href="${escapeHtml(weekUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 22px;border-radius:6px;background-color:${COLOR.button};color:${COLOR.buttonText};font-family:${FONT};font-size:16px;font-weight:600;line-height:1.2;text-decoration:none;">Open Your week</a>`,
-    `<p class="vsp-muted" style="${mutedStyle}margin-top:10px;">Save a card, say what is useful or add a date to your calendar on the site:<br>${link(weekUrl, weekUrl)}</p>`,
+    `<a href="${escapeHtml(weekUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 22px;border-radius:6px;background-color:${COLOR.button};color:${COLOR.buttonText};font-family:${FONT};font-size:16px;font-weight:600;line-height:1.2;text-decoration:none;">${escapeHtml(t("openWeek"))}</a>`,
+    `<p class="vsp-muted" style="${mutedStyle}margin-top:10px;">${escapeHtml(t("saveHint"))}<br>${link(weekUrl, weekUrl)}</p>`,
     `</td></tr>`,
     `<tr><td class="vsp-rule" style="padding:16px 4px 0 4px;border-top:1px solid ${COLOR.border};">`,
-    `<p class="vsp-muted" style="${smallStyle}">${escapeHtml(DIGEST_NOTICE)}</p>`,
-    `<p class="vsp-muted" style="${smallStyle}margin-top:10px;">How the data is labelled:<br>${labels}<br>Dates are in Swedish time.</p>`,
-    `<p class="vsp-muted" style="${smallStyle}margin-top:10px;">Sent by Virtual Science Park for members of Blue Science Park.</p>`,
+    `<p class="vsp-muted" style="${smallStyle}">${escapeHtml(t("notice"))}</p>`,
+    `<p class="vsp-muted" style="${smallStyle}margin-top:10px;">${escapeHtml(t("labelsTitle"))}<br>${labels}<br>${escapeHtml(t("swedishTime"))}</p>`,
+    `<p class="vsp-muted" style="${smallStyle}margin-top:10px;">${escapeHtml(t("sentBy"))}</p>`,
     `</td></tr>`,
     "</table>",
     "</td></tr>",
@@ -343,8 +373,8 @@ function html({ subject, preheader, company, week, intro, cards, weekUrl, now }:
 // Text version
 // ---------------------------------------------------------------------------
 
-function cardText(card: DigestCard, number: number, now: Date): string {
-  const dates = card.kind === "match" && card.opportunity ? cardDates(card.opportunity, now) : [];
+function cardText(card: DigestCard, number: number, now: Date, t: T): string {
+  const dates = cardDates(card, now, t);
   const sources = webSources(card);
   const indent = (value: string) =>
     value
@@ -354,55 +384,54 @@ function cardText(card: DigestCard, number: number, now: Date): string {
       .join("\n");
   return [
     `${number}. ${oneLine(card.title)}`,
-    `   ${cardLabels(card)
+    `   ${cardLabels(card, t)
       .map((l) => l.text)
       .join(" | ")}`,
-    ...dates.map((d) => `   ${d.label}: ${d.text}${d.passed ? " (passed)" : ""}`),
-    `   ${whyHeading(card)}:`,
+    ...dates.map((d) => `   ${d.label}: ${d.text}${d.passed ? ` ${t("passed")}` : ""}`),
+    `   ${whyHeading(card, t)}:`,
     indent(card.why),
-    "   Next step:",
+    `   ${t("nextStep")}:`,
     indent(card.nextStep),
-    ...(card.uncertainties.length ? ["   What is uncertain:", ...card.uncertainties.map((u) => `   - ${oneLine(u)}`)] : []),
-    ...(sources.length ? [`   ${sources.length === 1 ? "Source" : "Sources"}:`, ...sources.map((s) => `   ${s.label}: ${s.url}`)] : []),
+    ...(card.uncertainties.length ? [`   ${t("uncertain")}:`, ...card.uncertainties.map((u) => `   - ${oneLine(u)}`)] : []),
+    ...(sources.length ? [`   ${t("sources", { count: sources.length })}:`, ...sources.map((s) => `   ${s.label}: ${s.url}`)] : []),
   ].join("\n");
 }
 
 // ---------------------------------------------------------------------------
 
 /** The digest for one company's week, or null when there are no cards (no email is sent then). */
-export function buildDigest({ companyName, weekOf, cards, siteUrl, now = new Date() }: DigestInput): DigestEmail | null {
+export function buildDigest({ companyName, weekOf, cards, siteUrl, now = new Date(), locale = DEFAULT_LOCALE }: DigestInput): DigestEmail | null {
   if (!cards.length) return null;
+  const t = createTranslator(locale, "digest");
   const ordered = [...cards].sort((a, b) => a.position - b.position);
   const company = oneLine(companyName);
-  const week = weekLabel(weekOf);
-  const counts = countsText(ordered);
+  const week = weekLabel(weekOf, locale);
+  const counts = countsText(ordered, locale);
   const weekUrl = weekPageUrl(siteUrl);
 
-  const subject = `Your week, ${week}: ${counts} for ${company}`;
-  const intro =
-    `This week's picks for ${company}: ${counts}. Each card says why it may fit, a next step and where it comes from. ` +
-    "A card is a potential match, not a decision: check the source or ask BSP staff.";
-  const preheader = `${counts} for ${company}, week of ${week}.`;
+  const subject = t("subject", { week, counts, company });
+  const intro = t("intro", { company, counts });
+  const preheader = t("preheader", { counts, company, week });
 
   const text = [
-    `Your week: ${company}`,
-    `Week of ${week}`,
+    t("heading", { company }),
+    t("weekOf", { week }),
     "",
     intro,
     "",
-    ...ordered.flatMap((card, i) => [cardText(card, i + 1, now), ""]),
-    `Open Your week to save a card, say what is useful or add a date to your calendar: ${weekUrl}`,
+    ...ordered.flatMap((card, i) => [cardText(card, i + 1, now, t), ""]),
+    t("textOpenWeek", { url: weekUrl }),
     "",
     "--",
-    DIGEST_NOTICE,
+    t("notice"),
     "",
-    "How the data is labelled:",
-    ...digestLabels(ordered).map((l) => `- ${l.label}: ${l.meaning}`),
-    "Dates are in Swedish time.",
+    t("labelsTitle"),
+    ...digestLabels(ordered, locale).map((l) => `- ${l.label}: ${l.meaning}`),
+    t("swedishTime"),
     "",
-    "Sent by Virtual Science Park for members of Blue Science Park.",
+    t("sentBy"),
     "",
   ].join("\n");
 
-  return { subject, html: html({ subject, preheader, company, week, intro, cards: ordered, weekUrl, now }), text };
+  return { subject, html: html({ subject, preheader, company, week, intro, cards: ordered, weekUrl, now, t }), text };
 }

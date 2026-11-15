@@ -83,6 +83,11 @@ describe("orderChange and changeLine", () => {
     expect(changeLine(true, { added: 0, dropped: 0, moved: 0 })).toBe("Re-ranked after your profile change: the same cards in the same order.");
   });
 
+  it("says it in Swedish too", () => {
+    expect(changeLine(true, { added: 1, dropped: 2, moved: 0 }, "sv")).toBe("Omrangordnat efter er profiländring: 1 nytt kort, 2 borttagna.");
+    expect(changeLine(false, { added: 0, dropped: 0, moved: 0 }, "sv")).toBe("Era kort har rangordnats om: samma kort i samma ordning.");
+  });
+
   it("never claims a card is a decision", () => {
     expect(changeLine(true, { added: 3, dropped: 3, moved: 3 })).not.toMatch(/eligible/i);
   });

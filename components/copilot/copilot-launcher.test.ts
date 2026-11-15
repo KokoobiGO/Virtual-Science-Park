@@ -3,10 +3,11 @@ import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Viewer } from "@/lib/auth";
 
-const state = vi.hoisted(() => ({ pathname: "/week", viewer: null as unknown }));
+const state = vi.hoisted(() => ({ pathname: "/week", viewer: null as unknown, locale: "en" as "en" | "sv" }));
 
 vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
 vi.mock("@/lib/auth", () => ({ getViewer: async () => state.viewer }));
+vi.mock("@/lib/i18n/server", () => ({ getLocale: async () => state.locale }));
 
 const { CopilotLauncher, isCopilotPage } = await import("./copilot-launcher");
 const { CopilotLauncherSlot, showsCopilotLauncher } = await import("./copilot-launcher-slot");
@@ -40,6 +41,14 @@ describe("CopilotLauncherSlot", () => {
     expect(element?.key).toBe("user-member");
   });
 
+  it("passes the reader's language to the launcher (C19)", async () => {
+    state.viewer = viewer("member", "company-1");
+    state.locale = "sv";
+    const element = await CopilotLauncherSlot();
+    expect((element?.props as { locale?: string }).locale).toBe("sv");
+    state.locale = "en";
+  });
+
   it("renders nothing for staff or a signed-out visitor", async () => {
     state.viewer = viewer("staff", null);
     expect(await CopilotLauncherSlot()).toBeNull();
@@ -57,6 +66,13 @@ describe("CopilotLauncher", () => {
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Copilot");
     expect(html).not.toContain("Your question");
+  });
+
+  it("keeps the name Copilot on the button in Swedish", () => {
+    state.pathname = "/week";
+    const html = renderToString(createElement(CopilotLauncher, { locale: "sv" }));
+    expect(html).toContain('data-testid="copilot-launcher"');
+    expect(html).toContain("Copilot");
   });
 
   it("hides the button on the full-page Copilot", () => {

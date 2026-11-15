@@ -54,23 +54,35 @@ export function main(page: Page): Locator {
  * Sign in through the real form on /sign-in. The password is set with an
  * evaluate call rather than fill(): Playwright titles a fill step with the
  * typed value, which would put the password into the report.
+ *
+ * When the sign-in fails, the password field is emptied before the error is
+ * thrown: the failure's page snapshot (error-context.md, attached to the HTML
+ * report) lists every input's value, a password field included.
  */
 export async function signInThroughForm(page: Page, email: string): Promise<void> {
   // Generous: the dev server may be recompiling while other people edit files.
   await expect(page.getByLabel("Password")).toBeVisible({ timeout: 60_000 });
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").evaluate((input, value) => {
-    (input as HTMLInputElement).value = value;
-  }, demoPassword());
-  // The header also has a "Sign in" control, so use the one in the form.
-  await main(page).getByRole("button", { name: "Sign in", exact: true }).click();
-  // A failed sign-in shows the form's error; surface its text instead of a bare timeout.
-  // (Not getByRole("alert"): Next's route announcer is an alert too.)
-  const alert = page.locator("#sign-in-error");
-  await expect(async () => {
-    if (await alert.isVisible()) throw new Error(`Sign-in form said: "${await alert.innerText()}"`);
-    expect(new URL(page.url()).pathname).not.toBe("/sign-in");
-  }).toPass({ timeout: 30_000 });
+  try {
+    await page.getByLabel("Password").evaluate((input, value) => {
+      (input as HTMLInputElement).value = value;
+    }, demoPassword());
+    // The header also has a "Sign in" control, so use the one in the form.
+    await main(page).getByRole("button", { name: "Sign in", exact: true }).click();
+    // A failed sign-in shows the form's error; surface its text instead of a bare timeout.
+    // (Not getByRole("alert"): Next's route announcer is an alert too.)
+    const alert = page.locator("#sign-in-error");
+    await expect(async () => {
+      if (await alert.isVisible()) throw new Error(`Sign-in form said: "${await alert.innerText()}"`);
+      expect(new URL(page.url()).pathname).not.toBe("/sign-in");
+    }).toPass({ timeout: 30_000 });
+  } catch (error) {
+    await page
+      .locator('input[type="password"]')
+      .evaluateAll((inputs) => inputs.forEach((input) => ((input as HTMLInputElement).value = "")))
+      .catch(() => undefined);
+    throw error;
+  }
 }
 
 /**
@@ -92,6 +104,167 @@ export async function open(page: Page, path: string, heading: string | RegExp): 
       { cause: error },
     );
   }
+}
+
+/** The display names of the sources that /sources labels "Hand-entered", e.g. "Curated testbed list". */
+export async function handEnteredSources(page: Page): Promise<string[]> {
+  await open(page, "/sources", "Data status");
+  const rows = main(page).locator("li[data-source]");
+  await expect(rows.first(), "/sources should list the sources").toBeVisible();
+  // The row's first <p> is the source's display name (components/data-status-panel.tsx).
+  return rows
+    .filter({ has: page.locator('[data-data-status="hand_entered"]') })
+    .evaluateAll((els) => els.map((el) => (el.querySelector("p")?.textContent ?? "").trim()).filter(Boolean));
+}
+
+/**
+ * The data-label rule (D20) on one list of items: every item from a
+ * hand-entered source carries a label whose text matches `accept` (by default
+ * exactly "Hand-entered", so never "Simulated"). An item's source name is in
+ * the line that holds its first badge (kind, labels and source sit together
+ * on every list). Returns the problems and what was seen, for the report.
+ */
+export async function checkHandEnteredLabels(
+  rows: Locator,
+  sources: string[],
+  where: string,
+  accept: RegExp = /^Hand-entered$/,
+): Promise<{ problems: string[]; seen: Record<string, number>; handEntered: number; total: number }> {
+  const items = await rows.evaluateAll(
+    (els, names) =>
+      els.map((el) => {
+        const line = el.querySelector('[data-slot="badge"]')?.parentElement?.textContent ?? "";
+        // The shared label (components/data-status-label.tsx), or an older plain badge such as "Simulated data".
+        const label =
+          el.querySelector("[data-data-status]") ??
+          Array.from(el.querySelectorAll('[data-slot="badge"]')).find((b) => /^(Simulated|Hand-entered)/.test((b.textContent ?? "").trim())) ??
+          null;
+        return {
+          source: names.find((name) => line.includes(name)) ?? null,
+          kind: label ? (label.getAttribute("data-data-status") ?? "plain badge") : null,
+          text: label?.textContent?.trim() ?? null,
+          title: (el.querySelector("h3, a")?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80),
+        };
+      }),
+    sources,
+  );
+  const problems: string[] = [];
+  const seen: Record<string, number> = {};
+  let handEntered = 0;
+  for (const item of items) {
+    if (item.kind === "hand_entered" && !accept.test(item.text ?? "")) {
+      problems.push(`${where}: "${item.title}" has the hand_entered label with the text "${item.text}"`);
+    }
+    if (!item.source) continue;
+    handEntered++;
+    const key = item.text ? `${item.text} [${item.kind}]` : "no label";
+    seen[key] = (seen[key] ?? 0) + 1;
+    if (!item.text) problems.push(`${where}: "${item.title}" (${item.source}, hand-entered) has no data label`);
+    else if (!accept.test(item.text) && item.kind !== "hand_entered") {
+      problems.push(`${where}: "${item.title}" (${item.source}, hand-entered) is labelled "${item.text}" [${item.kind}]`);
+    }
+  }
+  return { problems, seen, handEntered, total: items.length };
+}
+
+/**
+ * Three structural checks for any page (C20):
+ * - exactly one h1;
+ * - every button and link has an accessible name;
+ * - every form control has a label (a <label>, aria-label, aria-labelledby or
+ *   title; a placeholder alone is not a label).
+ * Only what a screen reader can reach is inspected: elements that are not
+ * rendered, or sit under aria-hidden, [hidden] or [inert], are skipped. A
+ * button or link that the quick DOM pass finds unnamed is confirmed with
+ * Playwright's own accessible-name computation before it is reported.
+ * Returns one line per problem; empty when the page passes.
+ */
+export async function accessibilityProblems(page: Page): Promise<string[]> {
+  const found = await page.evaluate(() => {
+    const reachable = (el: Element) =>
+      !el.closest('[aria-hidden="true"], [hidden], [inert]') && el.checkVisibility({ visibilityProperty: true } as CheckVisibilityOptions);
+    const describe = (el: Element) => el.outerHTML.replace(/\s+/g, " ").slice(0, 180);
+    const byIds = (el: Element, attr: string) =>
+      (el.getAttribute(attr) ?? "")
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((id) => document.getElementById(id)?.textContent ?? "")
+        .join(" ")
+        .trim();
+    // The text a screen reader would take from the content: aria-hidden parts left out, alt and aria-label of children used.
+    const contentText = (el: Element): string => {
+      let text = "";
+      for (const node of Array.from(el.childNodes)) {
+        if (node.nodeType === Node.TEXT_NODE) text += node.textContent ?? "";
+        else if (node instanceof Element) {
+          if (node.getAttribute("aria-hidden") === "true") continue;
+          if (node.hasAttribute("aria-label")) text += ` ${node.getAttribute("aria-label")}`;
+          else if (node.tagName === "IMG") text += ` ${node.getAttribute("alt") ?? ""}`;
+          else text += ` ${contentText(node)}`;
+        }
+      }
+      return text;
+    };
+    const name = (el: Element) =>
+      (
+        byIds(el, "aria-labelledby") ||
+        el.getAttribute("aria-label") ||
+        contentText(el) ||
+        el.getAttribute("title") ||
+        (el instanceof HTMLInputElement ? el.value || el.alt : "") ||
+        ""
+      ).trim();
+
+    const h1s = Array.from(document.querySelectorAll('h1, [role="heading"][aria-level="1"]'))
+      .filter(reachable)
+      .map((h) => (h.textContent ?? "").replace(/\s+/g, " ").trim());
+
+    // Buttons and links: suspects get a temporary data attribute so the caller can confirm them.
+    const controls = Array.from(
+      document.querySelectorAll('a[href], button, [role="button"], [role="link"], input[type="button"], input[type="submit"], input[type="reset"], input[type="image"]'),
+    ).filter(reachable);
+    const unnamed: { mark: string; html: string }[] = [];
+    controls.forEach((el, i) => {
+      if (name(el)) return;
+      const mark = `e2e-${i}`;
+      unnamed.push({ mark, html: describe(el) });
+      el.setAttribute("data-e2e-unnamed", mark);
+    });
+
+    // Form controls: a real label, not just a placeholder.
+    const fields = Array.from(
+      document.querySelectorAll(
+        'input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]), select, textarea, [role="textbox"], [role="combobox"]',
+      ),
+    ).filter(reachable);
+    const unlabelled: string[] = [];
+    for (const el of fields) {
+      const labels = "labels" in el ? Array.from((el as HTMLInputElement).labels ?? []) : [];
+      const labelled =
+        labels.some((l) => (l.textContent ?? "").trim()) ||
+        (el.getAttribute("aria-label") ?? "").trim() ||
+        byIds(el, "aria-labelledby") ||
+        (el.getAttribute("title") ?? "").trim();
+      if (!labelled) {
+        const placeholder = el.getAttribute("placeholder");
+        unlabelled.push(`${describe(el)}${placeholder ? ` (only a placeholder: "${placeholder}")` : ""}`);
+      }
+    }
+    return { h1s, unnamed, unlabelled, controls: controls.length, fields: fields.length };
+  });
+
+  const problems: string[] = [];
+  if (found.h1s.length !== 1) problems.push(`${found.h1s.length} h1 headings, expected exactly one: ${JSON.stringify(found.h1s)}`);
+  for (const suspect of found.unnamed) {
+    const element = page.locator(`[data-e2e-unnamed="${suspect.mark}"]`);
+    // Playwright's computation: a named node prints as `- button "Name"` (or a /regex/).
+    const snapshot = await element.ariaSnapshot().catch(() => "");
+    const firstLine = snapshot.split("\n")[0] ?? "";
+    if (!/^-\s+\S+\s+["/]/.test(firstLine)) problems.push(`no accessible name: ${suspect.html}${firstLine ? ` (Playwright: ${firstLine.trim()})` : ""}`);
+  }
+  await page.evaluate(() => document.querySelectorAll("[data-e2e-unnamed]").forEach((el) => el.removeAttribute("data-e2e-unnamed")));
+  for (const field of found.unlabelled) problems.push(`form control without a label: ${field}`);
+  return problems;
 }
 
 /**

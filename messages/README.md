@@ -116,7 +116,9 @@ async function SourcesFrame() {
 
 ## Screens still in English
 
-Translated: the header, menu, footer, start page, sign-in, `/profile` (all
+Translated: the header, menu, footer, start page, sign-in, `/week` (cards,
+buttons, date and deadline labels, the re-rank line and the action messages;
+the calendar file and the BSP handoff text stay English), `/profile` (all
 views and the editor), `/profile/<slug>`, `/staff/compare`,
 `/staff/ecosystem`, `/staff/handoffs`, `/staff/injection-demo`,
 `/staff/checks`, `/sources`, not-found and error pages, and the shared
@@ -124,7 +126,6 @@ badges, labels and loading states.
 
 Still to do:
 
-- `/week` (`app/week`, `lib/week`): cards, buttons, date labels.
 - `/explore` (`app/explore`, `lib/explore`): filters, list, timeline, map.
   The kind names are already in `common.kinds`.
 - `/scout` (`app/scout`, `lib/scout`).

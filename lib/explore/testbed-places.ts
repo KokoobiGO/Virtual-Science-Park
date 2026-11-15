@@ -11,6 +11,8 @@
  */
 import testbedsJson from "../../data/testbeds.seed.json";
 import { parseTestbeds, type TestbedRecord } from "../collectors/testbeds";
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
+import { createTranslator } from "../i18n/translate";
 
 export type Town = { name: string; lat: number; lon: number };
 
@@ -79,14 +81,14 @@ export function placeFor(externalId: string): TestbedPlace | null {
   return seedPlaces.get(externalId) ?? null;
 }
 
-const FIELD_LABELS: Record<PlaceField, string> = {
-  title: "the title",
-  description: "the description",
-  contact: "the stored contact",
-  note: "the team's note in the testbed list",
-};
-
-/** One line on where a place came from, e.g. `From the title: "…, Karlskrona".` */
-export function placeSourceLine(place: Pick<TestbedPlace, "field" | "quote">): string {
-  return place.field && place.quote ? `From ${FIELD_LABELS[place.field]}: "${place.quote}".` : "From the team's testbed list.";
+/**
+ * One line on where a place came from, e.g. `From the title: "…, Karlskrona".`
+ * The words around the quote are in the reader's language (`explore.map.place`,
+ * C19); the quote stays as stored. English when `locale` is left out.
+ */
+export function placeSourceLine(place: Pick<TestbedPlace, "field" | "quote">, locale: Locale = DEFAULT_LOCALE): string {
+  const t = createTranslator(locale, "explore");
+  return place.field && place.quote
+    ? t("map.place.fromField", { field: t(`map.place.fields.${place.field}`), quote: place.quote })
+    : t("map.place.fromList");
 }

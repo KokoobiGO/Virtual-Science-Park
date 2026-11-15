@@ -7,6 +7,7 @@
  * x grows with longitude times cos(standard parallel), y with latitude, both
  * on the same scale, so the shape is right near the middle of the frame.
  */
+import { DEFAULT_LOCALE, type Locale } from "../i18n/config";
 import { filterByTagAndQuery, type ExploreFilters, type ExploreItem } from "./filter";
 import { placeFor, placeSourceLine, TOWNS, type Town } from "./testbed-places";
 
@@ -180,8 +181,14 @@ export function placeLabel(town: Point & { name: string }, pins: readonly Point[
 /**
  * The map view: the test facilities that pass the tag and search filters, as
  * pins north to south (then by title), plus those that cannot be placed.
+ * `locale` is the language of each pin's place line (C19); English when left out.
  */
-export function buildTestbedMap(items: readonly ExploreItem[], filters: Pick<ExploreFilters, "tag" | "q">, frame: Frame = SOUTHERN_SWEDEN): TestbedMap {
+export function buildTestbedMap(
+  items: readonly ExploreItem[],
+  filters: Pick<ExploreFilters, "tag" | "q">,
+  frame: Frame = SOUTHERN_SWEDEN,
+  locale: Locale = DEFAULT_LOCALE,
+): TestbedMap {
   const testbeds = items.filter((i) => i.kind === "testbed");
   const shown = filterByTagAndQuery(testbeds, filters).sort((a, b) => a.title.localeCompare(b.title, "en"));
 
@@ -194,7 +201,7 @@ export function buildTestbedMap(items: readonly ExploreItem[], filters: Pick<Exp
       unplaced.push({ item, outsideTown: place ? place.town.name : null });
       continue;
     }
-    placed.push({ ...project(frame, at), group: place.town.name, item, town: place.town, placeSource: placeSourceLine(place) });
+    placed.push({ ...project(frame, at), group: place.town.name, item, town: place.town, placeSource: placeSourceLine(place, locale) });
   }
   placed.sort((a, b) => b.town.lat - a.town.lat || a.town.name.localeCompare(b.town.name, "en"));
 

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { CopilotLauncherSlot } from "@/components/copilot/copilot-launcher-slot";
 import { HtmlLangScript } from "@/components/html-lang-script";
+import { PointerGlow } from "@/components/pointer-glow";
 import { SiteFooter, SiteHeader } from "@/components/site-header";
 import { getT } from "@/lib/i18n/server";
 import "./globals.css";
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
         <HtmlLangScript />
       </head>
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
+        <PointerGlow />
         {/* Members only; reads the session, so it streams in after the page. */}
         <Suspense fallback={null}>
           <CopilotLauncherSlot />

@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "../db";
-import { companies, feedback, handoffs, opportunities, savedItems, weekCards } from "../db/schema";
+import { companies, feedback, handoffs, opportunities, savedItems, sourceStatus, weekCards } from "../db/schema";
 import type { UserTx } from "../db/user";
 import { askBspAboutOpportunity } from "./handoff";
 import { loadCalendarItem, loadWeek, loadWeekStatus } from "./load";
@@ -65,7 +65,7 @@ describe.skipIf(!configured)("Your week as a signed-in member", () => {
     expect(gold.map((g) => g.slug)).toEqual(["embeddedart", "malvacom"]);
     const [embeddedart, malvacom] = gold;
     const opps = await getDb()
-      .select({ id: opportunities.id, title: opportunities.title })
+      .select({ id: opportunities.id, title: opportunities.title, externalId: opportunities.externalId, source: opportunities.source })
       .from(opportunities)
       .where(isNotNull(opportunities.deadline))
       .orderBy(asc(opportunities.id))
@@ -118,6 +118,21 @@ describe.skipIf(!configured)("Your week as a signed-in member", () => {
       ]);
       expect(week.cards[0].opportunity).toMatchObject({ id: first.id });
       expect(week.cards[0].uncertainties).toEqual(["Test open point"]);
+      // The data status label's inputs (D20): the external id and the state of the source, read as the member.
+      for (const [card, opp] of [
+        [week.cards[0], first],
+        [week.cards[1], second],
+      ] as const) {
+        const [source] = await getDb()
+          .select({ state: sourceStatus.state, cachedAt: sourceStatus.cachedAt })
+          .from(sourceStatus)
+          .where(eq(sourceStatus.label, opp.source));
+        expect(card.opportunity).toMatchObject({
+          externalId: opp.externalId,
+          sourceState: source?.state ?? null,
+          cachedAt: source?.cachedAt ?? null,
+        });
+      }
       // Keys stay the same when the cards are built again; the build time is what the page polls for.
       expect(week.cards.map((c) => c.key)).toEqual([`opportunity:${first.id}`, `opportunity:${second.id}`]);
       expect(week.builtAt).toBeInstanceOf(Date);

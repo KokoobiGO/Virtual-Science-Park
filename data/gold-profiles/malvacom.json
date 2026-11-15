@@ -2,8 +2,11 @@
   "slug": "malvacom",
   "company": "Malvacom",
   "exportedAt": "2026-11-14T18:09:48.094Z",
-  "checkedBy": "",
-  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\" or \"wrong\" (for a missing claim, \"right\" means the pages really do not say it); write why in note, and your name in checkedBy.",
+  "checkedBy": "automated reviewer (AI), not a person",
+  "checkedOn": "2026-11-14",
+  "automatedReviewer": true,
+  "confirmedByTeam": false,
+  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\", \"wrong\" or \"unsure\" (for a missing claim, \"right\" means the pages really do not say it; \"unsure\" means the pages do not settle it, and it never counts as right); write why in note, the pages you read in checkedUrls, your name in checkedBy and the day in checkedOn.",
   "claims": [
     {
       "claimId": "39c24376-323c-48f4-89b6-00d393d120f7",
@@ -17,8 +20,11 @@
           "url": "https://malvacom.com/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "Word for word in 'Om bolaget' on malvacom.com.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "cbecefa6-4fa8-4dfa-a3cd-2b14dc3b6259",
@@ -38,8 +44,11 @@
           "url": "https://malvacom.com/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "malvacom.com: 'från nyutveckling och AI-automation till systemintegration, drift och långsiktig förvaltning'. Incomplete: cloud services and embedded/IoT, two of the six services, are left out.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "cba7c0fa-b785-4d2a-a45b-ab3899c00d9d",
@@ -63,8 +72,11 @@
           "url": "https://malvacom.com/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "All nine are on malvacom.com: the UKÄ case lists exactly these, and the FAQ's technology list has all but Jira (Jira is in the customer cases). Incomplete: React, TypeScript, C# and Azure are left out.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "a9a31966-db0b-45e0-b789-eb17e474fbd0",
@@ -73,8 +85,11 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: malvacom.com says what its work is used for, e.g. AI for document handling, information search and decision processes, integrations between HR, payroll, authority registers and IoT, customer portals and fire-alarm monitoring.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "2b44b073-1c9c-4b16-a126-3176e59a7e51",
@@ -83,8 +98,11 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: malvacom.com serves 'svenska myndigheter och företag' and 'offentlig sektor och näringsliv'; the FAQ names customers in offentlig sektor, fastighetsteknik, energi, industri, säkerhetssystem och rekrytering.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "c82874a3-7b9d-47fd-be55-79f2b5e49b7a",
@@ -93,8 +111,11 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: malvacom.com has offices in Karlskrona (head office), Karlshamn and Stockholm and says 'Geografisk räckvidd: Karlskrona, Blekinge, hela Sverige och Norden'. The profile's own summary says founded in Karlskrona.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "57f6c39f-602c-4948-923c-a51236eb07de",
@@ -103,8 +124,11 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: malvacom.com describes its projects and collaborations (UKÄ, Vasakronan, the Nexans program built with JK Cablegrid Consulting, the Alphalab innovation lab) and its aim of long-term management ('Malvacoms affärsmodell bygger på långsiktig förvaltning').",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     },
     {
       "claimId": "41b8d66b-5f07-4923-9a52-e92ed85ce3ac",
@@ -113,8 +137,11 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: a reasonable reader can infer partner and funding interests from malvacom.com, e.g. AI and agent work, startups and industry partners for the Alphalab lab, and 'Projekt inom energi, proptech och marinteknik'.",
+      "checkedUrls": [
+        "https://malvacom.com/"
+      ]
     }
   ]
 }

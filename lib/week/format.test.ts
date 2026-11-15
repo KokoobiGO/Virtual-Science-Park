@@ -1,5 +1,55 @@
 import { describe, expect, it } from "vitest";
-import { calendarHref, cardDates, formatWhen, isWebLink, isWholeDay, kindLabel, notOpenYetLabel, sourceLabel, weekLabel } from "./format";
+import {
+  calendarHref,
+  cardDates,
+  dateUrgency,
+  formatWhen,
+  isWebLink,
+  isWholeDay,
+  kindLabel,
+  notOpenYetLabel,
+  sourceLabel,
+  urgencyText,
+  weekLabel,
+} from "./format";
+
+describe("dateUrgency and urgencyText", () => {
+  // 11:00 Swedish time on Saturday 14 Nov 2026.
+  const now = new Date("2026-11-14T10:00:00Z");
+
+  it("counts Swedish calendar days", () => {
+    expect(dateUrgency(new Date("2026-11-14T16:00:00Z"), now)).toEqual({ level: "today" });
+    expect(dateUrgency(new Date("2026-11-15T22:59:00Z"), now)).toEqual({ level: "tomorrow" }); // 23:59 on the 15th
+    expect(dateUrgency(new Date("2026-11-17T12:00:00Z"), now)).toEqual({ level: "soon", days: 3 });
+    expect(dateUrgency(new Date("2026-12-02T13:00:00Z"), now)).toEqual({ level: "upcoming", days: 18 });
+    expect(dateUrgency(new Date("2027-02-16T12:00:00Z"), now)).toEqual({ level: "later", weeks: 13 });
+  });
+
+  it("keeps a date without a time open the whole day, and a timed one only until its time", () => {
+    expect(dateUrgency(new Date("2026-11-13T23:00:00Z"), now)).toEqual({ level: "today" }); // 00:00 on the 14th
+    expect(dateUrgency(new Date("2026-11-14T08:00:00Z"), now)).toEqual({ level: "passed" }); // 09:00 today
+    expect(dateUrgency(new Date("2026-11-10T13:00:00Z"), now)).toEqual({ level: "passed" });
+  });
+
+  it("says it in words, for a deadline and for an event, in both languages", () => {
+    expect(urgencyText("deadline", { level: "soon", days: 3 })).toBe("Closes in 3 days");
+    expect(urgencyText("deadline", { level: "upcoming", days: 1 })).toBe("Closes in 1 day");
+    expect(urgencyText("deadline", { level: "passed" })).toBe("Deadline passed");
+    expect(urgencyText("event", { level: "later", weeks: 2 })).toBe("In 2 weeks");
+    expect(urgencyText("event", { level: "today" })).toBe("Today");
+    expect(urgencyText("deadline", { level: "soon", days: 3 }, "sv")).toBe("Stänger om 3 dagar");
+    expect(urgencyText("event", { level: "later", weeks: 1 }, "sv")).toBe("Om 1 vecka");
+  });
+});
+
+describe("Swedish", () => {
+  it("writes dates, kinds and the opening label in Swedish", () => {
+    expect(formatWhen(new Date("2026-12-03T13:00:00Z"), "sv")).toBe("3 dec. 2026, 14:00");
+    expect(weekLabel("2026-11-09", "sv")).toBe("9 nov. 2026");
+    expect(kindLabel("funding", "sv")).toBe("Utlysning");
+    expect(notOpenYetLabel(new Date("2026-11-30T23:00:00Z"), new Date("2026-11-14T10:00:00Z"), "sv")).toBe("Inte öppen än: öppnar 1 dec. 2026");
+  });
+});
 
 describe("formatWhen", () => {
   it("shows the Swedish date and time when the source gives a time", () => {

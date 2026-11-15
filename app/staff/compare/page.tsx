@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Columns2, Link2 } from "lucide-react";
+import { StaffPageIntro } from "../page-intro";
 import { requireRole } from "@/lib/auth";
 import type { Locale } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -39,10 +41,7 @@ async function CompareFrame({ searchParams }: Pick<PageProps<"/staff/compare">, 
   const t = createTranslator(locale, "compare");
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-title">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("intro")}</p>
-      </div>
+      <StaffPageIntro title={t("title")} intro={t("intro")} todo={t("todo")} />
       <Suspense fallback={<CompareSkeleton label={t("loading")} />}>
         <Comparison searchParams={searchParams} locale={locale} />
       </Suspense>
@@ -89,13 +88,19 @@ async function Comparison({ searchParams, locale }: Pick<PageProps<"/staff/compa
     <div className="flex flex-col gap-6">
       <PickForm members={members} a={a ?? ""} b={b ?? ""} error={error} locale={locale} />
       {!pair.ok || !result?.ok ? (
-        error ? null : <p className="text-sm text-muted-foreground">{t("pickPrompt")}</p>
+        error ? null : (
+          <div className="flex animate-fade flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
+            <Columns2 aria-hidden className="size-6" />
+            <p>{t("pickPrompt")}</p>
+          </div>
+        )
       ) : (
         <>
-          <p className="text-sm text-muted-foreground" aria-live="polite">
+          <p className="flex animate-fade items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+            <Link2 aria-hidden className="size-4 shrink-0" />
             {t("shared", { count: result.comparison.shared.length })}
           </p>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 stagger">
             <SideCard side={result.comparison.a} locale={locale} />
             <SideCard side={result.comparison.b} locale={locale} />
           </div>
@@ -131,11 +136,13 @@ function PickForm({ members, a, b, error, locale }: { members: Member[]; a: stri
     </div>
   );
   return (
-    <Form action="/staff/compare" key={`${a}|${b}`} className="flex flex-col gap-3 rounded-xl border p-4">
+    <Form action="/staff/compare" key={`${a}|${b}`} className="flex animate-rise flex-col gap-3 rounded-xl border bg-card p-4 shadow-card">
       <div className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
         {picker("a", t("first"), a)}
         {picker("b", t("second"), b)}
-        <Button type="submit">{t("submit")}</Button>
+        <Button type="submit" className="press">
+          {t("submit")}
+        </Button>
       </div>
       {error ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
@@ -160,7 +167,7 @@ function SideCard({ side, locale }: { side: CompareSide; locale: Locale }) {
       </CardHeader>
       {side.top.length ? (
         <CardContent>
-          <ol className="flex flex-col divide-y">
+          <ol className="flex flex-col divide-y stagger">
             {side.top.map((item) => (
               <CompareRow key={item.opportunityId} item={item} locale={locale} />
             ))}

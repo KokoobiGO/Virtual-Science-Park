@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleAlert, LoaderCircle } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { signIn, type SignInState } from "@/app/actions/auth";
@@ -17,7 +18,12 @@ export function SignInForm() {
   const invalid = state.error ? true : undefined;
 
   return (
-    <form action={action} className="flex flex-col gap-4" aria-describedby={state.error ? "sign-in-error" : undefined}>
+    <form
+      action={action}
+      className="flex flex-col gap-4"
+      aria-describedby={state.error ? "sign-in-error" : undefined}
+      aria-busy={pending || undefined}
+    >
       <input type="hidden" name="next" value={next} />
       <div className="flex flex-col gap-2">
         <Label htmlFor="email">{t("email")}</Label>
@@ -29,7 +35,9 @@ export function SignInForm() {
           autoComplete="username"
           defaultValue={state.email}
           aria-invalid={invalid}
-          className="h-9"
+          className="h-10"
+          placeholder={t("emailPlaceholder")}
+          readOnly={pending}
           required
         />
       </div>
@@ -41,16 +49,24 @@ export function SignInForm() {
           type="password"
           autoComplete="current-password"
           aria-invalid={invalid}
-          className="h-9"
+          className="h-10"
+          readOnly={pending}
           required
         />
       </div>
       {state.error ? (
-        <p id="sign-in-error" role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {state.error}
+        <p
+          key={state.error}
+          id="sign-in-error"
+          role="alert"
+          className="flex animate-slide-down items-start gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>{state.error}</span>
         </p>
       ) : null}
-      <Button type="submit" size="lg" disabled={pending}>
+      <Button type="submit" size="lg" className="h-10" disabled={pending}>
+        {pending ? <LoaderCircle className="animate-spin" aria-hidden /> : null}
         {pending ? t("submitting") : t("submit")}
       </Button>
     </form>

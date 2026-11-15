@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import en from "@/messages/en.json";
+import { kindLabel } from "../week/format";
 import { buildDigest, countsText, escapeHtml, weekPageUrl, type DigestCard } from "./digest";
 
 const now = new Date("2026-11-14T10:00:00Z");
@@ -224,5 +226,51 @@ describe("countsText", () => {
     expect(countsText([matchCard()])).toBe("1 potential match");
     expect(countsText([matchCard(), matchCard(), trendCard()])).toBe("2 potential matches and a trend note");
     expect(countsText([trendCard()])).toBe("a trend note");
+  });
+});
+
+describe("the digest in Swedish (C19)", () => {
+  const swedish = (cards: DigestCard[]) => buildDigest({ companyName: "EmbeddedArt", weekOf: "2026-11-09", cards, siteUrl: SITE, now, locale: "sv" })!;
+
+  it("is English unless the caller asks for Swedish", () => {
+    expect(digest([matchCard()])!.html).toContain('<html lang="en">');
+    expect(swedish([matchCard()]).html).toContain('<html lang="sv">');
+  });
+
+  it("writes the email's own words in Swedish and keeps the card's stored text as it is", () => {
+    const email = swedish([
+      matchCard({ opportunity: { ...matchCard().opportunity!, deadline: new Date("2026-11-10T13:00:00Z") } }),
+      trendCard(),
+    ]);
+    expect(email.subject).toBe("Er vecka, 9 nov. 2026: 1 möjlig matchning och en trendnotis för EmbeddedArt");
+    expect(email.text).toContain("Er vecka: EmbeddedArt\nVeckan som börjar 9 nov. 2026");
+    expect(email.text).toContain("   Möjlig matchning | Utlysning | Vinnova");
+    expect(email.text).toContain("   Sista dag: 10 nov. 2026 kl. 14:00 (passerat)");
+    expect(email.text).toContain("   Varför den passar:\n   You build underwater sensors and the call funds sea trials.");
+    expect(email.text).toContain("   Trendnotis | Marint\n   Vad som har hänt i veckan:");
+    expect(email.text).toContain("   Källor:");
+    expect(email.html).toContain(">Öppna Er vecka</a>");
+    expect(email.html).toContain("Datum anges i svensk tid.");
+    expect(email.html).not.toContain("Why it fits");
+    expect(email.html).not.toMatch(/berättigad|behörig|eligib/i);
+  });
+
+  it("uses the shared Swedish data labels", () => {
+    const email = swedish([
+      matchCard({ opportunity: { ...matchCard().opportunity!, kind: "testbed", source: "Curated testbed list", simulated: true, sourceState: "simulated" } }),
+      matchCard({ position: 2, opportunity: { ...matchCard().opportunity!, sourceState: "cached", cachedAt: new Date("2026-11-10T09:00:00Z") } }),
+    ]);
+    expect(email.text).toContain("Möjlig matchning | Testbädd | Curated testbed list | Inlagt för hand");
+    expect(email.text).toContain("Sparad kopia · 10 nov. 2026");
+    expect(email.text).toContain("- Inlagt för hand: inskrivet av teamet från källan, inte inläst automatiskt.");
+  });
+
+  it("counts in Swedish", () => {
+    expect(countsText([matchCard(), matchCard(), trendCard()], "sv")).toBe("2 möjliga matchningar och en trendnotis");
+    expect(countsText([trendCard(), trendCard()], "sv")).toBe("2 trendnotiser");
+  });
+
+  it("names the kinds of opportunity as Your week does, in English", () => {
+    for (const kind of ["funding", "testbed", "event", "news"] as const) expect(en.digest.kinds[kind]).toBe(kindLabel(kind));
   });
 });

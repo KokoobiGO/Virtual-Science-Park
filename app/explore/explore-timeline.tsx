@@ -1,87 +1,83 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { formatDay, monthLabel, shortMonthLabel } from "@/lib/explore/dates";
+import { monthLabel, shortMonthLabel } from "@/lib/explore/dates";
 import { dateStatus, type ExploreFilters, type ExploreItem, type MatchInfo } from "@/lib/explore/filter";
 import { monthCounts, type MonthGroup, type Timeline } from "@/lib/explore/timeline";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
+import { formatDay } from "@/lib/i18n/format";
+import { createTranslator, type Translator } from "@/lib/i18n/translate";
 import { ItemStatusLabel, NoResults, SourceLink } from "./opportunity-bits";
 
-/** The second view (C16): call deadlines by month, then dated events. No map. */
+type T = Translator<"explore">;
+
+/** The second view (C16): call deadlines by month, then dated events. No map. Words and month names in the reader's language (C19). */
 export function ExploreTimeline({
   timeline,
   matches,
   filters,
   now,
+  locale = DEFAULT_LOCALE,
 }: {
   timeline: Timeline;
   matches: Map<string, MatchInfo> | null;
   filters: ExploreFilters;
   now: Date;
+  locale?: Locale;
 }) {
+  const t = createTranslator(locale, "explore");
   const callCount = timeline.calls.reduce((sum, g) => sum + g.items.length, 0);
   const eventCount = timeline.events.reduce((sum, g) => sum + g.items.length, 0);
+  const undated = timeline.undatedEvents.length;
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4" aria-labelledby="calls-heading">
         <div className="flex flex-col gap-1">
           <h2 id="calls-heading" className="text-heading">
-            Funding call deadlines
+            {t("timeline.callsTitle")}
           </h2>
-          <p className="text-sm text-muted-foreground">
-            {callCount} funding {callCount === 1 ? "call" : "calls"} whose deadline has not passed, by the month of the deadline.
-            Calls that open later say so. Select a month&apos;s bar to jump to its calls.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("timeline.callsIntro", { count: callCount })}</p>
         </div>
-        <MonthBars groups={timeline.calls} />
+        <MonthBars groups={timeline.calls} t={t} />
         {timeline.calls.map((group) => (
-          <MonthSection key={group.key} group={group} idPrefix="calls" noun="call">
+          <MonthSection key={group.key} group={group} idPrefix="calls" t={t}>
             {group.items.map((item) => (
-              <TimelineRow key={item.id} item={item} date={item.deadline!} match={matches?.get(item.id) ?? null} now={now} />
+              <TimelineRow key={item.id} item={item} date={item.deadline!} match={matches?.get(item.id) ?? null} now={now} t={t} />
             ))}
           </MonthSection>
         ))}
         {callCount ? null : (
-          <NoResults
-            filters={filters}
-            filtered="No open funding call fits these filters."
-            empty="No funding call with a deadline ahead is stored right now. New calls appear after the nightly collection."
-          />
+          <NoResults filters={filters} filtered={t("timeline.callsEmptyFiltered")} empty={t("timeline.callsEmpty")} locale={locale} />
         )}
       </section>
 
       <section className="flex flex-col gap-4" aria-labelledby="events-heading">
         <div className="flex flex-col gap-1">
           <h2 id="events-heading" className="text-heading">
-            Events
+            {t("timeline.eventsTitle")}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {eventCount} dated {eventCount === 1 ? "event" : "events"} from today on, by date.
-            {timeline.undatedEvents.length
-              ? ` ${timeline.undatedEvents.length} recurring ${timeline.undatedEvents.length === 1 ? "series has" : "series have"} no stored date and ${timeline.undatedEvents.length === 1 ? "is" : "are"} listed after them.`
-              : ""}
+            {t("timeline.eventsIntro", { count: eventCount })}
+            {undated ? ` ${t("timeline.undated", { count: undated })}` : ""}
           </p>
         </div>
         {timeline.events.map((group) => (
-          <MonthSection key={group.key} group={group} idPrefix="events" noun="event">
+          <MonthSection key={group.key} group={group} idPrefix="events" t={t}>
             {group.items.map((item) => (
-              <TimelineRow key={item.id} item={item} date={item.eventDate!} match={matches?.get(item.id) ?? null} now={now} />
+              <TimelineRow key={item.id} item={item} date={item.eventDate!} match={matches?.get(item.id) ?? null} now={now} t={t} />
             ))}
           </MonthSection>
         ))}
         {eventCount ? null : (
-          <NoResults
-            filters={filters}
-            filtered="No dated event ahead fits these filters."
-            empty="No dated event ahead is stored right now. New events appear after the nightly collection."
-          />
+          <NoResults filters={filters} filtered={t("timeline.eventsEmptyFiltered")} empty={t("timeline.eventsEmpty")} locale={locale} />
         )}
-        {timeline.undatedEvents.length ? (
+        {undated ? (
           <div className="flex flex-col gap-2">
-            <h3 className="font-medium">Recurring, no date stored</h3>
+            <h3 className="font-medium">{t("timeline.undatedTitle")}</h3>
             <ul className="divide-y rounded-xl border">
               {timeline.undatedEvents.map((item) => (
                 <li key={item.id} className="flex flex-col gap-1 px-4 py-2.5">
-                  <SourceLink url={item.url} title={item.title} className="text-sm" />
-                  <ItemMeta item={item} match={matches?.get(item.id) ?? null} />
+                  <SourceLink url={item.url} title={item.title} className="text-sm" locale={locale} />
+                  <ItemMeta item={item} match={matches?.get(item.id) ?? null} t={t} />
                 </li>
               ))}
             </ul>
@@ -93,17 +89,17 @@ export function ExploreTimeline({
 }
 
 /** One bar per month, so the busy months stand out. Each bar links to its month; the count is written above it. */
-function MonthBars({ groups }: { groups: MonthGroup<ExploreItem>[] }) {
+function MonthBars({ groups, t }: { groups: MonthGroup<ExploreItem>[]; t: T }) {
   const counts = monthCounts(groups);
   if (!counts.length) return null;
   const max = Math.max(...counts.map((c) => c.count));
   return (
     // `relative`, so the screen-reader-only month labels (absolutely placed) stay inside the scrolling box on a phone.
-    <div className="relative overflow-x-auto rounded-xl border p-4">
-      <ol className="flex min-w-max items-end gap-1.5" aria-label="Deadlines per month">
+    <div className="relative overflow-x-auto rounded-xl border bg-card p-4 shadow-card">
+      <ol className="stagger flex min-w-max items-end gap-1.5" aria-label={t("timeline.barsLabel")}>
         {counts.map((c, i) => {
           const [year, month] = c.key.split("-");
-          const label = `${monthLabel(c.key)}: ${c.count} ${c.count === 1 ? "deadline" : "deadlines"}`;
+          const label = t("timeline.bar", { month: monthLabel(c.key, t.locale), count: c.count });
           return (
             <li key={c.key} className="flex w-9 flex-col items-center gap-1">
               <span aria-hidden className="text-xs tabular-nums text-muted-foreground">
@@ -115,7 +111,7 @@ function MonthBars({ groups }: { groups: MonthGroup<ExploreItem>[] }) {
                     href={`#calls-${c.key}`}
                     title={label}
                     aria-label={label}
-                    className="block w-6 rounded-t-md bg-primary hover:bg-primary/80"
+                    className="block w-6 rounded-t-md bg-primary transition-colors hover:bg-primary/75 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                     style={{ height: `${Math.max(6, (c.count / max) * 100)}%` }}
                   />
                 ) : (
@@ -126,7 +122,7 @@ function MonthBars({ groups }: { groups: MonthGroup<ExploreItem>[] }) {
                 )}
               </div>
               <span aria-hidden className="text-xs">
-                {shortMonthLabel(c.key)}
+                {shortMonthLabel(c.key, t.locale)}
               </span>
               <span aria-hidden className="h-4 text-xs text-muted-foreground">
                 {i === 0 || month === "01" ? year : ""}
@@ -139,47 +135,46 @@ function MonthBars({ groups }: { groups: MonthGroup<ExploreItem>[] }) {
   );
 }
 
-function MonthSection({ group, idPrefix, noun, children }: { group: MonthGroup<ExploreItem>; idPrefix: string; noun: string; children: ReactNode }) {
+function MonthSection({ group, idPrefix, t, children }: { group: MonthGroup<ExploreItem>; idPrefix: "calls" | "events"; t: T; children: ReactNode }) {
+  const count = group.items.length;
   return (
-    <div id={`${idPrefix}-${group.key}`} className="flex scroll-mt-24 flex-col gap-2">
+    <div id={`${idPrefix}-${group.key}`} className="flex scroll-mt-24 flex-col gap-2 rounded-xl target:animate-pop">
       <h3 className="font-medium">
-        {group.label}{" "}
-        <span className="font-normal text-muted-foreground">
-          ({group.items.length} {group.items.length === 1 ? noun : `${noun}s`})
-        </span>
+        {monthLabel(group.key, t.locale)}{" "}
+        <span className="font-normal text-muted-foreground">({t(idPrefix === "calls" ? "timeline.monthCalls" : "timeline.monthEvents", { count })})</span>
       </h3>
-      <ul className="divide-y rounded-xl border">{children}</ul>
+      <ul className="stagger divide-y rounded-xl border bg-card shadow-card">{children}</ul>
     </div>
   );
 }
 
-function TimelineRow({ item, date, match, now }: { item: ExploreItem; date: Date; match: MatchInfo | null; now: Date }) {
+function TimelineRow({ item, date, match, now, t }: { item: ExploreItem; date: Date; match: MatchInfo | null; now: Date; t: T }) {
   const status = dateStatus(item, now);
   return (
-    <li className="flex gap-3 px-4 py-2.5 sm:gap-4">
+    <li className="flex gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50 sm:gap-4">
       <span className={`w-24 shrink-0 text-sm tabular-nums ${status === "closing_soon" ? "font-medium" : "text-muted-foreground"}`}>
-        {formatDay(date)}
+        {formatDay(date, t.locale)}
       </span>
       <div className="flex min-w-0 flex-col gap-1">
-        <SourceLink url={item.url} title={item.title} className="text-sm" />
-        <ItemMeta item={item} match={match} closingSoon={status === "closing_soon"} />
+        <SourceLink url={item.url} title={item.title} className="text-sm" locale={t.locale} />
+        <ItemMeta item={item} match={match} closingSoon={status === "closing_soon"} t={t} />
         {status === "opens_later" && item.opensAt ? (
-          <span className="text-xs text-muted-foreground">Not open yet: opens {formatDay(item.opensAt)}.</span>
+          <span className="text-xs text-muted-foreground">{t("timeline.notOpenYet", { day: formatDay(item.opensAt, t.locale) })}</span>
         ) : null}
       </div>
     </li>
   );
 }
 
-function ItemMeta({ item, match, closingSoon = false }: { item: ExploreItem; match: MatchInfo | null; closingSoon?: boolean }) {
+function ItemMeta({ item, match, closingSoon = false, t }: { item: ExploreItem; match: MatchInfo | null; closingSoon?: boolean; t: T }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      {closingSoon ? <Badge>Closing soon</Badge> : null}
+      {closingSoon ? <Badge>{t("list.closingSoon")}</Badge> : null}
       <span className="break-words">{item.source}</span>
-      <ItemStatusLabel item={item} />
+      <ItemStatusLabel item={item} locale={t.locale} />
       {match ? (
-        <Badge variant="secondary" title={match.why ?? "Not judged yet."}>
-          Your potential match, number {match.position}
+        <Badge variant="secondary" title={match.why ?? t("match.badgeNotJudged")}>
+          {t("match.badge", { position: match.position })}
         </Badge>
       ) : null}
     </div>

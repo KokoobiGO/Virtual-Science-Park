@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useOptimistic, useState, useTransition } from "react";
 import { announce } from "@/components/announcer";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ export function PrioritySwitches({ switches }: { switches: PrioritySwitch[] }) {
   const t = useT("profile");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Counts the saves, so the visible "Saved" note pops again on each one.
+  const [saves, setSaves] = useState(0);
   const [shown, setShown] = useOptimistic(switches, (current, changed: { priority: string; on: boolean }) =>
     current.map((s) => (s.priority === changed.priority ? { ...s, on: changed.on } : s)),
   );
@@ -29,7 +32,10 @@ export function PrioritySwitches({ switches }: { switches: PrioritySwitch[] }) {
       setShown({ priority: item.priority, on });
       const result = await setPriority(item.priority, on);
       setError(result.error);
-      if (!result.error) announce(t(on ? "priorities.savedOn" : "priorities.savedOff", { label: item.label }));
+      if (!result.error) {
+        announce(t(on ? "priorities.savedOn" : "priorities.savedOff", { label: item.label }));
+        setSaves((n) => n + 1);
+      }
     });
   };
 
@@ -52,6 +58,13 @@ export function PrioritySwitches({ switches }: { switches: PrioritySwitch[] }) {
           </Button>
         ))}
       </div>
+      {/* Seen on screen; screen readers already hear the announcement above, so this is not a live region. */}
+      {saves > 0 && !error && !pending ? (
+        <p key={saves} className="flex animate-pop items-center gap-1.5 text-sm text-success">
+          <Check aria-hidden className="size-4 shrink-0" />
+          {t("priorities.savedVisible")}
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}

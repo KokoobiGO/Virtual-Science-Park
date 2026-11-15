@@ -2,8 +2,11 @@
   "slug": "techinova",
   "company": "Techinova",
   "exportedAt": "2026-11-14T18:09:48.094Z",
-  "checkedBy": "",
-  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\" or \"wrong\" (for a missing claim, \"right\" means the pages really do not say it); write why in note, and your name in checkedBy.",
+  "checkedBy": "automated reviewer (AI), not a person",
+  "checkedOn": "2026-11-14",
+  "automatedReviewer": true,
+  "confirmedByTeam": false,
+  "howTo": "Check each claim against the company's own public pages and set verdict to \"right\", \"wrong\" or \"unsure\" (for a missing claim, \"right\" means the pages really do not say it; \"unsure\" means the pages do not settle it, and it never counts as right); write why in note, the pages you read in checkedUrls, your name in checkedBy and the day in checkedOn.",
   "claims": [
     {
       "claimId": "e6e9b428-d914-4dfc-b89c-ebfc5a4d4331",
@@ -17,8 +20,12 @@
           "url": "https://www.bluesciencepark.se/medlem/techinova/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "The BSP member page says exactly this, and techinova.com/sv agrees (smart and stable energy solutions for the power grid).",
+      "checkedUrls": [
+        "https://www.bluesciencepark.se/medlem/techinova/",
+        "https://techinova.com/sv"
+      ]
     },
     {
       "claimId": "b8f66d87-ce5f-42f9-9289-9ae9d9fdac13",
@@ -40,8 +47,12 @@
           "url": "https://techinova.com/sv"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "All three items are on techinova.com/sv, TechiNode included ('produkterna för fjärrstyrning och automation' of the medium-voltage grid). Incomplete: TechiGrid, TechiInsight, TechiControl, TechiWater and the services on the BSP page are left out.",
+      "checkedUrls": [
+        "https://techinova.com/sv",
+        "https://www.bluesciencepark.se/medlem/techinova/"
+      ]
     },
     {
       "claimId": "606307f4-b5ba-4317-a254-7dcb58ee3fc9",
@@ -63,8 +74,11 @@
           "url": "https://techinova.com/sv"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "Each item is on techinova.com/sv: smarta och stabila energilösningar, TechiNode fjärrstyrning och automation, TechiGrid fellokalisering och omkoppling i luftlinjenät. 'Smart energy solutions' names a product line more than a technology.",
+      "checkedUrls": [
+        "https://techinova.com/sv"
+      ]
     },
     {
       "claimId": "e07f5dd8-77ed-488e-8e51-7533574200de",
@@ -85,8 +99,11 @@
           "url": "https://techinova.com/sv"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "techinova.com/sv: 'övervaka och styra ditt elnät', and TechiInsight for 'mätning, styrning och automatiserad analys i mottagningsstationer, fördelningsstationer och nätstationer'.",
+      "checkedUrls": [
+        "https://techinova.com/sv"
+      ]
     },
     {
       "claimId": "62d0ca0c-5f5c-433a-83be-2c05348e9bd1",
@@ -102,8 +119,13 @@
           "url": "https://www.bluesciencepark.se/medlem/techinova/"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "BSP page: 'anpassade för energisektorns behov'; the dLab news on techinova.com names eldistributörer och kraftproducenter. Not covered: TechiWater for water and sewage networks.",
+      "checkedUrls": [
+        "https://www.bluesciencepark.se/medlem/techinova/",
+        "https://techinova.com/sv",
+        "https://techinova.com/sv/posts/dlaboratory-ingr-avtal-om-frvrv-av-techinova-ab"
+      ]
     },
     {
       "claimId": "39493a20-b6c7-4c54-8d85-91432cfc3792",
@@ -120,8 +142,12 @@
           "url": "https://techinova.com/sv"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "right",
+      "note": "Footer address Intagsvägen 3, 371 46 Karlskrona; the dLab news says 'huvudkontor i Karlskrona' and 'i huvudsak verksamt på den svenska marknaden'. The quote given (the award headline) is weak evidence, and the second item is an inference marked stated. Incomplete: an office in Uppsala, expansion to Poland and Finland.",
+      "checkedUrls": [
+        "https://techinova.com/sv",
+        "https://techinova.com/sv/posts/dlaboratory-ingr-avtal-om-frvrv-av-techinova-ab"
+      ]
     },
     {
       "claimId": "b26732b7-c453-4229-85e1-ebd42943b831",
@@ -130,8 +156,13 @@
       "value": null,
       "confidence": 0,
       "evidence": [],
-      "verdict": null,
-      "note": ""
+      "verdict": "wrong",
+      "note": "Not missing: the source page itself describes a collaboration (techinova.com/sv: Techinova and dLab have worked together for years on the joint solution dSense). The dLab news adds expansion to Poland and Finland, and BSP's article describes the CISSAN research project.",
+      "checkedUrls": [
+        "https://techinova.com/sv",
+        "https://techinova.com/sv/posts/dlaboratory-ingr-avtal-om-frvrv-av-techinova-ab",
+        "https://www.bluesciencepark.se/aktuellt/fran-projekt-till-produkt-techinova-tar-nasta-steg-inom-sakrare-elnat/"
+      ]
     },
     {
       "claimId": "f604393f-791d-4acd-a1cc-e0b5ca46e48a",
@@ -153,8 +184,13 @@
           "url": "https://techinova.com/sv"
         }
       ],
-      "verdict": null,
-      "note": ""
+      "verdict": "unsure",
+      "note": "Partners and recruitment are reasonable readings (the dSense collaboration with dLab; 'Vi letar alltid efter nya talanger'). But the quoted headline says dLab acquires Techinova, a wholly owned dLab subsidiary since September 2026 (organisation page), so the pages do not settle that Techinova itself looks for acquisitions.",
+      "checkedUrls": [
+        "https://techinova.com/sv",
+        "https://techinova.com/sv/posts/dlaboratory-ingr-avtal-om-frvrv-av-techinova-ab",
+        "https://techinova.com/sv/organisation"
+      ]
     }
   ]
 }

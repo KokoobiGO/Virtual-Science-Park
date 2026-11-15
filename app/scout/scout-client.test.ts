@@ -112,4 +112,21 @@ describe("ScoutClient", () => {
     expect(empty).toContain("Write a question above and press Ask Scout");
     expect(empty).toContain("None yet.");
   });
+
+  it("marks the step Scout is on now in a running brief, says how long a brief takes, and leaves a finished brief with no current step", () => {
+    const running: BriefView = { ...done, prerun: false, status: "running", result: null, progress: done.progress.slice(0, 3) };
+    const html = render(running);
+    expect(html.match(/aria-current="step"/g)).toHaveLength(1);
+    const current = html.slice(html.indexOf('aria-current="step"'), html.indexOf("</li>", html.indexOf('aria-current="step"')));
+    expect(current).toContain("Now:");
+    expect(current).toContain(done.progress[2].text.replace(/"/g, "&quot;").slice(0, 30));
+    expect(html).toContain("A brief usually takes one to four minutes.");
+    expect(render(done, true)).not.toContain('aria-current="step"');
+  });
+
+  it("puts the brief's summary under a plain label before the options", () => {
+    const html = render(done, true);
+    expect(html.indexOf(">In short<")).toBeGreaterThan(0);
+    expect(html.indexOf(">In short<")).toBeLessThan(html.indexOf("Potential match"));
+  });
 });
